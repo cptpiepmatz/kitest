@@ -1,8 +1,12 @@
 [package]
 name = "kitest"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
+publish = false
 
 [dependencies]
+ahash = "0.8.12"
+argh = "0.1.13"
 itertools = "0.14.0"
 nu-ansi-term = "0.50.3"
+rayon = "1.11.0"
