@@ -1,16 +1,55 @@
 use std::{
-    borrow::Cow, collections::{BTreeMap, HashMap}, fmt::Display, hash::Hash, io, num::NonZeroUsize, path::Path,
-    thread, time::Duration,
+    borrow::Cow,
+    collections::{BTreeMap, HashMap},
+    fmt::Display,
+    hash::Hash,
+    io,
+    num::NonZeroUsize,
+    path::Path,
+    process::{self, ExitCode, Termination},
+    thread,
+    time::Duration,
 };
 
-type FlexStr<'s> = Cow<'s, str>;
+use itertools::Itertools;
 
-pub struct TestMeta<'m, Extra> {
+mod formatter;
+
+type FlexStr<'s> = Cow<'s, str>;
+pub type Result<T = Pass, E = Fail> = std::result::Result<T, E>;
+
+pub enum TestFn {
+    Plain(fn()),
+    WithResult(fn() -> Result),
+}
+
+impl TestFn {
+    pub const fn plain(f: fn()) -> Self {
+        Self::Plain(f)
+    }
+
+    pub const fn with_result(f: fn() -> Result) -> Self {
+        Self::WithResult(f)
+    }
+}
+
+pub struct TestMeta<'m, Extra = ()> {
     pub name: FlexStr<'m>,
-    pub function: fn(),
+    pub function: TestFn,
     pub ignored: (bool, Option<FlexStr<'m>>),
     pub should_panic: (bool, Option<FlexStr<'m>>),
     pub extra: Extra,
+}
+
+impl<'m, Extra> TestMeta<'m, Extra> {
+    pub fn run(&self) -> Result {
+        match self.function {
+            TestFn::Plain(f) => f(),
+            TestFn::WithResult(f) => return f(),
+        }
+
+        Ok(Pass::Ok)
+    }
 }
 
 struct TestIndex<'m, TestExtra>(HashMap<&'m str, &'m TestMeta<'m, TestExtra>>);
@@ -44,7 +83,7 @@ pub struct TestExecutor<'m, TestExtra, GroupByFn> {
     group_by_fn: Option<GroupByFn>,
 }
 
-impl<'m, TestExtra, GroupByFn> TestExecutor<'m, TestExtra, GroupByFn> {
+impl<'m, TestExtra> TestExecutor<'m, TestExtra, fn(&TestMeta<'m, TestExtra>) -> ((), ())> {
     pub fn new(tests: impl IntoIterator<Item = &'m TestMeta<'m, TestExtra>>) -> Self {
         Self {
             include_ignored: false,
@@ -60,7 +99,9 @@ impl<'m, TestExtra, GroupByFn> TestExecutor<'m, TestExtra, GroupByFn> {
             group_by_fn: None,
         }
     }
+}
 
+impl<'m, TestExtra, GroupByFn> TestExecutor<'m, TestExtra, GroupByFn> {
     pub fn include_ignored(mut self, value: bool) -> Self {
         self.include_ignored = value;
         self
@@ -126,7 +167,42 @@ impl<'m, TestExtra, GroupByFn> TestExecutor<'m, TestExtra, GroupByFn> {
         }
     }
 
-    pub fn run<F, GroupKey, GroupCtx>(self, f: F) -> Conclusion<GroupKey>
+    pub fn run<F>(self, f: F) -> Conclusion
+    where
+        F: Fn(&TestMeta<'m, TestExtra>) -> Result<Pass, Fail>,
+    {
+        #[derive(Default)]
+        struct Fold {
+            passed: u64,
+            failed: u64,
+            ignored: u64,
+        }
+
+        let results =
+            self.index
+                .0
+                .values()
+                .map(|meta| f(meta))
+                .fold(Fold::default(), |mut acc, current| {
+                    match current {
+                        Ok(Pass::Ok) => acc.passed += 1,
+                        Ok(Pass::Ignored) => acc.ignored += 1,
+                        Err(_) => acc.failed += 1,
+                    };
+
+                    acc
+                });
+
+        Conclusion {
+            filtered_out: 0,
+            passed: results.passed,
+            failed: results.failed,
+            ignored: results.ignored,
+            duration: Duration::default(),
+        }
+    }
+
+    pub fn run_grouped<F, GroupKey, GroupCtx>(self, f: F) -> ConclusionGroups<GroupKey>
     where
         F: Fn(&TestMeta<'m, TestExtra>, GroupCtx, GroupKey) -> Result<Pass, Fail>,
     {
@@ -141,9 +217,7 @@ pub enum Pass {
 
 pub struct Fail;
 
-pub struct Conclusion<GroupKey>(BTreeMap<GroupKey, ConclusionGroup>);
-
-pub struct ConclusionGroup {
+pub struct Conclusion {
     pub filtered_out: u64,
     pub passed: u64,
     pub failed: u64,
@@ -151,70 +225,59 @@ pub struct ConclusionGroup {
     pub duration: Duration,
 }
 
-impl<GroupKey> Conclusion<GroupKey> {
+impl Conclusion {
+    pub fn exit_code(self) -> impl Termination {
+        match self.failed {
+            0 => ExitCode::SUCCESS,
+            _ => ExitCode::FAILURE,
+        }
+    }
+
     pub fn exit(self) -> ! {
-        todo!()
+        match self.failed {
+            0 => process::exit(0),
+            _ => process::exit(1),
+        }
     }
 }
 
-pub struct StartData {
-    pub scheduled: u64,
-    pub filtered: u64,
-}
+pub struct ConclusionGroups<GroupKey>(BTreeMap<GroupKey, Conclusion>);
 
-pub enum ColorConfig {
-    Auto,
-    Always,
-    Never,
-}
-
-pub enum Status {
-    Passed,
-    Failed { msg: Option<String> },
-    Ignored,
-    Error { msg: Option<String> }, // harness error, timeout, etc.
-}
-
-pub struct TestOutcome<'a> {
-    pub status: Status,
-    pub duration: Option<Duration>,
-    pub stdout: Option<&'a [u8]>,
-    pub stderr: Option<&'a [u8]>,
-}
-
-pub trait ResultFormatter<GroupKey: Eq + Hash + Display> {
-    fn fmt_start(
-        &mut self,
-        w: &mut dyn io::Write,
-        color: &ColorConfig,
-        data: StartData,
-    ) -> io::Result<()>;
-
-    fn fmt_test_started<'m, E>(
-        &mut self,
-        w: &mut dyn io::Write,
-        color: &ColorConfig,
-        group: &GroupKey,
-        meta: &TestMeta<'m, E>,
-    ) -> io::Result<()> {
-        let _ = (w, color, group, meta);
-        Ok(())
+impl<GroupKey> ConclusionGroups<GroupKey> {
+    pub fn exit(self) -> ! {
+        match self.exit_code().report() {
+            ExitCode::SUCCESS => process::exit(0),
+            _ => process::exit(1),
+        }
     }
 
-    fn fmt_test_finished<'m, 'o, E>(
-        &mut self,
-        w: &mut dyn io::Write,
-        color: &ColorConfig,
-        group: &GroupKey,
-        meta: &TestMeta<'m, E>,
-        outcome: &TestOutcome<'o>, // status, duration, stdout/stderr
-    ) -> io::Result<()>;
+    pub fn exit_code(self) -> impl Termination {
+        for (_, conclusion) in self.0.into_iter() {
+            if let exit_code @ ExitCode::FAILURE = conclusion.exit_code().report() {
+                return exit_code;
+            }
+        }
 
-    fn fmt_conclusion(
-        &mut self,
-        w: &mut dyn io::Write,
-        color: &ColorConfig,
-        conclusion: &Conclusion<GroupKey>,
-    ) -> io::Result<()>;
+        ExitCode::SUCCESS
+    }
+
+    pub fn filtered_out(&self) -> u64 {
+        self.0.values().map(|g| g.filtered_out).sum()
+    }
+
+    pub fn passed(&self) -> u64 {
+        self.0.values().map(|g| g.passed).sum()
+    }
+
+    pub fn failed(&self) -> u64 {
+        self.0.values().map(|g| g.failed).sum()
+    }
+
+    pub fn ignored(&self) -> u64 {
+        self.0.values().map(|g| g.ignored).sum()
+    }
+
+    pub fn duration(&self) -> Duration {
+        self.0.values().map(|g| g.duration).sum()
+    }
 }
-
