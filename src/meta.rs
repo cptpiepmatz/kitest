@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::{borrow::Cow, fmt::Debug, panic::RefUnwindSafe};
 
 pub struct TestResult(pub Result<(), Box<str>>);
 
@@ -30,8 +30,8 @@ where
 
 pub enum TestFnHandle {
     Ptr(fn() -> TestResult),
-    Owned(Box<dyn TestFn + Send + Sync>),
-    Static(&'static (dyn TestFn + Send + Sync)),
+    Owned(Box<dyn TestFn + Send + Sync + RefUnwindSafe>),
+    Static(&'static (dyn TestFn + Send + Sync + RefUnwindSafe)),
 }
 
 impl TestFnHandle {
@@ -41,13 +41,13 @@ impl TestFnHandle {
 
     pub fn from_boxed<F, T>(f: F) -> Self
     where
-        F: Fn() -> T + Send + Sync + 'static,
+        F: Fn() -> T + Send + Sync + RefUnwindSafe + 'static,
         T: Into<TestResult>,
     {
         Self::Owned(Box::new(f))
     }
 
-    pub const fn from_static_obj(f: &'static (dyn TestFn + Send + Sync)) -> Self {
+    pub const fn from_static_obj(f: &'static (dyn TestFn + Send + Sync + RefUnwindSafe)) -> Self {
         Self::Static(f)
     }
 
