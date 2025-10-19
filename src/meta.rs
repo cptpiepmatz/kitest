@@ -63,40 +63,7 @@ impl TestFnHandle {
 pub struct TestMeta<Extra = ()> {
     pub function: TestFnHandle,
     pub name: Cow<'static, str>,
+    pub ignore: (bool, Option<Cow<'static, str>>),
+    pub should_panic: (bool, Option<Cow<'static, str>>),
     pub extra: Extra,
-}
-
-impl<Extra> TestMeta<Extra> {
-    pub const fn new_const_fn(name: &'static str, f: fn() -> TestResult, extra: Extra) -> Self {
-        Self {
-            function: TestFnHandle::from_const_fn(f),
-            name: Cow::Borrowed(name),
-            extra,
-        }
-    }
-
-    pub fn new_boxed<N, F, T>(name: N, f: F, extra: Extra) -> Self
-    where
-        N: Into<Cow<'static, str>>,
-        F: Fn() -> T + Send + Sync + 'static,
-        T: Into<TestResult>,
-    {
-        Self {
-            function: TestFnHandle::from_boxed(f),
-            name: name.into(),
-            extra,
-        }
-    }
-
-    pub const fn new_static_obj(
-        name: &'static str,
-        f: &'static (dyn TestFn + Send + Sync),
-        extra: Extra,
-    ) -> Self {
-        Self {
-            function: TestFnHandle::from_static_obj(f),
-            name: Cow::Borrowed(name),
-            extra,
-        }
-    }
 }
