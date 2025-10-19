@@ -2,6 +2,7 @@ use crate::{filter::TestFilter, meta::TestMeta};
 
 pub mod meta;
 pub mod filter;
+pub mod ignore;
 
 pub struct TestExecutor<'t, Iter, Filter, Extra = ()>
 where
