@@ -14,6 +14,7 @@ pub mod ignore;
 pub mod meta;
 pub mod panic_handler;
 pub mod runner;
+pub mod formatter;
 
 pub struct TestExecutor<'t, Iter, Filter, Extra = ()>
 where
@@ -52,19 +53,24 @@ pub fn run_tests<
         }).collect_vec(),
     };
 
+    // fmt_start(tests: &[&TestMeta], filtered: usize)
+
     let test_runs = tests.iter().map(|meta| {
         || {
             let (ignored, reason) = ignore.ignore(meta);
             if ignored {
-                // TODO: report ignored
+                // fmt_ignored(meta: &TestMeta, reason: &str)
                 return;
             };
 
+            // fmt_start_test(meta: &TestMeta)
             let test_result = panic_handler.handle(*meta);
+            // fmt_test_result(meta: &TestMeta, result: &TestResult)
         }
     });
 
     runner.run(test_runs);
+    // fmt_report()
 }
 
 pub fn run_grouped_tests<
@@ -106,21 +112,33 @@ pub fn run_grouped_tests<
         }),
     }
 
+    // ftm_grouped_start(&groups: impl Groups, filtered: usize)
+
     for (key, tests) in groups.iter() {
         group_runner.run_group(key, || {
             let test_runs = tests.iter().map(|meta| {
                 || {
                     let (ignored, reason) = ignore.ignore(meta);
                     if ignored {
-                        // TODO: report ignored
+                        // fmt_ignored(meta: &TestMeta, reason: &str)
                         return;
                     };
 
+                    // fmt_start_test(meta: &TestMeta)
                     let test_result = panic_handler.handle(*meta);
+                    // fmt_test_result(meta: &TestMeta, result: &TestResult)
                 }
             });
 
             runner.run(test_runs);
         });
     }
+
+    // fmt_grouped_report()
 }
+
+#[test]
+fn foo() {}
+
+#[test]
+fn bar() {}
