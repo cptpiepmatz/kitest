@@ -25,33 +25,31 @@ where
     filter: Filter,
 }
 
-fn run_tests<'m, Extra: 'm + Sync>(
-    tests: impl Iterator<Item = &'m TestMeta<Extra>>,
-    filter: impl TestFilter<Extra>,
-    runner: impl TestRunner<Extra>,
-    ignore: impl TestIgnore<Extra> + Sync,
-    panic_handler: impl TestPanicHandler<Extra> + Sync,
+pub fn run_tests<
+    'm,
+    Iter: Iterator<Item = &'m TestMeta<Extra>>,
+    Filter: TestFilter<Extra>,
+    Runner: TestRunner<Extra>,
+    Ignore: TestIgnore<Extra> + Sync,
+    PanicHandler: TestPanicHandler<Extra> + Sync,
+    Extra: 'm + Sync,
+>(
+    tests: Iter,
+    filter: Filter,
+    runner: Runner,
+    ignore: Ignore,
+    panic_handler: PanicHandler,
 ) {
-    let size_hint = tests.size_hint();
-    // TODO: try to parallelize this
-    let (tests, filtered) = match filter.skip_filtering() {
-        true => (tests.collect_vec(), 0),
-        false => tests
-            .map(|meta| match filter.filter(meta) {
-                true => Some(meta),
-                false => None,
-            })
-            .fold(
-                (Vec::with_capacity(size_hint.0), 0),
-                |(mut tests, mut filtered), current_test| {
-                    match current_test {
-                        Some(test) => tests.push(test),
-                        None => filtered += 1,
-                    }
-
-                    (tests, filtered)
-                },
-            ),
+    let mut filtered = 0;
+    let tests = match filter.skip_filtering() {
+        true => tests.collect_vec(),
+        false => tests.flat_map(|meta| match filter.filter(meta) {
+            true => Some(meta),
+            false => {
+                filtered += 1;
+                None
+            }
+        }).collect_vec(),
     };
 
     let test_runs = tests.iter().map(|meta| {
@@ -69,7 +67,7 @@ fn run_tests<'m, Extra: 'm + Sync>(
     runner.run(test_runs);
 }
 
-fn run_grouped_tests<
+pub fn run_grouped_tests<
     'm,
     Iter: Iterator<Item = &'m TestMeta<Extra>>,
     Filter: TestFilter<Extra>,
@@ -92,7 +90,6 @@ fn run_grouped_tests<
     panic_handler: PanicHandler,
 ) {
     let mut filtered = 0;
-    // TODO: try to parallelize this
     match filter.skip_filtering() {
         true => tests.for_each(|meta| {
             let key = grouper.group(meta);
