@@ -37,7 +37,7 @@ impl<'m, GroupKey, Extra, RandomState> TestGroups<'m, GroupKey, Extra>
     for TestGroupHashMap<'m, GroupKey, Extra, RandomState>
 where
     GroupKey: Eq + Hash,
-    RandomState: BuildHasher,
+    RandomState: BuildHasher + Default,
 {
     fn add(&mut self, key: GroupKey, meta: &'m TestMeta<Extra>) {
         self.entry(key).or_default().push(meta);
@@ -82,5 +82,13 @@ where
 }
 
 pub trait TestGroupRunner<GroupKey, Extra> {
-    fn run_group(&self, key: GroupKey, tests: &[&TestMeta<Extra>]);
+    fn run_group<F>(&self, key: &GroupKey, f: F) where F: Fn();
+}
+
+pub struct SimpleGroupRunner;
+
+impl<GroupKey, Extra> TestGroupRunner<GroupKey, Extra> for SimpleGroupRunner {
+    fn run_group<F>(&self, _: &GroupKey, f: F) where F: Fn() {
+        f()
+    }
 }
