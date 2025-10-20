@@ -5,6 +5,8 @@ use std::{
     time::Duration,
 };
 
+use crate::meta::TestResult;
+
 pub struct TestOutcome {
     pub status: TestStatus,
     pub duration: Duration,
@@ -16,20 +18,30 @@ pub struct TestOutcome {
 pub enum TestStatus {
     Passed,
     TimedOut,
-    Ignored { reason: Cow<'static, str> },
+    Ignored { reason: Option<Cow<'static, str>> },
     Failed(TestFailure),
     Other,
 }
 
 pub enum TestFailure {
+    Error(Box<str>),
     Panicked(Box<str>),
     DidNotPanic {
-        expected: Cow<'static, str>,
+        expected: Option<Box<str>>,
     },
     PanicMismatch {
         got: Box<str>,
-        expected: Cow<'static, str>,
+        expected: Option<Box<str>>,
     },
+}
+
+impl From<TestResult> for TestStatus {
+    fn from(value: TestResult) -> Self {
+        match value.0 {
+            Ok(_) => TestStatus::Passed,
+            Err(err) => TestStatus::Failed(TestFailure::Error(err)),
+        }
+    }
 }
 
 #[derive(Default)]

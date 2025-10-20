@@ -18,16 +18,14 @@ where
     }
 }
 
-pub trait TestGroups<'m, GroupKey, Extra> {
+pub trait TestGroups<'m, GroupKey, Extra>:
+    IntoIterator<Item = (GroupKey, Vec<&'m TestMeta<Extra>>)>
+where
+    Extra: 'm,
+{
     fn add(&mut self, key: GroupKey, meta: &'m TestMeta<Extra>);
 
     fn len(&self) -> usize;
-
-    fn iter<'s>(&'s self) -> impl Iterator<Item = (&'s GroupKey, &'s [&'m TestMeta<Extra>])>
-    where
-        'm: 's,
-        GroupKey: 's,
-        Extra: 'm;
 }
 
 pub type TestGroupHashMap<'m, GroupKey, Extra, RandomState = std::hash::RandomState> =
@@ -46,15 +44,6 @@ where
     fn len(&self) -> usize {
         self.values().map(|g| g.len()).sum()
     }
-
-    fn iter<'s>(&'s self) -> impl Iterator<Item = (&'s GroupKey, &'s [&'m TestMeta<Extra>])>
-    where
-        'm: 's,
-        GroupKey: 's,
-        Extra: 'm,
-    {
-        self.iter().map(|(k, v)| (k, v.as_slice()))
-    }
 }
 
 pub type TestGroupBTreeMap<'m, GroupKey, Extra> = BTreeMap<GroupKey, Vec<&'m TestMeta<Extra>>>;
@@ -70,26 +59,22 @@ where
     fn len(&self) -> usize {
         self.values().map(|g| g.len()).sum()
     }
-
-    fn iter<'s>(&'s self) -> impl Iterator<Item = (&'s GroupKey, &'s [&'m TestMeta<Extra>])>
-    where
-        'm: 's,
-        GroupKey: 's,
-        Extra: 'm,
-    {
-        self.iter().map(|(k, v)| (k, v.as_slice()))
-    }
 }
 
 pub trait TestGroupRunner<GroupKey, Extra> {
-    fn run_group<F>(&self, key: &GroupKey, f: F) where F: Fn();
+    fn run_group<F, T>(&self, key: &GroupKey, f: F) -> T
+    where
+        F: Fn() -> T;
 }
 
 #[derive(Default)]
 pub struct SimpleGroupRunner;
 
 impl<GroupKey, Extra> TestGroupRunner<GroupKey, Extra> for SimpleGroupRunner {
-    fn run_group<F>(&self, _: &GroupKey, f: F) where F: Fn() {
+    fn run_group<F, T>(&self, _: &GroupKey, f: F) -> T
+    where
+        F: Fn() -> T,
+    {
         f()
     }
 }

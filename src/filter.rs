@@ -36,10 +36,7 @@ impl DefaultFilter {
     }
 
     pub fn with_exact(self, exact: bool) -> Self {
-        Self {
-            exact,
-            ..self
-        }
+        Self { exact, ..self }
     }
 
     pub fn extend_filter(mut self, filter: impl IntoIterator<Item = String>) -> Self {

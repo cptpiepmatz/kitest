@@ -1,21 +1,25 @@
+use std::{collections::HashMap, hash::Hash};
+
 use crate::{
     filter::TestFilter,
     group::{TestGroupRunner, TestGrouper, TestGroups},
     ignore::TestIgnore,
     meta::TestMeta,
+    outcome::{TestOutcome, TestStatus},
     panic_handler::TestPanicHandler,
     runner::TestRunner,
 };
+use ahash::HashMapExt;
 use itertools::Itertools;
 
 pub mod filter;
+pub mod formatter;
 pub mod group;
 pub mod ignore;
 pub mod meta;
+pub mod outcome;
 pub mod panic_handler;
 pub mod runner;
-pub mod formatter;
-pub mod outcome;
 
 pub struct TestExecutor<'t, Iter, Filter, Extra = ()>
 where
@@ -45,32 +49,39 @@ pub fn run_tests<
     let mut filtered = 0;
     let tests = match filter.skip_filtering() {
         true => tests.collect_vec(),
-        false => tests.flat_map(|meta| match filter.filter(meta) {
-            true => Some(meta),
-            false => {
-                filtered += 1;
-                None
-            }
-        }).collect_vec(),
+        false => tests
+            .flat_map(|meta| match filter.filter(meta) {
+                true => Some(meta),
+                false => {
+                    filtered += 1;
+                    None
+                }
+            })
+            .collect_vec(),
     };
 
     // fmt_start(tests: &[&TestMeta], filtered: usize)
 
     let test_runs = tests.iter().map(|meta| {
-        || {
-            let (ignored, reason) = ignore.ignore(meta);
-            if ignored {
-                // fmt_ignored(meta: &TestMeta, reason: &str)
-                return;
-            };
+        (
+            || {
+                let (ignored, reason) = ignore.ignore(meta);
+                if ignored {
+                    // fmt_ignored(meta: &TestMeta, reason: &str)
+                    return TestStatus::Ignored { reason };
+                };
 
-            // fmt_start_test(meta: &TestMeta)
-            let test_result = panic_handler.handle(*meta);
-            // fmt_test_result(meta: &TestMeta, result: &TestResult)
-        }
+                // fmt_start_test(meta: &TestMeta)
+                let test_status = panic_handler.handle(*meta);
+                // fmt_test_result(meta: &TestMeta, result: &TestResult)
+
+                test_status
+            },
+            *meta,
+        )
     });
 
-    runner.run(test_runs);
+    let report = TestReport(runner.run(test_runs).collect());
     // fmt_report()
 }
 
@@ -84,7 +95,7 @@ pub fn run_grouped_tests<
     Runner: TestRunner<Extra>,
     Ignore: TestIgnore<Extra> + Sync,
     PanicHandler: TestPanicHandler<Extra> + Sync,
-    GroupKey,
+    GroupKey: Eq + Hash,
     Extra: 'm + Sync,
 >(
     tests: Iter,
@@ -115,28 +126,43 @@ pub fn run_grouped_tests<
 
     // ftm_grouped_start(&groups: impl Groups, filtered: usize)
 
-    for (key, tests) in groups.iter() {
-        group_runner.run_group(key, || {
+    let group_runs = groups.into_iter().map(|(key, tests)| {
+        let report = group_runner.run_group(&key, || {
             let test_runs = tests.iter().map(|meta| {
-                || {
-                    let (ignored, reason) = ignore.ignore(meta);
-                    if ignored {
-                        // fmt_ignored(meta: &TestMeta, reason: &str)
-                        return;
-                    };
+                (
+                    || {
+                        let (ignored, reason) = ignore.ignore(meta);
+                        if ignored {
+                            // fmt_ignored(meta: &TestMeta, reason: &str)
+                            return TestStatus::Ignored { reason };
+                        };
 
-                    // fmt_start_test(meta: &TestMeta)
-                    let test_result = panic_handler.handle(*meta);
-                    // fmt_test_result(meta: &TestMeta, result: &TestResult)
-                }
+                        // fmt_start_test(meta: &TestMeta)
+                        let test_status = panic_handler.handle(*meta);
+                        // fmt_test_result(meta: &TestMeta, result: &TestResult)
+
+                        test_status
+                    },
+                    *meta,
+                )
             });
 
-            runner.run(test_runs);
+            runner.run(test_runs).collect()
         });
-    }
+
+        (key, report)
+    });
+
+    let report = GroupedTestReport(group_runs.collect());
 
     // fmt_grouped_report()
 }
+
+pub struct TestReport<'m>(HashMap<&'m str, TestOutcome, ahash::RandomState>);
+
+pub struct GroupedTestReport<'m, GroupKey>(
+    HashMap<GroupKey, HashMap<&'m str, TestOutcome, ahash::RandomState>, ahash::RandomState>,
+);
 
 #[test]
 fn foo() {}

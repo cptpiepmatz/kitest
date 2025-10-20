@@ -1,7 +1,12 @@
 use std::borrow::Cow;
 
 use kitest::{
-    filter::DefaultFilter, group::{SimpleGroupRunner, TestGroupHashMap}, ignore::DefaultIgnore, meta::{TestFnHandle, TestMeta}, panic_handler::DefaultPanicHandler, runner::{DefaultRunner, SimpleRunner}
+    filter::DefaultFilter,
+    group::{SimpleGroupRunner, TestGroupHashMap},
+    ignore::DefaultIgnore,
+    meta::{TestFnHandle, TestMeta},
+    panic_handler::DefaultPanicHandler,
+    runner::{DefaultRunner, SimpleRunner},
 };
 
 fn test_a() {}
