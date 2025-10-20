@@ -85,6 +85,7 @@ pub trait TestGroupRunner<GroupKey, Extra> {
     fn run_group<F>(&self, key: &GroupKey, f: F) where F: Fn();
 }
 
+#[derive(Default)]
 pub struct SimpleGroupRunner;
 
 impl<GroupKey, Extra> TestGroupRunner<GroupKey, Extra> for SimpleGroupRunner {

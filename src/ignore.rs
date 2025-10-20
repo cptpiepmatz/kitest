@@ -14,9 +14,11 @@ impl<Extra> TestIgnore<Extra> for NoIgnore {
     }
 }
 
+#[derive(Default)]
 pub enum DefaultIgnore {
     IncludeIgnored,
     IgnoredOnly,
+    #[default]
     Default,
 }
 

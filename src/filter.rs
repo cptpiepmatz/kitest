@@ -26,6 +26,39 @@ pub struct DefaultFilter {
     pub skip: Vec<String>,
 }
 
+impl DefaultFilter {
+    pub fn new() -> Self {
+        Self {
+            exact: false,
+            filter: Vec::new(),
+            skip: Vec::new(),
+        }
+    }
+
+    pub fn with_exact(self, exact: bool) -> Self {
+        Self {
+            exact,
+            ..self
+        }
+    }
+
+    pub fn extend_filter(mut self, filter: impl IntoIterator<Item = String>) -> Self {
+        self.filter.extend(filter);
+        self
+    }
+
+    pub fn extend_skip(mut self, skip: impl IntoIterator<Item = String>) -> Self {
+        self.skip.extend(skip);
+        self
+    }
+}
+
+impl Default for DefaultFilter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Extra> TestFilter<Extra> for DefaultFilter {
     fn filter(&self, meta: &TestMeta<Extra>) -> bool {
         let name = meta.name.as_ref();

@@ -10,6 +10,7 @@ pub trait TestRunner<Extra> {
         F: (Fn()) + Send;
 }
 
+#[derive(Default)]
 pub struct SimpleRunner;
 
 impl<Extra> TestRunner<Extra> for SimpleRunner {
@@ -25,18 +26,25 @@ pub struct DefaultRunner {
 }
 
 impl DefaultRunner {
-    pub fn new(threads: impl Into<Option<usize>>) -> Result<Self, ThreadPoolBuildError> {
-        let thread_pool = threads
-            .into()
-            .map(|n| ThreadPoolBuilder::new().num_threads(n).build())
-            .transpose()?;
-        Ok(Self { thread_pool })
+    pub fn new() -> Self {
+        Self { thread_pool: None }
     }
 
-    pub fn with_thread_pool(thread_pool: ThreadPool) -> Self {
+    pub fn with_threads(self, threads: usize) -> Result<Self, ThreadPoolBuildError> {
+        let thread_pool = ThreadPoolBuilder::new().num_threads(threads).build()?;
+        Ok(Self { thread_pool: Some(thread_pool)})
+    }
+
+    pub fn with_thread_pool(self, thread_pool: ThreadPool) -> Self {
         Self {
             thread_pool: Some(thread_pool),
         }
+    }
+}
+
+impl Default for DefaultRunner {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

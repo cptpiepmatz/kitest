@@ -14,6 +14,7 @@ impl<Extra> TestPanicHandler<Extra> for NoPanicHandler {
     }
 }
 
+#[derive(Default)]
 pub struct DefaultPanicHandler;
 
 impl DefaultPanicHandler {
