@@ -15,6 +15,7 @@ pub mod meta;
 pub mod panic_handler;
 pub mod runner;
 pub mod formatter;
+pub mod outcome;
 
 pub struct TestExecutor<'t, Iter, Filter, Extra = ()>
 where
