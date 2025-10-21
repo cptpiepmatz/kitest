@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::Hash, thread};
 
 use crate::{
     filter::TestFilter,
@@ -83,7 +83,7 @@ pub fn run_tests<
         )
     });
 
-    let report = TestReport(runner.run(test_runs).collect());
+    let report = thread::scope(|scope | TestReport(runner.run(test_runs, scope).collect()));
     println!("got report");
     // fmt_report()
 }
@@ -150,7 +150,7 @@ pub fn run_grouped_tests<
                 )
             });
 
-            runner.run(test_runs).collect()
+            thread::scope(|scope| runner.run(test_runs, scope).collect())
         });
 
         (key, report)

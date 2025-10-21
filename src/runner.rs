@@ -1,4 +1,9 @@
-use std::{collections::HashMap, num::NonZeroUsize, thread, time::Instant};
+use std::{
+    collections::HashMap,
+    num::NonZeroUsize,
+    thread::{self, Scope},
+    time::Instant,
+};
 
 use crate::{
     meta::TestMeta,
@@ -6,40 +11,49 @@ use crate::{
 };
 
 pub trait TestRunner<Extra> {
-    fn run<'m, I, F>(&self, tests: I) -> impl Iterator<Item = (&'m str, TestOutcome)>
-    where
-        I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
-        F: (Fn() -> TestStatus) + Send,
-        Extra: 'm + Sync;
-}
-
-#[derive(Default)]
-pub struct SimpleRunner;
-
-impl<Extra> TestRunner<Extra> for SimpleRunner {
-    fn run<'m, I, F>(&self, tests: I) -> impl Iterator<Item = (&'m str, TestOutcome)>
+    fn run<'m, 's, I, F>(
+        &self,
+        tests: I,
+        scope: &'s Scope<'s, 'm>,
+    ) -> impl Iterator<Item = (&'m str, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
         F: (Fn() -> TestStatus) + Send,
         Extra: 'm + Sync,
-    {
-        tests.map(|(test, meta)| {
-            let now = Instant::now();
-            let status = test();
-            let duration = now.elapsed();
-            (
-                meta.name.as_ref(),
-                TestOutcome {
-                    status,
-                    duration,
-                    stdout: Vec::new(),
-                    stderr: Vec::new(),
-                    attachments: TestOutcomeAttachments::default(),
-                },
-            )
-        })
-    }
+        'm: 's;
 }
+
+// #[derive(Default)]
+// pub struct SimpleRunner;
+
+// impl<Extra> TestRunner<Extra> for SimpleRunner {
+//     fn run<'m, I, F>(
+//         &self,
+//         tests: I,
+//         _: &Scope<'_, 'm>,
+//     ) -> impl Iterator<Item = (&'m str, TestOutcome)>
+//     where
+//         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
+//         F: (Fn() -> TestStatus) + Send,
+//         Extra: 'm + Sync,
+//     {
+//         tests.map(|(test, meta)| {
+//             let now = Instant::now();
+//             let status = test();
+//             let duration = now.elapsed();
+//             (
+//                 meta.name.as_ref(),
+//                 TestOutcome {
+//                     status,
+//                     duration,
+//                     stdout: Vec::new(),
+//                     stderr: Vec::new(),
+//                     attachments: TestOutcomeAttachments::default(),
+//                 },
+//             )
+//         })
+//     }
+// }
 
 pub struct DefaultRunner {
     threads: NonZeroUsize,
@@ -63,30 +77,44 @@ impl DefaultRunner {
     }
 }
 
-struct DefaultRunnerIterator<'m, I, F, Extra>
+struct DefaultRunnerIterator<'m, 's, I, F, Extra>
 where
     I: Iterator<Item = (F, &'m TestMeta<Extra>)> + Send,
     F: (Fn() -> TestStatus) + Send,
     Extra: 'm + Sync,
+    'm: 's,
 {
     source: I,
+    scope: &'s Scope<'s, 'm>,
+    push_job: Sender<Option<(F, &'m TestMeta<Extra>)>>,
 }
 
-impl<'m, I, F, Extra> DefaultRunnerIterator<'m, I, F, Extra>
+impl<'m, 's, I, F, Extra> DefaultRunnerIterator<'m, 's, I, F, Extra>
 where
     I: Iterator<Item = (F, &'m TestMeta<Extra>)> + Send,
-    F: (Fn() -> TestStatus) + Send,
+    F: (Fn() -> TestStatus) + Send + 's,
     Extra: 'm + Sync,
 {
-    fn new(worker_count: NonZeroUsize, mut iter: I) -> Self {
+    fn new(worker_count: NonZeroUsize, mut iter: I, scope: &'s Scope<'s, 'm>) -> Self {
         let (itx, irx) = crossbeam_channel::bounded(worker_count.into());
+        let (otx, orx) = crossbeam_channel::bounded(1);
         let workers = (0..worker_count.get())
             .map(|_| {
                 let irx = irx.clone();
+                let otx = otx.clone();
                 itx.send(iter.next());
-                thread::spawn(|| {
-                    while let Some((f, meta)) = irx.recv().expect("sender not disconnected") {
-
+                scope.spawn(move || {
+                    while let Ok(Some((f, meta))) = irx.recv() {
+                        let now = Instant::now();
+                        let status = f();
+                        let duration = now.elapsed();
+                        otx.send((meta.name.as_ref(), TestOutcome {
+                            status,
+                            duration,
+                            stdout: Vec::new(),
+                            stderr: Vec::new(),
+                            attachments: TestOutcomeAttachments::default(),
+                        }));
                     }
             })});
 
@@ -94,27 +122,32 @@ where
     }
 }
 
-impl<'m, I, F, Extra> Iterator for DefaultRunnerIterator<'m, I, F, Extra>
-where
-    I: Iterator<Item = (F, &'m TestMeta<Extra>)>,
-    F: (Fn() -> TestStatus),
-    Extra: 'm,
-{
-    type Item = (&'m str, TestOutcome);
+// impl<'m, I, F, Extra> Iterator for DefaultRunnerIterator<'m, I, F, Extra>
+// where
+//     I: Iterator<Item = (F, &'m TestMeta<Extra>)>,
+//     F: (Fn() -> TestStatus),
+//     Extra: 'm,
+// {
+//     type Item = (&'m str, TestOutcome);
 
-    fn next(&mut self) -> Option<Self::Item> {
-        todo!()
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         todo!()
+//     }
+// }
 
 impl<Extra> TestRunner<Extra> for DefaultRunner {
-    fn run<'m, I, F>(&self, tests: I) -> impl Iterator<Item = (&'m str, TestOutcome)>
+    fn run<'m, I, F>(
+        &self,
+        tests: I,
+        scope: &Scope<'_, 'm>,
+    ) -> impl Iterator<Item = (&'m str, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
         F: (Fn() -> TestStatus) + Send,
         Extra: 'm + Sync,
     {
-        todo!()
+        // TODO: proper iterator here
+        std::iter::empty()
     }
 }
 
