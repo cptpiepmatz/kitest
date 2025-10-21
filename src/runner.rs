@@ -1,4 +1,5 @@
 use std::{
+    cmp,
     num::NonZeroUsize,
     thread::{Scope, ScopedJoinHandle},
     time::Instant,
@@ -175,7 +176,10 @@ impl<Extra> TestRunner<Extra> for DefaultRunner {
         Extra: 'm + Sync,
         'm: 's,
     {
-        DefaultRunnerIterator::new(self.threads, tests, scope)
+        // `tests` shouldn't be empty here, just in case, return some `NonZeroUsize` value.
+        let worker_count = NonZeroUsize::new(cmp::min(self.threads.get(), tests.len()))
+            .unwrap_or(NonZeroUsize::MIN);
+        DefaultRunnerIterator::new(worker_count, tests, scope)
     }
 }
 
