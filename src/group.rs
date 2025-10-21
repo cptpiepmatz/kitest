@@ -64,7 +64,7 @@ where
 pub trait TestGroupRunner<GroupKey, Extra> {
     fn run_group<F, T>(&self, key: &GroupKey, f: F) -> T
     where
-        F: Fn() -> T;
+        F: FnOnce() -> T;
 }
 
 #[derive(Default)]
@@ -73,7 +73,7 @@ pub struct SimpleGroupRunner;
 impl<GroupKey, Extra> TestGroupRunner<GroupKey, Extra> for SimpleGroupRunner {
     fn run_group<F, T>(&self, _: &GroupKey, f: F) -> T
     where
-        F: Fn() -> T,
+        F: FnOnce() -> T,
     {
         f()
     }

@@ -93,7 +93,7 @@ pub fn run_tests<
     let ignore = Arc::new(ignore);
     let panic_handler = Arc::new(panic_handler);
 
-    let report: TestReport<'_> = std::thread::scope(move |scope| {
+    let report = std::thread::scope(move |scope| {
         let test_runs = tests.into_iter().map(|meta| {
             let ignore = Arc::clone(&ignore);
             let panic_handler = Arc::clone(&panic_handler);
@@ -152,11 +152,11 @@ fn apply_grouped_filter<
                 groups.add(grouper.group(meta), meta);
                 filtered += tests.count();
                 return (groups, filtered);
-            },
+            }
             FilterDecision::ExcludeAndDone => {
                 filtered += 1 + tests.count();
                 return (groups, filtered);
-            },
+            }
         }
     }
 
@@ -171,8 +171,8 @@ pub fn run_grouped_tests<
     Groups: TestGroups<'m, GroupKey, Extra>,
     GroupRunner: TestGroupRunner<GroupKey, Extra>,
     Runner: TestRunner<Extra>,
-    Ignore: TestIgnore<Extra> + Sync,
-    PanicHandler: TestPanicHandler<Extra> + Sync,
+    Ignore: TestIgnore<Extra> + Send + Sync + 'm,
+    PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
     GroupKey: Eq + Hash,
     Extra: 'm + Sync,
 >(
@@ -184,43 +184,56 @@ pub fn run_grouped_tests<
     runner: Runner,
     ignore: Ignore,
     panic_handler: PanicHandler,
-) {
+) -> GroupedTestReport<'m, GroupKey> {
     let (groups, filtered) = apply_grouped_filter(tests, filter, grouper, groups);
 
     // ftm_grouped_start(&groups: impl Groups, filtered: usize)
 
-    let group_runs = groups.into_iter().map(|(key, tests)| {
-        let report = group_runner.run_group(&key, || {
-            let test_runs = tests.iter().map(|meta| {
-                (
-                    || {
-                        let (ignored, reason) = ignore.ignore(meta);
-                        if ignored {
-                            // fmt_ignored(meta: &TestMeta, reason: &str)
-                            return TestStatus::Ignored { reason };
-                        };
+    let report = std::thread::scope(move |scope| {
+        let ignore = Arc::new(ignore);
+        let panic_handler = Arc::new(panic_handler);
+        let runner = Arc::new(runner);
 
-                        // fmt_start_test(meta: &TestMeta)
-                        let test_status = panic_handler.handle(*meta);
-                        // fmt_test_result(meta: &TestMeta, result: &TestResult)
+        let group_runs = groups.into_iter().map(|(key, tests)| {
+            let ignore = Arc::clone(&ignore);
+            let panic_handler = Arc::clone(&panic_handler);
+            let runner = Arc::clone(&runner);
+            
+            let report = group_runner.run_group(&key, move || {
+                let test_runs = tests.into_iter().map(|meta| {
+                    let ignore = Arc::clone(&ignore);
+                    let panic_handler = Arc::clone(&panic_handler);
+                    
+                    (
+                        move || {
+                            let (ignored, reason) = ignore.ignore(meta);
+                            if ignored {
+                                // fmt_ignored(meta: &TestMeta, reason: &str)
+                                return TestStatus::Ignored { reason };
+                            };
 
-                        test_status
-                    },
-                    *meta,
-                )
+                            // fmt_start_test(meta: &TestMeta)
+                            let test_status = panic_handler.handle(meta);
+                            // fmt_test_result(meta: &TestMeta, result: &TestResult)
+
+                            test_status
+                        },
+                        meta,
+                    )
+                });
+
+                runner.run(test_runs, scope).collect()
             });
 
-            thread::scope(|scope| runner.run(test_runs, scope).collect())
+            (key, report)
         });
 
-        (key, report)
+        GroupedTestReport(group_runs.collect())
     });
-
-    let report = GroupedTestReport(group_runs.collect());
 
     // fmt_grouped_report()
 
-    // report
+    report
 }
 
 pub struct TestReport<'m>(HashMap<&'m str, TestOutcome, ahash::RandomState>);
