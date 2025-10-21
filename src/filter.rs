@@ -1,7 +1,14 @@
 use crate::meta::TestMeta;
 
+pub enum FilterDecision {
+    Keep,
+    Exclude,
+    KeepAndDone,
+    ExcludeAndDone,
+}
+
 pub trait TestFilter<Extra> {
-    fn filter(&self, meta: &TestMeta<Extra>) -> bool;
+    fn filter(&mut self, meta: &TestMeta<Extra>) -> FilterDecision;
 
     fn skip_filtering(&self) -> bool {
         false
@@ -11,8 +18,8 @@ pub trait TestFilter<Extra> {
 pub struct NoFilter;
 
 impl<Extra> TestFilter<Extra> for NoFilter {
-    fn filter(&self, _: &TestMeta<Extra>) -> bool {
-        true
+    fn filter(&mut self, _: &TestMeta<Extra>) -> FilterDecision {
+        FilterDecision::Keep
     }
 
     fn skip_filtering(&self) -> bool {
@@ -20,19 +27,16 @@ impl<Extra> TestFilter<Extra> for NoFilter {
     }
 }
 
+#[derive(Default)]
 pub struct DefaultFilter {
-    pub exact: bool,
-    pub filter: Vec<String>,
-    pub skip: Vec<String>,
+    exact: bool,
+    filter: Vec<String>,
+    skip: Vec<String>,
 }
 
 impl DefaultFilter {
     pub fn new() -> Self {
-        Self {
-            exact: false,
-            filter: Vec::new(),
-            skip: Vec::new(),
-        }
+        Self::default()
     }
 
     pub fn with_exact(self, exact: bool) -> Self {
@@ -50,29 +54,29 @@ impl DefaultFilter {
     }
 }
 
-impl Default for DefaultFilter {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl<Extra> TestFilter<Extra> for DefaultFilter {
-    fn filter(&self, meta: &TestMeta<Extra>) -> bool {
+    fn filter(&mut self, meta: &TestMeta<Extra>) -> FilterDecision {
         let name = meta.name.as_ref();
 
         if self.exact {
             if self.skip.iter().any(|s| name == s) {
-                return false;
+                return FilterDecision::Exclude;
             }
 
-            return self.filter.is_empty() || self.filter.iter().any(|f| name == f);
+            match self.filter.is_empty() || self.filter.iter().any(|f| name == f) {
+                true => return FilterDecision::Keep,
+                false => return FilterDecision::Exclude,
+            }
         }
 
         if self.skip.iter().any(|s| name.contains(s)) {
-            return false;
+            return FilterDecision::Exclude;
         }
 
-        return self.filter.is_empty() || self.filter.iter().any(|f| name.contains(f));
+        match self.filter.is_empty() || self.filter.iter().any(|f| name.contains(f)) {
+            true => FilterDecision::Keep,
+            false => FilterDecision::Exclude
+        }
     }
 
     fn skip_filtering(&self) -> bool {
@@ -82,9 +86,9 @@ impl<Extra> TestFilter<Extra> for DefaultFilter {
 
 impl<Extra, F> TestFilter<Extra> for F
 where
-    F: Fn(&TestMeta<Extra>) -> bool,
+    F: Fn(&TestMeta<Extra>) -> FilterDecision,
 {
-    fn filter(&self, meta: &TestMeta<Extra>) -> bool {
+    fn filter(&mut self, meta: &TestMeta<Extra>) -> FilterDecision {
         self(meta)
     }
 }
