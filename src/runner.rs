@@ -111,7 +111,7 @@ where
                         let now = Instant::now();
                         let status = f();
                         let duration = now.elapsed();
-                        otx.send((
+                        let send_outcome_res = otx.send((
                             meta.name.as_ref(),
                             TestOutcome {
                                 status,
@@ -120,8 +120,11 @@ where
                                 stderr: Vec::new(),
                                 attachments: TestOutcomeAttachments::default(),
                             },
-                        ))
-                        .expect("receiver to wait for all jobs to finish");
+                        ));
+                        if send_outcome_res.is_err() {
+                            // If receiver dropped, the work is irrelevant anymore, drop silently.
+                            return;
+                        }
                     }
                 })
             })
@@ -149,9 +152,13 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let out = self.wait_job.recv().ok();
         let next_job = self.source.next();
-        self.push_job
-            .send(next_job)
-            .expect("at least one worker is still alive");
+        if let Err(crossbeam_channel::SendError(Some((_, meta)))) = self.push_job.send(next_job) {
+            // At the end we'll only send `None` values to signal workers to stop.
+            // If sending `None` fails, that's fine — it just means all workers have exited.
+            // But if we fail to send a real job, it means no workers are alive,
+            // which should never happen.
+            panic!("no worker available for job {}", meta.name);
+        }
         out
     }
 }
