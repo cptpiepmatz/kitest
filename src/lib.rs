@@ -83,7 +83,7 @@ pub fn run_tests<
         )
     });
 
-    let report = thread::scope(|scope | TestReport(runner.run(test_runs, scope).collect()));
+    let report = thread::scope(|scope| TestReport(runner.run(test_runs, scope).collect()));
     println!("got report");
     // fmt_report()
 }
