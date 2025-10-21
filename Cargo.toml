@@ -7,6 +7,7 @@ publish = false
 [dependencies]
 ahash = "0.8.12"
 argh = "0.1.13"
+crossbeam-channel = "0.5.15"
 itertools = "0.14.0"
 nu-ansi-term = "0.50.3"
 rayon = "1.11.0"

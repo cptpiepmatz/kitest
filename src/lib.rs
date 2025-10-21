@@ -72,7 +72,9 @@ pub fn run_tests<
                 };
 
                 // fmt_start_test(meta: &TestMeta)
+                println!("before {}", meta.name);
                 let test_status = panic_handler.handle(*meta);
+                println!("after {}", meta.name);
                 // fmt_test_result(meta: &TestMeta, result: &TestResult)
 
                 test_status
@@ -82,6 +84,7 @@ pub fn run_tests<
     });
 
     let report = TestReport(runner.run(test_runs).collect());
+    println!("got report");
     // fmt_report()
 }
 

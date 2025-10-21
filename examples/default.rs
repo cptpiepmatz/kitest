@@ -8,9 +8,17 @@ use kitest::{
     runner::DefaultRunner,
 };
 
-fn test_a() {}
+fn test_a() {
+    std::thread::sleep(std::time::Duration::from_secs(3));
+}
 
-fn test_b() {}
+fn test_b() {
+    std::thread::sleep(std::time::Duration::from_secs(1));
+}
+
+fn test_c() {
+    std::thread::sleep(std::time::Duration::from_secs(2));
+}
 
 const TESTS: &[TestMeta] = &[
     TestMeta {
@@ -23,6 +31,13 @@ const TESTS: &[TestMeta] = &[
     TestMeta {
         function: TestFnHandle::from_static_obj(&|| test_b()),
         name: Cow::Borrowed("test_b"),
+        ignore: (false, None),
+        should_panic: (false, None),
+        extra: (),
+    },
+    TestMeta {
+        function: TestFnHandle::from_static_obj(&|| test_c()),
+        name: Cow::Borrowed("test_c"),
         ignore: (false, None),
         should_panic: (false, None),
         extra: (),
