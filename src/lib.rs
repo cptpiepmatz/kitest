@@ -20,16 +20,6 @@ pub mod outcome;
 pub mod panic_handler;
 pub mod runner;
 
-pub struct TestExecutor<'t, Iter, Filter, Extra = ()>
-where
-    Iter: Iterator<Item = &'t TestMeta<Extra>>,
-    Filter: TestFilter<Extra>,
-    Extra: 't,
-{
-    tests: Iter,
-    filter: Filter,
-}
-
 fn apply_filter<'m, Iter, Filter, Extra>(
     tests: Iter,
     mut filter: Filter,
