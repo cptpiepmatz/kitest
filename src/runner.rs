@@ -18,7 +18,7 @@ pub trait TestRunner<Extra> {
     ) -> impl Iterator<Item = (&'m str, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
-        F: (Fn() -> TestStatus) + Send + 's,
+        F: (FnOnce() -> TestStatus) + Send + 's,
         Extra: 'm + Sync,
         'm: 's;
 }
@@ -34,7 +34,7 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
     ) -> impl Iterator<Item = (&'m str, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
-        F: (Fn() -> TestStatus) + Send + 's,
+        F: (FnOnce() -> TestStatus) + Send + 's,
         Extra: 'm + Sync,
         'm: 's,
     {
@@ -81,7 +81,7 @@ impl DefaultRunner {
 struct DefaultRunnerIterator<'m, 's, I, F, Extra>
 where
     I: Iterator<Item = (F, &'m TestMeta<Extra>)> + Send,
-    F: (Fn() -> TestStatus) + Send,
+    F: (FnOnce() -> TestStatus) + Send,
     Extra: 'm + Sync,
     'm: 's,
 {
@@ -95,7 +95,7 @@ where
 impl<'m, 's, I, F, Extra> DefaultRunnerIterator<'m, 's, I, F, Extra>
 where
     I: Iterator<Item = (F, &'m TestMeta<Extra>)> + Send,
-    F: (Fn() -> TestStatus) + Send + 's,
+    F: (FnOnce() -> TestStatus) + Send + 's,
     Extra: 'm + Sync,
     'm: 's,
 {
@@ -144,7 +144,7 @@ where
 impl<'m, 's, I, F, Extra> Iterator for DefaultRunnerIterator<'m, 's, I, F, Extra>
 where
     I: Iterator<Item = (F, &'m TestMeta<Extra>)> + Send,
-    F: (Fn() -> TestStatus) + Send + 's,
+    F: (FnOnce() -> TestStatus) + Send + 's,
     Extra: 'm + Sync,
     'm: 's,
 {
@@ -172,7 +172,7 @@ impl<Extra> TestRunner<Extra> for DefaultRunner {
     ) -> impl Iterator<Item = (&'m str, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
-        F: (Fn() -> TestStatus) + Send + 's,
+        F: (FnOnce() -> TestStatus) + Send + 's,
         Extra: 'm + Sync,
         'm: 's,
     {
@@ -242,7 +242,7 @@ impl<Extra> TestRunner<Extra> for SmartRunner {
     ) -> impl Iterator<Item = (&'m str, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
-        F: (Fn() -> TestStatus) + Send + 's,
+        F: (FnOnce() -> TestStatus) + Send + 's,
         Extra: 'm + Sync,
         'm: 's,
     {
