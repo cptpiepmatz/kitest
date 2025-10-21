@@ -1,10 +1,24 @@
-use std::io;
+use std::{borrow::Cow, io, time::Duration};
 
-use crate::meta::{TestMeta, TestResult};
+use crate::{
+    meta::{TestMeta, TestResult}, outcome::TestOutcome, GroupedTestOutcomes, TestOutcomes
+};
 
-pub struct Report;
+pub enum FmtTestData<'m, 'o, Extra> {
+    Ignored {
+        meta: &'m TestMeta<Extra>,
+        reason: Option<Cow<'static, str>>,
+    },
 
-pub struct GroupReport;
+    Start {
+        meta: &'m TestMeta<Extra>,
+    },
+
+    Outcome {
+        name: &'m str,
+        outcome: &'o TestOutcome,
+    },
+}
 
 pub struct TestGroupResult;
 
@@ -18,7 +32,7 @@ pub trait TestFormatter<Extra> {
         Ok(())
     }
 
-    fn fmt_test_ignored(&mut self, meta: &TestMeta<Extra>, reason: &str) -> io::Result<()> {
+    fn fmt_test_ignored(&mut self, meta: &TestMeta<Extra>, reason: Option<&str>) -> io::Result<()> {
         let _ = (meta, reason);
         Ok(())
     }
@@ -28,13 +42,17 @@ pub trait TestFormatter<Extra> {
         Ok(())
     }
 
-    fn fmt_test_result(&mut self, meta: &TestMeta<Extra>, result: &TestResult) -> io::Result<()> {
-        let _ = (meta, result);
+    fn fmt_test_outcome(&mut self, name: &str, outcome: &TestOutcome) -> io::Result<()> {
+        let _ = (name, outcome);
         Ok(())
     }
 
-    fn fmt_run_report(&mut self, report: &Report) -> io::Result<()> {
-        let _ = report;
+    fn fmt_run_outcomes(
+        &mut self,
+        outcomes: &TestOutcomes<'_>,
+        duration: Duration,
+    ) -> io::Result<()> {
+        let _ = (outcomes, duration);
         Ok(())
     }
 }
@@ -59,8 +77,16 @@ pub trait GroupedTestFormatter<GroupKey, Extra>: TestFormatter<Extra> {
         Ok(())
     }
 
-    fn fmt_grouped_run_report(&mut self, report: &GroupReport) -> io::Result<()> {
-        let _ = report;
+    fn fmt_grouped_run_outcomes(
+        &mut self,
+        outcomes: &GroupedTestOutcomes<'_, GroupKey>,
+        duration: Duration,
+    ) -> io::Result<()> {
+        let _ = (outcomes, duration);
         Ok(())
     }
 }
+
+pub struct NoFormatter;
+impl<Extra> TestFormatter<Extra> for NoFormatter {}
+impl<GroupKey, Extra> GroupedTestFormatter<GroupKey, Extra> for NoFormatter {}

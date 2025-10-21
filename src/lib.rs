@@ -1,7 +1,15 @@
-use std::{collections::HashMap, hash::Hash, sync::Arc, thread};
+use std::{
+    collections::HashMap,
+    hash::Hash,
+    io,
+    sync::Arc,
+    thread,
+    time::{Duration, Instant},
+};
 
 use crate::{
     filter::{FilterDecision, TestFilter},
+    formatter::{FmtTestData, TestFormatter},
     group::{TestGroupRunner, TestGrouper, TestGroups},
     ignore::TestIgnore,
     meta::TestMeta,
@@ -68,6 +76,7 @@ pub fn run_tests<
     Runner: TestRunner<Extra>,
     Ignore: TestIgnore<Extra> + Send + Sync + 'm,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
+    Formatter: TestFormatter<Extra>,
     Extra: 'm + Sync,
 >(
     tests: Iter,
@@ -75,42 +84,68 @@ pub fn run_tests<
     runner: Runner,
     ignore: Ignore,
     panic_handler: PanicHandler,
+    mut formatter: Formatter,
 ) -> TestReport<'m> {
-    let (tests, filtered) = apply_filter(tests, filter);
+    let mut fmt_errors = Vec::new();
+    macro_rules! try_fmt {
+        ($fmt:expr) => {
+            if let Err(err) = $fmt {
+                fmt_errors.push((stringify!($fmt), err));
+            }
+        };
+    }
 
-    // fmt_start(tests: &[&TestMeta], filtered: usize)
+    let now = Instant::now();
+
+    try_fmt!(formatter.fmt_run_init());
+    let (tests, filtered) = apply_filter(tests, filter);
+    try_fmt!(formatter.fmt_run_start(&tests, filtered));
 
     let ignore = Arc::new(ignore);
     let panic_handler = Arc::new(panic_handler);
 
-    let report = std::thread::scope(move |scope| {
+    let outcomes = std::thread::scope(move |scope| {
+        let (ftx, frx) = crossbeam_channel::unbounded();
+        scope.spawn(move || while let Ok(fmt_data) = frx.recv() {});
+
         let test_runs = tests.into_iter().map(|meta| {
             let ignore = Arc::clone(&ignore);
             let panic_handler = Arc::clone(&panic_handler);
+            let ftx = ftx.clone();
 
             (
                 move || {
                     let (ignored, reason) = ignore.ignore(meta);
                     if ignored {
+                        let _ = ftx.send(FmtTestData::Ignored {
+                            meta,
+                            reason: reason.clone(),
+                        });
                         return TestStatus::Ignored { reason };
                     }
 
-                    println!("before {}", meta.name);
+                    let _ = ftx.send(FmtTestData::Start { meta });
                     let test_status = panic_handler.handle(meta);
-                    println!("after {}", meta.name);
                     test_status
                 },
                 meta,
             )
         });
 
-        TestReport(runner.run(test_runs, scope).collect())
+        runner.run(test_runs, scope).inspect(|(name, outcome)| {
+            // let _ = ftx.send(FmtTestData::Outcome { name, outcome });
+        }).collect()
     });
 
     println!("got report");
-    // fmt_report()
+    let duration = now.elapsed();
+    try_fmt!(formatter.fmt_run_outcomes(&outcomes, duration));
 
-    report
+    TestReport {
+        outcomes,
+        duration,
+        fmt_errors,
+    }
 }
 
 fn apply_grouped_filter<
@@ -175,11 +210,15 @@ pub fn run_grouped_tests<
     ignore: Ignore,
     panic_handler: PanicHandler,
 ) -> GroupedTestReport<'m, GroupKey> {
+    let mut fmt_errors = Vec::new();
+
+    let now = Instant::now();
+
     let (groups, filtered) = apply_grouped_filter(tests, filter, grouper, groups);
 
     // ftm_grouped_start(&groups: impl Groups, filtered: usize)
 
-    let report = std::thread::scope(move |scope| {
+    let outcomes = std::thread::scope(move |scope| {
         let ignore = Arc::new(ignore);
         let panic_handler = Arc::new(panic_handler);
         let runner = Arc::new(runner);
@@ -188,12 +227,12 @@ pub fn run_grouped_tests<
             let ignore = Arc::clone(&ignore);
             let panic_handler = Arc::clone(&panic_handler);
             let runner = Arc::clone(&runner);
-            
+
             let report = group_runner.run_group(&key, move || {
                 let test_runs = tests.into_iter().map(|meta| {
                     let ignore = Arc::clone(&ignore);
                     let panic_handler = Arc::clone(&panic_handler);
-                    
+
                     (
                         move || {
                             let (ignored, reason) = ignore.ignore(meta);
@@ -218,19 +257,33 @@ pub fn run_grouped_tests<
             (key, report)
         });
 
-        GroupedTestReport(group_runs.collect())
+        group_runs.collect()
     });
 
+    let duration = now.elapsed();
     // fmt_grouped_report()
 
-    report
+    GroupedTestReport {
+        outcomes,
+        duration,
+        fmt_errors,
+    }
 }
 
-pub struct TestReport<'m>(HashMap<&'m str, TestOutcome, ahash::RandomState>);
+pub type TestOutcomes<'m> = HashMap<&'m str, TestOutcome, ahash::RandomState>;
+pub struct TestReport<'m> {
+    outcomes: TestOutcomes<'m>,
+    duration: Duration,
+    fmt_errors: Vec<(&'static str, io::Error)>,
+}
 
-pub struct GroupedTestReport<'m, GroupKey>(
-    HashMap<GroupKey, HashMap<&'m str, TestOutcome, ahash::RandomState>, ahash::RandomState>,
-);
+pub type GroupedTestOutcomes<'m, GroupKey> =
+    HashMap<GroupKey, HashMap<&'m str, TestOutcome, ahash::RandomState>, ahash::RandomState>;
+pub struct GroupedTestReport<'m, GroupKey> {
+    outcomes: GroupedTestOutcomes<'m, GroupKey>,
+    duration: Duration,
+    fmt_errors: Vec<(&'static str, io::Error)>,
+}
 
 #[test]
 fn foo() {}

@@ -1,11 +1,7 @@
 use std::borrow::Cow;
 
 use kitest::{
-    filter::NoFilter,
-    ignore::NoIgnore,
-    meta::{TestFnHandle, TestMeta},
-    panic_handler::NoPanicHandler,
-    runner::SimpleRunner,
+    filter::NoFilter, formatter::NoFormatter, ignore::NoIgnore, meta::{TestFnHandle, TestMeta}, panic_handler::NoPanicHandler, runner::SimpleRunner
 };
 
 fn test_a() {}
@@ -36,5 +32,6 @@ fn main() {
         SimpleRunner,
         NoIgnore,
         NoPanicHandler,
+        NoFormatter,
     );
 }
