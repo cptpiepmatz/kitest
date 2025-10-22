@@ -26,6 +26,10 @@ where
     fn add(&mut self, key: GroupKey, meta: &'m TestMeta<Extra>);
 
     fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 pub type TestGroupHashMap<'m, GroupKey, Extra, RandomState = std::hash::RandomState> =

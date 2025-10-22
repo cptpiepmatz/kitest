@@ -118,8 +118,7 @@ pub fn run_tests<
                     }
 
                     let _ = ftx.send(FmtTestData::Start(FmtTestStart { meta }.into()));
-                    let test_status = panic_handler.handle(meta);
-                    test_status
+                    panic_handler.handle(meta)
                 },
                 meta,
             )
@@ -165,6 +164,7 @@ pub fn run_tests<
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_grouped_tests<
     'm,
     Filter: TestFilter<Extra>,
@@ -274,8 +274,7 @@ where
                             let _ = ftx.send(FmtGroupedTestData::Test(FmtTestData::Start(
                                 FmtTestStart { meta }.into(),
                             )));
-                            let test_status = panic_handler.handle(meta);
-                            test_status
+                            panic_handler.handle(meta)
                         },
                         meta,
                     )
