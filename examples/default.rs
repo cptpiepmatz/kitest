@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use kitest::{
-    filter2::DefaultFilter,
+    filter::DefaultFilter,
     formatter::NoFormatter,
     ignore::DefaultIgnore,
     meta::{TestFnHandle, TestMeta},

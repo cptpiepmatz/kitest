@@ -1,4 +1,4 @@
-use std::{borrow::Cow, io, time::Duration};
+use std::{borrow::Cow, io, ops::{Deref, DerefMut}, time::Duration};
 
 use crate::{
     GroupedTestOutcomes, TestOutcomes,
@@ -15,7 +15,7 @@ pub enum FmtTestData<I, S, O> {
 pub struct TestGroupResult;
 
 pub struct FmtRunInitData<'m, Extra> {
-    pub tests: &'m[TestMeta<Extra>],
+    pub tests: &'m [TestMeta<Extra>],
 }
 
 pub struct FmtRunStartData {
@@ -43,7 +43,7 @@ pub struct FmtRunOutcomes<'m> {
 }
 
 pub trait TestFormatter<Extra>: Send {
-    type RunInit: for <'m> From<FmtRunInitData<'m, Extra>> + Send;
+    type RunInit: for<'m> From<FmtRunInitData<'m, Extra>> + Send;
     fn fmt_run_init(&mut self, data: Self::RunInit) -> io::Result<()> {
         let _ = data;
         Ok(())

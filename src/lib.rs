@@ -7,15 +7,21 @@ use std::{
 };
 
 use crate::{
-    filter::{FilterDecision, TestFilter}, filter2::FilteredTests, formatter::{
+    filter::{FilteredTests, TestFilter},
+    formatter::{
         FmtRunInitData, FmtRunOutcomes, FmtRunStartData, FmtTestData, FmtTestIgnored,
         FmtTestOutcome, FmtTestStart, TestFormatter,
-    }, group::{TestGroupRunner, TestGrouper, TestGroups}, ignore::TestIgnore, meta::TestMeta, outcome::{TestOutcome, TestStatus}, panic_handler::TestPanicHandler, runner::TestRunner
+    },
+    group::{TestGroupRunner, TestGrouper, TestGroups},
+    ignore::TestIgnore,
+    meta::TestMeta,
+    outcome::{TestOutcome, TestStatus},
+    panic_handler::TestPanicHandler,
+    runner::TestRunner,
 };
 use itertools::Itertools;
 
 pub mod filter;
-pub mod filter2;
 pub mod formatter;
 pub mod group;
 pub mod ignore;
@@ -44,7 +50,7 @@ macro_rules! named_fmt {
 
 pub fn run_tests<
     'm,
-    Filter: filter2::TestFilter<Extra>,
+    Filter: TestFilter<Extra>,
     Runner: TestRunner<Extra>,
     Ignore: TestIgnore<Extra> + Send + Sync + 'm,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
@@ -61,9 +67,11 @@ pub fn run_tests<
     let now = Instant::now();
 
     let mut fmt_errors = Vec::new();
-    fmt_errors.push_on_error(named_fmt!(formatter.fmt_run_init(FmtRunInitData {tests}.into())));
+    fmt_errors.push_on_error(named_fmt!(
+        formatter.fmt_run_init(FmtRunInitData { tests }.into())
+    ));
 
-    let FilteredTests { tests, filtered} = filter.filter(tests);
+    let FilteredTests { tests, filtered } = filter.filter(tests);
     fmt_errors.push_on_error(named_fmt!(
         formatter.fmt_run_start(
             FmtRunStartData {
@@ -157,49 +165,8 @@ pub fn run_tests<
     }
 }
 
-fn apply_grouped_filter<
-    'm,
-    Iter: Iterator<Item = &'m TestMeta<Extra>>,
-    Filter: TestFilter<Extra>,
-    Grouper: TestGrouper<GroupKey, Extra>,
-    Groups: TestGroups<'m, GroupKey, Extra>,
-    GroupKey,
-    Extra: 'm,
->(
-    mut tests: Iter,
-    mut filter: Filter,
-    grouper: Grouper,
-    mut groups: Groups,
-) -> (Groups, usize) {
-    let mut filtered = 0;
-
-    if filter.skip_filtering() {
-        tests.for_each(|meta| groups.add(grouper.group(meta), meta));
-        return (groups, filtered);
-    }
-
-    while let Some(meta) = tests.next() {
-        match filter.filter(meta) {
-            FilterDecision::Keep => groups.add(grouper.group(meta), meta),
-            FilterDecision::Exclude => filtered += 1,
-            FilterDecision::KeepAndDone => {
-                groups.add(grouper.group(meta), meta);
-                filtered += tests.count();
-                return (groups, filtered);
-            }
-            FilterDecision::ExcludeAndDone => {
-                filtered += 1 + tests.count();
-                return (groups, filtered);
-            }
-        }
-    }
-
-    (groups, filtered)
-}
-
 pub fn run_grouped_tests<
     'm,
-    Iter: Iterator<Item = &'m TestMeta<Extra>>,
     Filter: TestFilter<Extra>,
     Grouper: TestGrouper<GroupKey, Extra>,
     Groups: TestGroups<'m, GroupKey, Extra>,
@@ -210,10 +177,10 @@ pub fn run_grouped_tests<
     GroupKey: Eq + Hash,
     Extra: 'm + Sync,
 >(
-    tests: Iter,
+    tests: &'m [TestMeta<Extra>],
     filter: Filter,
     grouper: Grouper,
-    groups: Groups,
+    mut groups: Groups,
     group_runner: GroupRunner,
     runner: Runner,
     ignore: Ignore,
@@ -223,7 +190,8 @@ pub fn run_grouped_tests<
 
     let now = Instant::now();
 
-    let (groups, filtered) = apply_grouped_filter(tests, filter, grouper, groups);
+    let FilteredTests { tests, filtered } = filter.filter(tests);
+    tests.for_each(|meta| groups.add(grouper.group(meta), meta));
 
     // ftm_grouped_start(&groups: impl Groups, filtered: usize)
 

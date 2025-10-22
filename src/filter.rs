@@ -1,29 +1,34 @@
+use std::{slice, vec};
+
 use crate::meta::TestMeta;
 
-pub enum FilterDecision {
-    Keep,
-    Exclude,
-    KeepAndDone,
-    ExcludeAndDone,
+pub struct FilteredTests<'m, I, Extra>
+where
+    I: ExactSizeIterator<Item = &'m TestMeta<Extra>> + Send,
+    Extra: Sync + 'm,
+{
+    pub tests: I,
+    pub filtered: usize,
 }
 
-pub trait TestFilter<Extra> {
-    fn filter(&mut self, meta: &TestMeta<Extra>) -> FilterDecision;
-
-    fn skip_filtering(&self) -> bool {
-        false
-    }
+pub trait TestFilter<Extra: Sync> {
+    fn filter<'m>(
+        &self,
+        tests: &'m [TestMeta<Extra>],
+    ) -> FilteredTests<'m, impl ExactSizeIterator<Item = &'m TestMeta<Extra>> + Send, Extra>;
 }
 
 pub struct NoFilter;
 
-impl<Extra> TestFilter<Extra> for NoFilter {
-    fn filter(&mut self, _: &TestMeta<Extra>) -> FilterDecision {
-        FilterDecision::Keep
-    }
-
-    fn skip_filtering(&self) -> bool {
-        true
+impl<Extra: Sync> TestFilter<Extra> for NoFilter {
+    fn filter<'m>(
+        &self,
+        tests: &'m [TestMeta<Extra>],
+    ) -> FilteredTests<'m, impl ExactSizeIterator<Item = &'m TestMeta<Extra>> + Send, Extra> {
+        FilteredTests {
+            tests: tests.iter(),
+            filtered: 0,
+        }
     }
 }
 
@@ -34,61 +39,89 @@ pub struct DefaultFilter {
     skip: Vec<String>,
 }
 
-impl DefaultFilter {
-    pub fn new() -> Self {
-        Self::default()
+enum DefaultFilterIterator<'m, Extra> {
+    Slice(slice::Iter<'m, TestMeta<Extra>>),
+    Vec(vec::IntoIter<&'m TestMeta<Extra>>),
+}
+
+impl<'m, Extra> Iterator for DefaultFilterIterator<'m, Extra> {
+    type Item = &'m TestMeta<Extra>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            DefaultFilterIterator::Slice(iter) => iter.next(),
+            DefaultFilterIterator::Vec(iter) => iter.next(),
+        }
     }
 
-    pub fn with_exact(self, exact: bool) -> Self {
-        Self { exact, ..self }
-    }
-
-    pub fn extend_filter(mut self, filter: impl IntoIterator<Item = String>) -> Self {
-        self.filter.extend(filter);
-        self
-    }
-
-    pub fn extend_skip(mut self, skip: impl IntoIterator<Item = String>) -> Self {
-        self.skip.extend(skip);
-        self
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            DefaultFilterIterator::Slice(iter) => iter.size_hint(),
+            DefaultFilterIterator::Vec(iter) => iter.size_hint(),
+        }
     }
 }
 
-impl<Extra> TestFilter<Extra> for DefaultFilter {
-    fn filter(&mut self, meta: &TestMeta<Extra>) -> FilterDecision {
-        let name = meta.name.as_ref();
+impl<'m, Extra> ExactSizeIterator for DefaultFilterIterator<'m, Extra> {}
+
+impl<Extra: Sync> TestFilter<Extra> for DefaultFilter {
+    fn filter<'m>(
+        &self,
+        tests: &'m [TestMeta<Extra>],
+    ) -> FilteredTests<'m, impl ExactSizeIterator<Item = &'m TestMeta<Extra>> + Send, Extra> {
+        if self.filter.is_empty() && self.skip.is_empty() {
+            return FilteredTests {
+                tests: DefaultFilterIterator::Slice(tests.iter()),
+                filtered: 0,
+            };
+        }
 
         if self.exact {
-            if self.skip.iter().any(|s| name == s) {
-                return FilterDecision::Exclude;
+            let mut remaining = Vec::new();
+            let mut filtered = 0;
+            for meta in tests {
+                let name = meta.name.as_ref();
+                let in_filter =
+                    self.filter.is_empty() || self.filter.iter().any(|filter| name == filter);
+
+                if !in_filter {
+                    filtered += 1;
+                    continue;
+                }
+
+                let skipped = self.skip.iter().any(|skip| name == skip);
+                match skipped {
+                    true => filtered += 1,
+                    false => remaining.push(meta),
+                }
+            }
+            return FilteredTests {
+                tests: DefaultFilterIterator::Vec(remaining.into_iter()),
+                filtered,
+            };
+        }
+
+        let mut remaining = Vec::new();
+        let mut filtered = 0;
+        for meta in tests {
+            let name = meta.name.as_ref();
+            let in_filter =
+                self.filter.is_empty() || self.filter.iter().any(|filter| name.contains(filter));
+
+            if !in_filter {
+                filtered += 1;
+                continue;
             }
 
-            match self.filter.is_empty() || self.filter.iter().any(|f| name == f) {
-                true => return FilterDecision::Keep,
-                false => return FilterDecision::Exclude,
+            let skipped = self.skip.iter().any(|skip| name.contains(skip));
+            match skipped {
+                true => filtered += 1,
+                false => remaining.push(meta),
             }
         }
-
-        if self.skip.iter().any(|s| name.contains(s)) {
-            return FilterDecision::Exclude;
+        FilteredTests {
+            tests: DefaultFilterIterator::Vec(remaining.into_iter()),
+            filtered,
         }
-
-        match self.filter.is_empty() || self.filter.iter().any(|f| name.contains(f)) {
-            true => FilterDecision::Keep,
-            false => FilterDecision::Exclude,
-        }
-    }
-
-    fn skip_filtering(&self) -> bool {
-        self.filter.is_empty() && self.skip.is_empty()
-    }
-}
-
-impl<Extra, F> TestFilter<Extra> for F
-where
-    F: Fn(&TestMeta<Extra>) -> FilterDecision,
-{
-    fn filter(&mut self, meta: &TestMeta<Extra>) -> FilterDecision {
-        self(meta)
     }
 }

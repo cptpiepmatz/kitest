@@ -38,7 +38,7 @@ const TESTS: &[TestMeta<Flag>] = &[
 
 fn main() {
     kitest::run_grouped_tests(
-        TESTS.iter(),
+        TESTS,
         DefaultFilter::default(),
         |meta: &TestMeta<Flag>| meta.extra,
         TestGroupHashMap::<'_, _, _>::default(),

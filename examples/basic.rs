@@ -1,7 +1,7 @@
 use std::{borrow::Cow, io::{self, Stdout, Write}};
 
 use kitest::{
-    filter2::NoFilter,
+    filter::NoFilter,
     formatter::{FmtTestOutcome, TestFormatter},
     ignore::NoIgnore,
     meta::{TestFnHandle, TestMeta},
