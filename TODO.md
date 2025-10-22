@@ -22,9 +22,15 @@
 - [ ] `--report-time`: Show execution time of each test (supports thresholds via env vars)
 - [ ] `--ensure-time`: Treat excess test execution time as an error (uses same env vars as report-time)
 
-# Unplanned `rustdoctest` flags
+## Unplanned `rustdoctest` flags
+
 > [!NOTE]
 > If not otherwise required, these will not be implemented in some way.
 - `--test`: Run tests and not benchmarks
 - `--bench`: Run benchmarks instead of tests
 - `-Z unstable-options`: Enable nightly-only flags
+
+# Planned API
+
+- [ ] `TestExecutor` as a builder to build your test executor together
+- [ ] `TestExecutor::from_args` build a test executor from args like `libtest_mimic::run` takes an arguments object
