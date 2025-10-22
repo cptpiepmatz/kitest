@@ -1,15 +1,28 @@
-use std::{borrow::Cow, io, ops::{Deref, DerefMut}, time::Duration};
+use std::{
+    borrow::Cow,
+    io,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+    time::Duration,
+};
 
 use crate::{
     GroupedTestOutcomes, TestOutcomes,
+    group::TestGroups,
     meta::{TestMeta, TestResult},
     outcome::TestOutcome,
 };
 
-pub enum FmtTestData<I, S, O> {
+pub(crate) enum FmtTestData<I, S, O> {
     Ignored(I),
     Start(S),
     Outcome(O),
+}
+
+pub(crate) enum FmtGroupedTestData<I, S, O, GS, GO> {
+    Test(FmtTestData<I, S, O>),
+    Start(GS),
+    Outcome(GO),
 }
 
 pub struct TestGroupResult;
@@ -80,36 +93,54 @@ pub trait TestFormatter<Extra>: Send {
     }
 }
 
+pub struct FmtGroupedRunStart {
+    pub tests: usize,
+    pub filtered: usize,
+}
+
+pub struct FmtGroupStart<'g, GroupKey> {
+    pub key: &'g GroupKey,
+    pub tests: usize,
+}
+
+pub struct FmtGroupOutcomes<'g, 'm, GroupKey> {
+    pub key: &'g GroupKey,
+    pub outcomes: &'m TestOutcomes<'m>,
+    pub duration: Duration,
+}
+
+pub struct FmtGroupedRunOutcomes<'m, GroupKey> {
+    pub outcomes: &'m GroupedTestOutcomes<'m, GroupKey>,
+    pub duration: Duration,
+}
+
 pub trait GroupedTestFormatter<GroupKey, Extra>: TestFormatter<Extra> {
-    fn fmt_grouped_run_start(&mut self) -> io::Result<()> {
+    type GroupedRunStart: From<FmtGroupedRunStart> + Send;
+    fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 
-    fn fmt_group_start(&mut self, key: &GroupKey, tests: &[&TestMeta<Extra>]) -> io::Result<()> {
-        let _ = (key, tests);
+    type GroupStart: for<'g> From<FmtGroupStart<'g, GroupKey>> + Send;
+    fn fmt_group_start(&mut self, data: Self::GroupStart) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 
-    fn fmt_group_result(
-        &mut self,
-        key: &GroupKey,
-        tests: &[&TestMeta<Extra>],
-        result: &TestGroupResult,
-    ) -> io::Result<()> {
-        let _ = (key, tests, result);
+    type GroupOutcomes: for<'g, 'm> From<FmtGroupOutcomes<'g, 'm, GroupKey>> + Send;
+    fn fmt_group_outcomes(&mut self, data: Self::GroupOutcomes) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 
-    fn fmt_grouped_run_outcomes(
-        &mut self,
-        outcomes: &GroupedTestOutcomes<'_, GroupKey>,
-        duration: Duration,
-    ) -> io::Result<()> {
-        let _ = (outcomes, duration);
+    type GroupedRunOutcomes: for<'m> From<FmtGroupedRunOutcomes<'m, GroupKey>> + Send;
+    fn fmt_grouped_run_outcomes(&mut self, data: Self::GroupedRunOutcomes) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 }
 
+#[derive(Default)]
 pub struct NoFormatter;
 
 macro_rules! impl_unit_from {
@@ -126,7 +157,12 @@ impl_unit_from![
     FmtTestIgnored<'m, 'r, Extra>,
     FmtTestStart<'m, Extra>,
     FmtTestOutcome<'m, 'o, Extra>,
-    FmtRunOutcomes<'m>
+    FmtRunOutcomes<'m>,
+
+    FmtGroupedRunStart,
+    FmtGroupStart<'g, GroupKey>,
+    FmtGroupOutcomes<'g, 'm, GroupKey>,
+    FmtGroupedRunOutcomes<'m, GroupKey>,
 ];
 
 impl<Extra> TestFormatter<Extra> for NoFormatter {
@@ -138,4 +174,9 @@ impl<Extra> TestFormatter<Extra> for NoFormatter {
     type RunOutcomes = ();
 }
 
-impl<GroupKey, Extra> GroupedTestFormatter<GroupKey, Extra> for NoFormatter {}
+impl<GroupKey, Extra> GroupedTestFormatter<GroupKey, Extra> for NoFormatter {
+    type GroupedRunStart = ();
+    type GroupStart = ();
+    type GroupOutcomes = ();
+    type GroupedRunOutcomes = ();
+}
