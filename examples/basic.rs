@@ -1,4 +1,7 @@
-use std::{borrow::Cow, io::{self, Stdout, Write}};
+use std::{
+    borrow::Cow,
+    io::{self, Stdout, Write},
+};
 
 use kitest::{
     filter::NoFilter,
@@ -38,7 +41,9 @@ struct BasicTestOutcome {
 
 impl From<FmtTestOutcome<'_, '_, ()>> for BasicTestOutcome {
     fn from(value: FmtTestOutcome<'_, '_, ()>) -> Self {
-        BasicTestOutcome { name: value.meta.name.clone() }
+        BasicTestOutcome {
+            name: value.meta.name.clone(),
+        }
     }
 }
 

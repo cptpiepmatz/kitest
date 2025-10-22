@@ -158,7 +158,6 @@ impl_unit_from![
     FmtTestStart<'m, Extra>,
     FmtTestOutcome<'m, 'o, Extra>,
     FmtRunOutcomes<'m>,
-
     FmtGroupedRunStart,
     FmtGroupStart<'g, GroupKey>,
     FmtGroupOutcomes<'g, 'm, GroupKey>,

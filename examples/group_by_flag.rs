@@ -1,7 +1,19 @@
-use std::{borrow::Cow, fmt::Display, io::{self, Stdout, Write}};
+use std::{
+    borrow::Cow,
+    fmt::Display,
+    io::{self, Stdout, Write},
+};
 
 use kitest::{
-    filter::DefaultFilter, formatter::{FmtGroupOutcomes, FmtGroupStart, FmtTestStart, GroupedTestFormatter, NoFormatter, TestFormatter}, group::{SimpleGroupRunner, TestGroupHashMap}, ignore::DefaultIgnore, meta::{TestFnHandle, TestMeta}, panic_handler::DefaultPanicHandler, runner::{DefaultRunner, SimpleRunner}
+    filter::DefaultFilter,
+    formatter::{
+        FmtGroupOutcomes, FmtGroupStart, FmtTestStart, GroupedTestFormatter, TestFormatter,
+    },
+    group::{SimpleGroupRunner, TestGroupHashMap},
+    ignore::DefaultIgnore,
+    meta::{TestFnHandle, TestMeta},
+    panic_handler::DefaultPanicHandler,
+    runner::SimpleRunner,
 };
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
