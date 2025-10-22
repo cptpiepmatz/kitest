@@ -8,7 +8,10 @@ use std::{
 
 use crate::{
     filter::{FilterDecision, TestFilter},
-    formatter::{FmtTestData, TestFormatter},
+    formatter::{
+        FmtRunInitData, FmtRunOutcomes, FmtRunStartData, FmtTestData, FmtTestIgnored,
+        FmtTestOutcome, FmtTestStart, TestFormatter,
+    },
     group::{TestGroupRunner, TestGrouper, TestGroups},
     ignore::TestIgnore,
     meta::TestMeta,
@@ -26,6 +29,24 @@ pub mod meta;
 pub mod outcome;
 pub mod panic_handler;
 pub mod runner;
+
+trait FmtErrors {
+    fn push_on_error<T>(&mut self, data: (&'static str, io::Result<T>));
+}
+
+impl FmtErrors for Vec<(&'static str, io::Error)> {
+    fn push_on_error<T>(&mut self, (name, res): (&'static str, io::Result<T>)) {
+        if let Err(err) = res {
+            self.push((name, err));
+        }
+    }
+}
+
+macro_rules! named_fmt {
+    ($fmt:ident.$method:ident($expr:expr)) => {
+        (stringify!($method), $fmt.$method($expr))
+    };
+}
 
 fn apply_filter<'m, Iter, Filter, Extra>(
     tests: Iter,
@@ -75,7 +96,7 @@ pub fn run_tests<
     Runner: TestRunner<Extra>,
     Ignore: TestIgnore<Extra> + Send + Sync + 'm,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
-    Formatter: TestFormatter<Extra>,
+    Formatter: TestFormatter<Extra> + 'm,
     Extra: 'm + Sync,
 >(
     tests: Iter,
@@ -85,27 +106,37 @@ pub fn run_tests<
     panic_handler: PanicHandler,
     mut formatter: Formatter,
 ) -> TestReport<'m> {
-    let mut fmt_errors = Vec::new();
-    macro_rules! try_fmt {
-        ($fmt:expr) => {
-            if let Err(err) = $fmt {
-                fmt_errors.push((stringify!($fmt), err));
-            }
-        };
-    }
-
     let now = Instant::now();
 
-    try_fmt!(formatter.fmt_run_init());
+    let mut fmt_errors = Vec::new();
+    fmt_errors.push_on_error(named_fmt!(formatter.fmt_run_init(FmtRunInitData.into())));
+
     let (tests, filtered) = apply_filter(tests, filter);
-    try_fmt!(formatter.fmt_run_start(&tests, filtered));
+    fmt_errors.push_on_error(named_fmt!(
+        formatter.fmt_run_start(
+            FmtRunStartData {
+                tests: &tests,
+                filtered
+            }
+            .into()
+        )
+    ));
 
     let ignore = Arc::new(ignore);
     let panic_handler = Arc::new(panic_handler);
 
-    let outcomes = std::thread::scope(move |scope| {
-        let (ftx, frx) = crossbeam_channel::unbounded();
-        scope.spawn(move || while let Ok(fmt_data) = frx.recv() {});
+    let (outcomes, mut formatter, mut fmt_errors) = std::thread::scope(move |scope| {
+        let (ftx, frx) = crossbeam_channel::bounded(4 * runner.worker_count(tests.len()).get());
+        let fmt_thread = scope.spawn(move || {
+            while let Ok(fmt_data) = frx.recv() {
+                fmt_errors.push_on_error(match fmt_data {
+                    FmtTestData::Ignored(data) => named_fmt!(formatter.fmt_test_ignored(data)),
+                    FmtTestData::Start(data) => named_fmt!(formatter.fmt_test_start(data)),
+                    FmtTestData::Outcome(data) => named_fmt!(formatter.fmt_test_outcome(data)),
+                });
+            }
+            (formatter, fmt_errors)
+        });
 
         let test_runs = tests.into_iter().map(|meta| {
             let ignore = Arc::clone(&ignore);
@@ -116,14 +147,17 @@ pub fn run_tests<
                 move || {
                     let (ignored, reason) = ignore.ignore(meta);
                     if ignored {
-                        let _ = ftx.send(FmtTestData::Ignored {
-                            meta,
-                            reason: reason.clone(),
-                        });
+                        let _ = ftx.send(FmtTestData::Ignored(
+                            FmtTestIgnored {
+                                meta,
+                                reason: reason.as_ref().map(|r| r.as_ref()),
+                            }
+                            .into(),
+                        ));
                         return TestStatus::Ignored { reason };
                     }
 
-                    let _ = ftx.send(FmtTestData::Start { meta });
+                    let _ = ftx.send(FmtTestData::Start(FmtTestStart { meta }.into()));
                     let test_status = panic_handler.handle(meta);
                     test_status
                 },
@@ -131,18 +165,38 @@ pub fn run_tests<
             )
         });
 
-        runner
+        let outcomes = runner
             .run(test_runs, scope)
-            .inspect(|(name, outcome)| {
-                // let _ = ftx.send(FmtTestData::Outcome { name, outcome });
+            .inspect(|(meta, outcome)| {
+                let _ = ftx.send(FmtTestData::Outcome(
+                    FmtTestOutcome {
+                        meta: *meta,
+                        outcome,
+                    }
+                    .into(),
+                ));
             })
             .map(|(meta, outcome)| (meta.name.as_ref(), outcome))
-            .collect()
+            .collect();
+
+        drop(ftx);
+        let (formatter, fmt_errors) = fmt_thread
+            .join()
+            .expect("format thread should join without issues");
+
+        (outcomes, formatter, fmt_errors)
     });
 
-    println!("got report");
     let duration = now.elapsed();
-    try_fmt!(formatter.fmt_run_outcomes(&outcomes, duration));
+    fmt_errors.push_on_error(named_fmt!(
+        formatter.fmt_run_outcomes(
+            FmtRunOutcomes {
+                outcomes: &outcomes,
+                duration
+            }
+            .into()
+        )
+    ));
 
     TestReport {
         outcomes,

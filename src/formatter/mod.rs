@@ -6,55 +6,74 @@ use crate::{
     outcome::TestOutcome,
 };
 
-pub enum FmtTestData<'m, 'o, Extra> {
-    Ignored {
-        meta: &'m TestMeta<Extra>,
-        reason: Option<Cow<'static, str>>,
-    },
-
-    Start {
-        meta: &'m TestMeta<Extra>,
-    },
-
-    Outcome {
-        name: &'m str,
-        outcome: &'o TestOutcome,
-    },
+pub enum FmtTestData<I, S, O> {
+    Ignored(I),
+    Start(S),
+    Outcome(O),
 }
 
 pub struct TestGroupResult;
 
-pub trait TestFormatter<Extra> {
-    fn fmt_run_init(&mut self) -> io::Result<()> {
+pub struct FmtRunInitData;
+
+pub struct FmtRunStartData<'m, Extra> {
+    pub tests: &'m [&'m TestMeta<Extra>],
+    pub filtered: usize,
+}
+
+pub struct FmtTestIgnored<'m, 'r, Extra> {
+    pub meta: &'m TestMeta<Extra>,
+    pub reason: Option<&'r str>,
+}
+
+pub struct FmtTestStart<'m, Extra> {
+    pub meta: &'m TestMeta<Extra>,
+}
+
+pub struct FmtTestOutcome<'m, 'o, Extra> {
+    pub meta: &'m TestMeta<Extra>,
+    pub outcome: &'o TestOutcome,
+}
+
+pub struct FmtRunOutcomes<'m> {
+    pub outcomes: &'m TestOutcomes<'m>,
+    pub duration: Duration,
+}
+
+pub trait TestFormatter<Extra>: Send {
+    type RunInit: From<FmtRunInitData> + Send;
+    fn fmt_run_init(&mut self, data: Self::RunInit) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 
-    fn fmt_run_start(&mut self, tests: &[&TestMeta<Extra>], filtered: usize) -> io::Result<()> {
-        let _ = (tests, filtered);
+    type RunStart: for<'m> From<FmtRunStartData<'m, Extra>> + Send;
+    fn fmt_run_start(&mut self, data: Self::RunStart) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 
-    fn fmt_test_ignored(&mut self, meta: &TestMeta<Extra>, reason: Option<&str>) -> io::Result<()> {
-        let _ = (meta, reason);
+    type TestIgnored: for<'m, 'r> From<FmtTestIgnored<'m, 'r, Extra>> + Send;
+    fn fmt_test_ignored(&mut self, data: Self::TestIgnored) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 
-    fn fmt_test_start(&mut self, meta: &TestMeta<Extra>) -> io::Result<()> {
-        let _ = meta;
+    type TestStart: for<'m> From<FmtTestStart<'m, Extra>> + Send;
+    fn fmt_test_start(&mut self, data: Self::TestStart) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 
-    fn fmt_test_outcome(&mut self, name: &str, outcome: &TestOutcome) -> io::Result<()> {
-        let _ = (name, outcome);
+    type TestOutcome: for<'m, 'o> From<FmtTestOutcome<'m, 'o, Extra>> + Send;
+    fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 
-    fn fmt_run_outcomes(
-        &mut self,
-        outcomes: &TestOutcomes<'_>,
-        duration: Duration,
-    ) -> io::Result<()> {
-        let _ = (outcomes, duration);
+    type RunOutcomes: for<'m> From<FmtRunOutcomes<'m>> + Send;
+    fn fmt_run_outcomes(&mut self, data: Self::RunOutcomes) -> io::Result<()> {
+        let _ = data;
         Ok(())
     }
 }
@@ -90,5 +109,31 @@ pub trait GroupedTestFormatter<GroupKey, Extra>: TestFormatter<Extra> {
 }
 
 pub struct NoFormatter;
-impl<Extra> TestFormatter<Extra> for NoFormatter {}
+
+macro_rules! impl_unit_from {
+    [$($name:ident$(<$($generic:tt),*>)?),* $(,)?] => {$(
+        impl$(<$($generic),*>)? From<$name$(<$($generic),*>)?> for () {
+            fn from(_: $name$(<$($generic),*>)?) -> () {}
+        })*
+    };
+}
+
+impl_unit_from![
+    FmtRunInitData,
+    FmtRunStartData<'m, Extra>,
+    FmtTestIgnored<'m, 'r, Extra>,
+    FmtTestStart<'m, Extra>,
+    FmtTestOutcome<'m, 'o, Extra>,
+    FmtRunOutcomes<'m>
+];
+
+impl<Extra> TestFormatter<Extra> for NoFormatter {
+    type RunInit = ();
+    type RunStart = ();
+    type TestIgnored = ();
+    type TestStart = ();
+    type TestOutcome = ();
+    type RunOutcomes = ();
+}
+
 impl<GroupKey, Extra> GroupedTestFormatter<GroupKey, Extra> for NoFormatter {}

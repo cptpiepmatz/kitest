@@ -21,6 +21,8 @@ pub trait TestRunner<Extra> {
         F: (FnOnce() -> TestStatus) + Send + 's,
         Extra: 'm + Sync,
         'm: 's;
+
+    fn worker_count(&self, tests_count: usize) -> NonZeroUsize;
 }
 
 #[derive(Default)]
@@ -53,6 +55,10 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
                 },
             )
         })
+    }
+
+    fn worker_count(&self, _: usize) -> NonZeroUsize {
+        const { NonZeroUsize::new(1).unwrap() }
     }
 }
 
@@ -176,10 +182,12 @@ impl<Extra> TestRunner<Extra> for DefaultRunner {
         Extra: 'm + Sync,
         'm: 's,
     {
-        // `tests` shouldn't be empty here, just in case, return some `NonZeroUsize` value.
-        let worker_count = NonZeroUsize::new(cmp::min(self.threads.get(), tests.len()))
-            .unwrap_or(NonZeroUsize::MIN);
+        let worker_count = <DefaultRunner as TestRunner<Extra>>::worker_count(self, tests.len());
         DefaultRunnerIterator::new(worker_count, tests, scope)
+    }
+
+    fn worker_count(&self, test_count: usize) -> NonZeroUsize {
+        NonZeroUsize::new(cmp::min(self.threads.get(), test_count)).unwrap_or(NonZeroUsize::MIN)
     }
 }
 
@@ -258,6 +266,13 @@ impl<Extra> TestRunner<Extra> for SmartRunner {
                 tests,
                 scope,
             )),
+        }
+    }
+
+    fn worker_count(&self, test_count: usize) -> NonZeroUsize {
+        match test_count <= self.threshold {
+            true => <SimpleRunner as TestRunner<Extra>>::worker_count(&self.simple, test_count),
+            false => <DefaultRunner as TestRunner<Extra>>::worker_count(&self.default, test_count),
         }
     }
 }
