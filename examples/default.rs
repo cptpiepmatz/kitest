@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use kitest::{
-    filter::DefaultFilter,
+    filter2::DefaultFilter,
     formatter::NoFormatter,
     ignore::DefaultIgnore,
     meta::{TestFnHandle, TestMeta},
@@ -47,7 +47,7 @@ const TESTS: &[TestMeta] = &[
 
 fn main() {
     kitest::run_tests(
-        TESTS.iter(),
+        TESTS,
         DefaultFilter::default(),
         DefaultRunner::default(),
         DefaultIgnore::default(),

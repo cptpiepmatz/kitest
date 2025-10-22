@@ -7,17 +7,10 @@ use std::{
 };
 
 use crate::{
-    filter::{FilterDecision, TestFilter},
-    formatter::{
+    filter::{FilterDecision, TestFilter}, filter2::FilteredTests, formatter::{
         FmtRunInitData, FmtRunOutcomes, FmtRunStartData, FmtTestData, FmtTestIgnored,
         FmtTestOutcome, FmtTestStart, TestFormatter,
-    },
-    group::{TestGroupRunner, TestGrouper, TestGroups},
-    ignore::TestIgnore,
-    meta::TestMeta,
-    outcome::{TestOutcome, TestStatus},
-    panic_handler::TestPanicHandler,
-    runner::TestRunner,
+    }, group::{TestGroupRunner, TestGrouper, TestGroups}, ignore::TestIgnore, meta::TestMeta, outcome::{TestOutcome, TestStatus}, panic_handler::TestPanicHandler, runner::TestRunner
 };
 use itertools::Itertools;
 
@@ -49,58 +42,16 @@ macro_rules! named_fmt {
     };
 }
 
-fn apply_filter<'m, Iter, Filter, Extra>(
-    tests: Iter,
-    mut filter: Filter,
-) -> (Vec<&'m TestMeta<Extra>>, usize)
-where
-    Iter: Iterator<Item = &'m TestMeta<Extra>>,
-    Filter: TestFilter<Extra>,
-{
-    let mut filtered = 0usize;
-    let mut kept = Vec::new();
-
-    let mut iter = tests.into_iter();
-
-    if filter.skip_filtering() {
-        kept = iter.collect_vec();
-        return (kept, filtered);
-    }
-
-    while let Some(meta) = iter.next() {
-        match filter.filter(&meta) {
-            FilterDecision::Keep => {
-                kept.push(meta);
-            }
-            FilterDecision::Exclude => {
-                filtered += 1;
-            }
-            FilterDecision::KeepAndDone => {
-                kept.push(meta);
-                filtered += iter.count(); // everything remaining is filtered out
-                break;
-            }
-            FilterDecision::ExcludeAndDone => {
-                filtered += 1 + iter.count(); // this one plus the rest
-                break;
-            }
-        }
-    }
-
-    (kept, filtered)
-}
-
 pub fn run_tests<
     'm,
-    Iter: Iterator<Item = &'m TestMeta<Extra>>,
-    Filter: TestFilter<Extra>,
+    Filter: filter2::TestFilter<Extra>,
     Runner: TestRunner<Extra>,
     Ignore: TestIgnore<Extra> + Send + Sync + 'm,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
     Formatter: TestFormatter<Extra> + 'm,
     Extra: 'm + Sync,
 >(
-    tests: Iter,
+    tests: &'m [TestMeta<Extra>],
     filter: Filter,
     runner: Runner,
     ignore: Ignore,
@@ -110,13 +61,13 @@ pub fn run_tests<
     let now = Instant::now();
 
     let mut fmt_errors = Vec::new();
-    fmt_errors.push_on_error(named_fmt!(formatter.fmt_run_init(FmtRunInitData.into())));
+    fmt_errors.push_on_error(named_fmt!(formatter.fmt_run_init(FmtRunInitData {tests}.into())));
 
-    let (tests, filtered) = apply_filter(tests, filter);
+    let FilteredTests { tests, filtered} = filter.filter(tests);
     fmt_errors.push_on_error(named_fmt!(
         formatter.fmt_run_start(
             FmtRunStartData {
-                tests: &tests,
+                tests: tests.len(),
                 filtered
             }
             .into()

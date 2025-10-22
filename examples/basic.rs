@@ -1,7 +1,7 @@
 use std::{borrow::Cow, io::{self, Stdout, Write}};
 
 use kitest::{
-    filter::NoFilter,
+    filter2::NoFilter,
     formatter::{FmtTestOutcome, TestFormatter},
     ignore::NoIgnore,
     meta::{TestFnHandle, TestMeta},
@@ -61,7 +61,7 @@ impl TestFormatter<()> for BasicFormatter {
 
 fn main() {
     kitest::run_tests(
-        TESTS.iter(),
+        TESTS,
         NoFilter,
         SimpleRunner,
         NoIgnore,

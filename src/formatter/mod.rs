@@ -14,10 +14,12 @@ pub enum FmtTestData<I, S, O> {
 
 pub struct TestGroupResult;
 
-pub struct FmtRunInitData;
+pub struct FmtRunInitData<'m, Extra> {
+    pub tests: &'m[TestMeta<Extra>],
+}
 
-pub struct FmtRunStartData<'m, Extra> {
-    pub tests: &'m [&'m TestMeta<Extra>],
+pub struct FmtRunStartData {
+    pub tests: usize,
     pub filtered: usize,
 }
 
@@ -41,13 +43,13 @@ pub struct FmtRunOutcomes<'m> {
 }
 
 pub trait TestFormatter<Extra>: Send {
-    type RunInit: From<FmtRunInitData> + Send;
+    type RunInit: for <'m> From<FmtRunInitData<'m, Extra>> + Send;
     fn fmt_run_init(&mut self, data: Self::RunInit) -> io::Result<()> {
         let _ = data;
         Ok(())
     }
 
-    type RunStart: for<'m> From<FmtRunStartData<'m, Extra>> + Send;
+    type RunStart: From<FmtRunStartData> + Send;
     fn fmt_run_start(&mut self, data: Self::RunStart) -> io::Result<()> {
         let _ = data;
         Ok(())
@@ -119,8 +121,8 @@ macro_rules! impl_unit_from {
 }
 
 impl_unit_from![
-    FmtRunInitData,
-    FmtRunStartData<'m, Extra>,
+    FmtRunInitData<'m, Extra>,
+    FmtRunStartData,
     FmtTestIgnored<'m, 'r, Extra>,
     FmtTestStart<'m, Extra>,
     FmtTestOutcome<'m, 'o, Extra>,
