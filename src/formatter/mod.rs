@@ -1,17 +1,6 @@
-use std::{
-    borrow::Cow,
-    io,
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-    time::Duration,
-};
+use std::{io, time::Duration};
 
-use crate::{
-    GroupedTestOutcomes, TestOutcomes,
-    group::TestGroups,
-    meta::{TestMeta, TestResult},
-    outcome::TestOutcome,
-};
+use crate::{GroupedTestOutcomes, TestOutcomes, meta::TestMeta, outcome::TestOutcome};
 
 pub(crate) enum FmtTestData<I, S, O> {
     Ignored(I),

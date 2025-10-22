@@ -340,18 +340,22 @@ where
 }
 
 pub type TestOutcomes<'m> = HashMap<&'m str, TestOutcome, ahash::RandomState>;
+
+#[non_exhaustive]
 pub struct TestReport<'m> {
-    outcomes: TestOutcomes<'m>,
-    duration: Duration,
-    fmt_errors: Vec<(&'static str, io::Error)>,
+    pub outcomes: TestOutcomes<'m>,
+    pub duration: Duration,
+    pub fmt_errors: Vec<(&'static str, io::Error)>,
 }
 
 pub type GroupedTestOutcomes<'m, GroupKey> =
     HashMap<GroupKey, HashMap<&'m str, TestOutcome, ahash::RandomState>, ahash::RandomState>;
+
+#[non_exhaustive]
 pub struct GroupedTestReport<'m, GroupKey> {
-    outcomes: GroupedTestOutcomes<'m, GroupKey>,
-    duration: Duration,
-    fmt_errors: Vec<(&'static str, io::Error)>,
+    pub outcomes: GroupedTestOutcomes<'m, GroupKey>,
+    pub duration: Duration,
+    pub fmt_errors: Vec<(&'static str, io::Error)>,
 }
 
 #[test]
