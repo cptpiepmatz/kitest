@@ -22,6 +22,7 @@ use crate::{
 use itertools::Itertools;
 
 pub mod filter;
+pub mod filter2;
 pub mod formatter;
 pub mod group;
 pub mod ignore;
