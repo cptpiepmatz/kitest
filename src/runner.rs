@@ -15,7 +15,7 @@ pub trait TestRunner<Extra> {
         &self,
         tests: I,
         scope: &'s Scope<'s, 'm>,
-    ) -> impl Iterator<Item = (&'m str, TestOutcome)>
+    ) -> impl Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
         F: (FnOnce() -> TestStatus) + Send + 's,
@@ -31,7 +31,7 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
         &self,
         tests: I,
         _: &'s Scope<'s, 'm>,
-    ) -> impl Iterator<Item = (&'m str, TestOutcome)>
+    ) -> impl Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
         F: (FnOnce() -> TestStatus) + Send + 's,
@@ -43,7 +43,7 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
             let status = test();
             let duration = now.elapsed();
             (
-                meta.name.as_ref(),
+                meta,
                 TestOutcome {
                     status,
                     duration,
@@ -87,7 +87,7 @@ where
 {
     source: I,
     push_job: crossbeam_channel::Sender<Option<(F, &'m TestMeta<Extra>)>>,
-    wait_job: crossbeam_channel::Receiver<(&'m str, TestOutcome)>,
+    wait_job: crossbeam_channel::Receiver<(&'m TestMeta<Extra>, TestOutcome)>,
     _scope: &'s Scope<'s, 'm>,
     _workers: Vec<ScopedJoinHandle<'s, ()>>,
 }
@@ -113,7 +113,7 @@ where
                         let status = f();
                         let duration = now.elapsed();
                         let send_outcome_res = otx.send((
-                            meta.name.as_ref(),
+                            meta,
                             TestOutcome {
                                 status,
                                 duration,
@@ -148,7 +148,7 @@ where
     Extra: 'm + Sync,
     'm: 's,
 {
-    type Item = (&'m str, TestOutcome);
+    type Item = (&'m TestMeta<Extra>, TestOutcome);
 
     fn next(&mut self) -> Option<Self::Item> {
         let out = self.wait_job.recv().ok();
@@ -169,7 +169,7 @@ impl<Extra> TestRunner<Extra> for DefaultRunner {
         &self,
         tests: I,
         scope: &'s Scope<'s, 'm>,
-    ) -> impl Iterator<Item = (&'m str, TestOutcome)>
+    ) -> impl Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
         F: (FnOnce() -> TestStatus) + Send + 's,
@@ -219,12 +219,13 @@ enum SmartRunnerIterator<IS, ID> {
     Default(ID),
 }
 
-impl<'m, IS, ID> Iterator for SmartRunnerIterator<IS, ID>
+impl<'m, IS, ID, Extra> Iterator for SmartRunnerIterator<IS, ID>
 where
-    IS: Iterator<Item = (&'m str, TestOutcome)>,
-    ID: Iterator<Item = (&'m str, TestOutcome)>,
+    IS: Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>,
+    ID: Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>,
+    Extra: 'm,
 {
-    type Item = (&'m str, TestOutcome);
+    type Item = (&'m TestMeta<Extra>, TestOutcome);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -239,7 +240,7 @@ impl<Extra> TestRunner<Extra> for SmartRunner {
         &self,
         tests: I,
         scope: &'s Scope<'s, 'm>,
-    ) -> impl Iterator<Item = (&'m str, TestOutcome)>
+    ) -> impl Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
         F: (FnOnce() -> TestStatus) + Send + 's,

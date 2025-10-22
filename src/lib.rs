@@ -3,7 +3,6 @@ use std::{
     hash::Hash,
     io,
     sync::Arc,
-    thread,
     time::{Duration, Instant},
 };
 
@@ -132,9 +131,13 @@ pub fn run_tests<
             )
         });
 
-        runner.run(test_runs, scope).inspect(|(name, outcome)| {
-            // let _ = ftx.send(FmtTestData::Outcome { name, outcome });
-        }).collect()
+        runner
+            .run(test_runs, scope)
+            .inspect(|(name, outcome)| {
+                // let _ = ftx.send(FmtTestData::Outcome { name, outcome });
+            })
+            .map(|(meta, outcome)| (meta.name.as_ref(), outcome))
+            .collect()
     });
 
     println!("got report");
@@ -251,7 +254,10 @@ pub fn run_grouped_tests<
                     )
                 });
 
-                runner.run(test_runs, scope).collect()
+                runner
+                    .run(test_runs, scope)
+                    .map(|(meta, outcome)| (meta.name.as_ref(), outcome))
+                    .collect()
             });
 
             (key, report)

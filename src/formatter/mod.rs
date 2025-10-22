@@ -1,7 +1,9 @@
 use std::{borrow::Cow, io, time::Duration};
 
 use crate::{
-    meta::{TestMeta, TestResult}, outcome::TestOutcome, GroupedTestOutcomes, TestOutcomes
+    GroupedTestOutcomes, TestOutcomes,
+    meta::{TestMeta, TestResult},
+    outcome::TestOutcome,
 };
 
 pub enum FmtTestData<'m, 'o, Extra> {

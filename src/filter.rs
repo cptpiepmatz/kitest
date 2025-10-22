@@ -75,7 +75,7 @@ impl<Extra> TestFilter<Extra> for DefaultFilter {
 
         match self.filter.is_empty() || self.filter.iter().any(|f| name.contains(f)) {
             true => FilterDecision::Keep,
-            false => FilterDecision::Exclude
+            false => FilterDecision::Exclude,
         }
     }
 
