@@ -35,25 +35,25 @@ const TESTS: &[TestMeta] = &[
 
 struct BasicFormatter(Stdout);
 
-struct BasicTestOutcome {
-    name: Cow<'static, str>,
+struct BasicTestOutcome<'m> {
+    name: &'m str,
 }
 
-impl From<FmtTestOutcome<'_, '_, ()>> for BasicTestOutcome {
-    fn from(value: FmtTestOutcome<'_, '_, ()>) -> Self {
+impl<'m> From<FmtTestOutcome<'m, '_, ()>> for BasicTestOutcome<'m> {
+    fn from(value: FmtTestOutcome<'m, '_, ()>) -> Self {
         BasicTestOutcome {
-            name: value.meta.name.clone(),
+            name: value.meta.name.as_ref(),
         }
     }
 }
 
-impl TestFormatter<()> for BasicFormatter {
+impl<'m> TestFormatter<'m, ()> for BasicFormatter {
     type RunInit = ();
     fn fmt_run_init(&mut self, _: Self::RunInit) -> std::io::Result<()> {
         writeln!(self.0, "started testing")
     }
 
-    type TestOutcome = BasicTestOutcome;
+    type TestOutcome = BasicTestOutcome<'m>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> std::io::Result<()> {
         writeln!(self.0, "test {:?} done", data.name)
     }

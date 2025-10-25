@@ -54,8 +54,8 @@ pub fn run_tests<
     Runner: TestRunner<Extra>,
     Ignore: TestIgnore<Extra> + Send + Sync + 'm,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
-    Formatter: TestFormatter<Extra> + 'm,
-    Extra: 'm + Sync,
+    Formatter: TestFormatter<'m, Extra> + 'm,
+    Extra: Sync + 'm,
 >(
     tests: &'m [TestMeta<Extra>],
     filter: Filter,
@@ -110,7 +110,7 @@ pub fn run_tests<
                         let _ = ftx.send(FmtTestData::Ignored(
                             FmtTestIgnored {
                                 meta,
-                                reason: reason.as_ref().map(|r| r.as_ref()),
+                                reason: reason.as_ref(),
                             }
                             .into(),
                         ));
@@ -174,9 +174,9 @@ pub fn run_grouped_tests<
     Runner: TestRunner<Extra>,
     Ignore: TestIgnore<Extra> + Send + Sync + 'm,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
-    Formatter: GroupedTestFormatter<GroupKey, Extra> + 'm,
-    GroupKey: Eq + Hash,
-    Extra: 'm + Sync,
+    Formatter: GroupedTestFormatter<'m, GroupKey, Extra> + 'm,
+    GroupKey: Eq + Hash + 'm,
+    Extra: Sync + 'm,
 >(
     tests: &'m [TestMeta<Extra>],
     filter: Filter,
@@ -189,8 +189,8 @@ pub fn run_grouped_tests<
     mut formatter: Formatter,
 ) -> GroupedTestReport<'m, GroupKey>
 where
-    <Formatter as GroupedTestFormatter<GroupKey, Extra>>::GroupStart: 'm,
-    <Formatter as GroupedTestFormatter<GroupKey, Extra>>::GroupOutcomes: 'm,
+    <Formatter as GroupedTestFormatter<'m, GroupKey, Extra>>::GroupStart: 'm,
+    <Formatter as GroupedTestFormatter<'m, GroupKey, Extra>>::GroupOutcomes: 'm,
 {
     let now = Instant::now();
 
@@ -264,7 +264,7 @@ where
                                 let _ = ftx.send(FmtGroupedTestData::Test(FmtTestData::Ignored(
                                     FmtTestIgnored {
                                         meta,
-                                        reason: reason.as_ref().map(|r| r.as_ref()),
+                                        reason: reason.as_ref(),
                                     }
                                     .into(),
                                 )));
@@ -362,3 +362,7 @@ fn foo() {}
 
 #[test]
 fn bar() {}
+
+#[test]
+#[ignore = "for a reason"]
+fn ignored() {}

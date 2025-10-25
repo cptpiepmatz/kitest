@@ -71,16 +71,16 @@ const TESTS: &[TestMeta<Flag>] = &[
 
 struct FlagFormatter(Stdout);
 
-struct TestName(Cow<'static, str>);
+struct TestName<'m>(&'m str);
 
-impl<Extra> From<FmtTestStart<'_, Extra>> for TestName {
-    fn from(value: FmtTestStart<'_, Extra>) -> Self {
-        Self(value.meta.name.clone())
+impl<'m, Extra> From<FmtTestStart<'m, Extra>> for TestName<'m> {
+    fn from(value: FmtTestStart<'m, Extra>) -> Self {
+        Self(value.meta.name.as_ref())
     }
 }
 
-impl TestFormatter<Flag> for FlagFormatter {
-    type TestStart = TestName;
+impl<'m> TestFormatter<'m, Flag> for FlagFormatter {
+    type TestStart = TestName<'m>;
     fn fmt_test_start(&mut self, TestName(name): Self::TestStart) -> std::io::Result<()> {
         writeln!(self.0, "testing test {name}")
     }
@@ -100,13 +100,13 @@ impl From<FmtGroupStart<'_, Flag>> for Group {
     }
 }
 
-impl From<FmtGroupOutcomes<'_, '_, Flag>> for Group {
-    fn from(value: FmtGroupOutcomes<'_, '_, Flag>) -> Self {
+impl From<FmtGroupOutcomes<'_, '_, '_, Flag>> for Group {
+    fn from(value: FmtGroupOutcomes<'_, '_, '_, Flag>) -> Self {
         Self(*value.key)
     }
 }
 
-impl GroupedTestFormatter<Flag, Flag> for FlagFormatter {
+impl GroupedTestFormatter<'_, Flag, Flag> for FlagFormatter {
     type GroupStart = Group;
     fn fmt_group_start(&mut self, Group(flag): Self::GroupStart) -> std::io::Result<()> {
         writeln!(self.0, "testing group {flag}")
