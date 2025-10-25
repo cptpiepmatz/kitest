@@ -126,24 +126,34 @@ pub trait GroupedTestFormatter<'m, GroupKey: 'm, Extra: 'm>: TestFormatter<'m, E
     }
 }
 
-pub struct FmtBeginListing<'m, Extra> {
+pub struct FmtInitListing<'m, Extra> {
     pub tests: &'m [TestMeta<Extra>],
+}
+
+pub struct FmtBeginListing {
+    pub tests: usize,
+    pub filtered: usize,
 }
 
 pub struct FmtListTest<'m, Extra> {
     pub meta: &'m TestMeta<Extra>,
-    pub ignored: (bool, Option<&'m Cow<'static, str>>)
+    pub ignored: (bool, Option<Cow<'static, str>>)
 }
 
 pub struct FmtEndListing {
-    pub total: usize,
+    pub active: usize,
     pub ignored: usize,
 }
 
 pub trait TestListFormatter<'m, Extra: 'm> {
     type Error: 'm;
 
-    type BeginListing: From<FmtBeginListing<'m, Extra>>;
+    type InitListing: From<FmtInitListing<'m, Extra>>;
+    fn fmt_init_listing(&mut self, data: Self::InitListing) -> Result<(), Self::Error> {
+        discard!(data)
+    }
+
+    type BeginListing: From<FmtBeginListing>;
     fn fmt_begin_listing(&mut self, data: Self::BeginListing) -> Result<(), Self::Error> {
         discard!(data)
     }
@@ -205,7 +215,8 @@ impl_unit_from![
     FmtGroupOutcomes<'m, 'g, 'o, GroupKey>,
     FmtGroupedRunOutcomes<'m, 'o, GroupKey>,
 
-    FmtBeginListing<'m, Extra>,
+    FmtInitListing<'m, Extra>,
+    FmtBeginListing,
     FmtListTest<'m, Extra>,
     FmtEndListing,
 
@@ -232,6 +243,7 @@ impl<'m, GroupKey: 'm, Extra: 'm> GroupedTestFormatter<'m, GroupKey, Extra> for 
 
 impl<'m, Extra: 'm> TestListFormatter<'m, Extra> for NoFormatter {
     type Error = ();
+    type InitListing = ();
     type BeginListing = ();
     type ListTest = ();
     type EndListing = ();
