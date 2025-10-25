@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
     hash::Hash,
-    io,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -30,12 +29,12 @@ pub mod outcome;
 pub mod panic_handler;
 pub mod runner;
 
-trait FmtErrors {
-    fn push_on_error<T>(&mut self, data: (&'static str, io::Result<T>));
+trait FmtErrors<E> {
+    fn push_on_error<T>(&mut self, data: (&'static str, Result<T, E>));
 }
 
-impl FmtErrors for Vec<(&'static str, io::Error)> {
-    fn push_on_error<T>(&mut self, (name, res): (&'static str, io::Result<T>)) {
+impl<E> FmtErrors<E> for Vec<(&'static str, E)> {
+    fn push_on_error<T>(&mut self, (name, res): (&'static str, Result<T, E>)) {
         if let Err(err) = res {
             self.push((name, err));
         }
@@ -63,7 +62,7 @@ pub fn run_tests<
     ignore: Ignore,
     panic_handler: PanicHandler,
     mut formatter: Formatter,
-) -> TestReport<'m> {
+) -> TestReport<'m, Formatter::Error> {
     let now = Instant::now();
 
     let mut fmt_errors = Vec::new();
@@ -187,7 +186,7 @@ pub fn run_grouped_tests<
     ignore: Ignore,
     panic_handler: PanicHandler,
     mut formatter: Formatter,
-) -> GroupedTestReport<'m, GroupKey>
+) -> GroupedTestReport<'m, GroupKey, Formatter::Error>
 where
     <Formatter as GroupedTestFormatter<'m, GroupKey, Extra>>::GroupStart: 'm,
     <Formatter as GroupedTestFormatter<'m, GroupKey, Extra>>::GroupOutcomes: 'm,
@@ -341,20 +340,20 @@ where
 pub type TestOutcomes<'m> = HashMap<&'m str, TestOutcome, ahash::RandomState>;
 
 #[non_exhaustive]
-pub struct TestReport<'m> {
+pub struct TestReport<'m, FmtError: 'm> {
     pub outcomes: TestOutcomes<'m>,
     pub duration: Duration,
-    pub fmt_errors: Vec<(&'static str, io::Error)>,
+    pub fmt_errors: Vec<(&'static str, FmtError)>,
 }
 
 pub type GroupedTestOutcomes<'m, GroupKey> =
     HashMap<GroupKey, HashMap<&'m str, TestOutcome, ahash::RandomState>, ahash::RandomState>;
 
 #[non_exhaustive]
-pub struct GroupedTestReport<'m, GroupKey> {
+pub struct GroupedTestReport<'m, GroupKey, FmtError: 'm> {
     pub outcomes: GroupedTestOutcomes<'m, GroupKey>,
     pub duration: Duration,
-    pub fmt_errors: Vec<(&'static str, io::Error)>,
+    pub fmt_errors: Vec<(&'static str, FmtError)>,
 }
 
 #[test]

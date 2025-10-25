@@ -48,13 +48,15 @@ impl<'m> From<FmtTestOutcome<'m, '_, ()>> for BasicTestOutcome<'m> {
 }
 
 impl<'m> TestFormatter<'m, ()> for BasicFormatter {
+    type Error = io::Error;
+
     type RunInit = ();
-    fn fmt_run_init(&mut self, _: Self::RunInit) -> std::io::Result<()> {
+    fn fmt_run_init(&mut self, _: Self::RunInit) -> io::Result<()> {
         writeln!(self.0, "started testing")
     }
 
     type TestOutcome = BasicTestOutcome<'m>;
-    fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> std::io::Result<()> {
+    fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> io::Result<()> {
         writeln!(self.0, "test {:?} done", data.name)
     }
 

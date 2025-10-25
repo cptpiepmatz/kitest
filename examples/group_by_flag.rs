@@ -80,8 +80,10 @@ impl<'m, Extra> From<FmtTestStart<'m, Extra>> for TestName<'m> {
 }
 
 impl<'m> TestFormatter<'m, Flag> for FlagFormatter {
+    type Error = io::Error;
+
     type TestStart = TestName<'m>;
-    fn fmt_test_start(&mut self, TestName(name): Self::TestStart) -> std::io::Result<()> {
+    fn fmt_test_start(&mut self, TestName(name): Self::TestStart) -> io::Result<()> {
         writeln!(self.0, "testing test {name}")
     }
 
