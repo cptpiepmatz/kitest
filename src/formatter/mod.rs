@@ -1,12 +1,14 @@
-use std::{borrow::Cow, io, time::Duration};
+use std::{borrow::Cow, time::Duration};
 
 use crate::{GroupedTestOutcomes, TestOutcomes, meta::TestMeta, outcome::TestOutcome};
+
+pub mod pretty;
 
 macro_rules! discard {
     ($data:expr) => {{
         let _ = $data;
         Ok(())
-    }}
+    }};
 }
 
 pub(crate) enum FmtTestData<I, S, O> {
@@ -93,7 +95,7 @@ pub struct FmtGroupStart<'g, GroupKey> {
     pub tests: usize,
 }
 
-pub struct FmtGroupOutcomes<'m, 'g, 'o,  GroupKey> {
+pub struct FmtGroupOutcomes<'m, 'g, 'o, GroupKey> {
     pub key: &'g GroupKey,
     pub outcomes: &'o TestOutcomes<'m>,
     pub duration: Duration,
@@ -121,7 +123,10 @@ pub trait GroupedTestFormatter<'m, GroupKey: 'm, Extra: 'm>: TestFormatter<'m, E
     }
 
     type GroupedRunOutcomes: for<'o> From<FmtGroupedRunOutcomes<'m, 'o, GroupKey>> + Send;
-    fn fmt_grouped_run_outcomes(&mut self, data: Self::GroupedRunOutcomes) -> Result<(), Self::Error> {
+    fn fmt_grouped_run_outcomes(
+        &mut self,
+        data: Self::GroupedRunOutcomes,
+    ) -> Result<(), Self::Error> {
         discard!(data)
     }
 }
@@ -137,7 +142,7 @@ pub struct FmtBeginListing {
 
 pub struct FmtListTest<'m, Extra> {
     pub meta: &'m TestMeta<Extra>,
-    pub ignored: (bool, Option<Cow<'static, str>>)
+    pub ignored: (bool, Option<Cow<'static, str>>),
 }
 
 pub struct FmtEndListing {
@@ -179,7 +184,9 @@ pub struct FmtListGroupEnd<'g, GroupKey> {
     pub tests: usize,
 }
 
-pub trait GroupedTestListFormatter<'m, GroupKey: 'm, Extra: 'm>: TestListFormatter<'m, Extra> {
+pub trait GroupedTestListFormatter<'m, GroupKey: 'm, Extra: 'm>:
+    TestListFormatter<'m, Extra>
+{
     type ListGroupStart: for<'g> From<FmtListGroupStart<'g, GroupKey>>;
     fn fmt_list_group_start(&mut self, data: Self::ListGroupStart) -> Result<(), Self::Error> {
         discard!(data)
@@ -209,17 +216,14 @@ impl_unit_from![
     FmtTestStart<'m, Extra>,
     FmtTestOutcome<'m, 'o, Extra>,
     FmtRunOutcomes<'m, 'o>,
-
     FmtGroupedRunStart,
     FmtGroupStart<'g, GroupKey>,
     FmtGroupOutcomes<'m, 'g, 'o, GroupKey>,
     FmtGroupedRunOutcomes<'m, 'o, GroupKey>,
-
     FmtInitListing<'m, Extra>,
     FmtBeginListing,
     FmtListTest<'m, Extra>,
     FmtEndListing,
-
     FmtListGroupStart<'g, GroupKey>,
     FmtListGroupEnd<'g, GroupKey>,
 ];
