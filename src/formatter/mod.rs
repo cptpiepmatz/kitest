@@ -2,7 +2,9 @@ use std::{borrow::Cow, time::Duration};
 
 use crate::{GroupedTestOutcomes, TestOutcomes, meta::TestMeta, outcome::TestOutcome};
 
+mod common;
 pub mod pretty;
+pub mod terse;
 
 macro_rules! discard {
     ($data:expr) => {{
