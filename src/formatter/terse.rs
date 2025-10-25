@@ -11,7 +11,10 @@ pub struct TerseFormatter<W: io::Write> {
 
 impl Default for TerseFormatter<io::Stdout> {
     fn default() -> Self {
-        Self { target: io::stdout(), color_setting: Default::default() }
+        Self {
+            target: io::stdout(),
+            color_setting: Default::default(),
+        }
     }
 }
 
