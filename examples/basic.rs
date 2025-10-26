@@ -7,7 +7,7 @@ use kitest::{
     filter::NoFilter,
     formatter::{FmtTestOutcome, TestFormatter},
     ignore::NoIgnore,
-    meta::{Test, TestFnHandle, TestMeta},
+    test::{Test, TestFnHandle, TestMeta},
     panic_handler::NoPanicHandler,
     runner::SimpleRunner,
 };
@@ -39,19 +39,19 @@ const TESTS: &[Test] = &[
 
 struct BasicFormatter(Stdout);
 
-struct BasicTestOutcome<'m> {
-    name: &'m str,
+struct BasicTestOutcome<'t> {
+    name: &'t str,
 }
 
-impl<'m> From<FmtTestOutcome<'m, '_, ()>> for BasicTestOutcome<'m> {
-    fn from(value: FmtTestOutcome<'m, '_, ()>) -> Self {
+impl<'t> From<FmtTestOutcome<'t, '_, ()>> for BasicTestOutcome<'t> {
+    fn from(value: FmtTestOutcome<'t, '_, ()>) -> Self {
         BasicTestOutcome {
             name: value.meta.name.as_ref(),
         }
     }
 }
 
-impl<'m> TestFormatter<'m, ()> for BasicFormatter {
+impl<'t> TestFormatter<'t, ()> for BasicFormatter {
     type Error = io::Error;
 
     type RunInit = ();
@@ -59,7 +59,7 @@ impl<'m> TestFormatter<'m, ()> for BasicFormatter {
         writeln!(self.0, "started testing")
     }
 
-    type TestOutcome = BasicTestOutcome<'m>;
+    type TestOutcome = BasicTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> io::Result<()> {
         writeln!(self.0, "test {:?} done", data.name)
     }

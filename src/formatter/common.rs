@@ -8,10 +8,10 @@ pub enum ColorSetting {
     Never,
 }
 
-pub struct TestName<'m>(pub &'m str);
+pub struct TestName<'t>(pub &'t str);
 
-impl<'m, Extra> From<FmtListTest<'m, Extra>> for TestName<'m> {
-    fn from(value: FmtListTest<'m, Extra>) -> Self {
+impl<'t, Extra> From<FmtListTest<'t, Extra>> for TestName<'t> {
+    fn from(value: FmtListTest<'t, Extra>) -> Self {
         Self(value.meta.name.as_ref())
     }
 }

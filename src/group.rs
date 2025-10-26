@@ -3,7 +3,7 @@ use std::{
     hash::{BuildHasher, Hash},
 };
 
-use crate::meta::{Test, TestMeta};
+use crate::test::{Test, TestMeta};
 
 pub trait TestGrouper<Extra, GroupKey, GroupCtx = ()> {
     fn group(&mut self, meta: &TestMeta<Extra>) -> GroupKey;
@@ -23,15 +23,15 @@ where
     }
 }
 
-pub trait TestGroups<'m, Extra: Sync + 'm, GroupKey> {
-    fn add(&mut self, key: GroupKey, test: &'m Test<Extra>);
+pub trait TestGroups<'t, Extra: Sync + 't, GroupKey> {
+    fn add(&mut self, key: GroupKey, test: &'t Test<Extra>);
 
     fn into_groups(
         self,
     ) -> impl ExactSizeIterator<
         Item = (
             GroupKey,
-            impl ExactSizeIterator<Item = &'m Test<Extra>> + Send,
+            impl ExactSizeIterator<Item = &'t Test<Extra>> + Send,
         ),
     >;
 
@@ -42,16 +42,16 @@ pub trait TestGroups<'m, Extra: Sync + 'm, GroupKey> {
     }
 }
 
-pub type TestGroupHashMap<'m, Extra, GroupKey, RandomState = std::hash::RandomState> =
-    HashMap<GroupKey, Vec<&'m Test<Extra>>, RandomState>;
+pub type TestGroupHashMap<'t, Extra, GroupKey, RandomState = std::hash::RandomState> =
+    HashMap<GroupKey, Vec<&'t Test<Extra>>, RandomState>;
 
-impl<'m, Extra: Sync + 'm, GroupKey, RandomState> TestGroups<'m, Extra, GroupKey>
-    for TestGroupHashMap<'m, Extra, GroupKey, RandomState>
+impl<'t, Extra: Sync + 't, GroupKey, RandomState> TestGroups<'t, Extra, GroupKey>
+    for TestGroupHashMap<'t, Extra, GroupKey, RandomState>
 where
     GroupKey: Eq + Hash,
     RandomState: BuildHasher + Default,
 {
-    fn add(&mut self, key: GroupKey, test: &'m Test<Extra>) {
+    fn add(&mut self, key: GroupKey, test: &'t Test<Extra>) {
         self.entry(key).or_default().push(test);
     }
 
@@ -60,7 +60,7 @@ where
     ) -> impl ExactSizeIterator<
         Item = (
             GroupKey,
-            impl ExactSizeIterator<Item = &'m Test<Extra>> + Send,
+            impl ExactSizeIterator<Item = &'t Test<Extra>> + Send,
         ),
     > {
         self.into_iter()
@@ -72,14 +72,14 @@ where
     }
 }
 
-pub type TestGroupBTreeMap<'m, Extra, GroupKey> = BTreeMap<GroupKey, Vec<&'m Test<Extra>>>;
+pub type TestGroupBTreeMap<'t, Extra, GroupKey> = BTreeMap<GroupKey, Vec<&'t Test<Extra>>>;
 
-impl<'m, Extra: Sync + 'm, GroupKey> TestGroups<'m, Extra, GroupKey>
-    for TestGroupBTreeMap<'m, Extra, GroupKey>
+impl<'t, Extra: Sync + 't, GroupKey> TestGroups<'t, Extra, GroupKey>
+    for TestGroupBTreeMap<'t, Extra, GroupKey>
 where
     GroupKey: Ord,
 {
-    fn add(&mut self, key: GroupKey, test: &'m Test<Extra>) {
+    fn add(&mut self, key: GroupKey, test: &'t Test<Extra>) {
         self.entry(key).or_default().push(test);
     }
 
@@ -88,7 +88,7 @@ where
     ) -> impl ExactSizeIterator<
         Item = (
             GroupKey,
-            impl ExactSizeIterator<Item = &'m Test<Extra>> + Send,
+            impl ExactSizeIterator<Item = &'t Test<Extra>> + Send,
         ),
     > {
         self.into_iter()

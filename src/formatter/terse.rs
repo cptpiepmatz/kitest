@@ -18,10 +18,10 @@ impl Default for TerseFormatter<io::Stdout> {
     }
 }
 
-impl<'m, Extra: 'm, W: io::Write> TestListFormatter<'m, Extra> for TerseFormatter<W> {
+impl<'t, Extra: 't, W: io::Write> TestListFormatter<'t, Extra> for TerseFormatter<W> {
     type Error = io::Error;
 
-    type ListTest = TestName<'m>;
+    type ListTest = TestName<'t>;
     fn fmt_list_test(&mut self, data: Self::ListTest) -> Result<(), Self::Error> {
         writeln!(self.target, "{}: test", data.0)
     }

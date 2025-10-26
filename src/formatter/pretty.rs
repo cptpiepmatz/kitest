@@ -48,13 +48,13 @@ impl From<FmtEndListing> for PrettyTestCount {
     }
 }
 
-pub struct PrettyTestOutcome<'m> {
-    pub name: &'m str,
+pub struct PrettyTestOutcome<'t> {
+    pub name: &'t str,
     pub status: TestStatus,
 }
 
-impl<'m, 'o, Extra> From<FmtTestOutcome<'m, 'o, Extra>> for PrettyTestOutcome<'m> {
-    fn from(value: FmtTestOutcome<'m, 'o, Extra>) -> Self {
+impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for PrettyTestOutcome<'t> {
+    fn from(value: FmtTestOutcome<'t, 'o, Extra>) -> Self {
         Self {
             name: value.meta.name.as_ref(),
             status: value.outcome.status.clone(),
@@ -70,8 +70,8 @@ pub struct PrettyRunOutcomes {
     pub duration: Duration,
 }
 
-impl<'m, 'o> From<FmtRunOutcomes<'m, 'o>> for PrettyRunOutcomes {
-    fn from(value: FmtRunOutcomes<'m, 'o>) -> Self {
+impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes {
+    fn from(value: FmtRunOutcomes<'t, 'o>) -> Self {
         Self {
             passed: value
                 .outcomes
@@ -94,7 +94,7 @@ impl<'m, 'o> From<FmtRunOutcomes<'m, 'o>> for PrettyRunOutcomes {
     }
 }
 
-impl<'m, Extra: 'm, W: io::Write + io::IsTerminal + Send> TestFormatter<'m, Extra>
+impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send> TestFormatter<'t, Extra>
     for PrettyFormatter<W>
 {
     type Error = io::Error;
@@ -104,7 +104,7 @@ impl<'m, Extra: 'm, W: io::Write + io::IsTerminal + Send> TestFormatter<'m, Extr
         writeln!(self.target, "\nrunning {} tests", data.0)
     }
 
-    type TestOutcome = PrettyTestOutcome<'m>;
+    type TestOutcome = PrettyTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
         write!(self.target, "test {} ... ", data.name)?;
         match data.status {
@@ -143,12 +143,12 @@ impl<'m, Extra: 'm, W: io::Write + io::IsTerminal + Send> TestFormatter<'m, Extr
     type TestStart = ();
 }
 
-impl<'m, Extra: 'm, W: io::Write + io::IsTerminal> TestListFormatter<'m, Extra>
+impl<'t, Extra: 't, W: io::Write + io::IsTerminal> TestListFormatter<'t, Extra>
     for PrettyFormatter<W>
 {
     type Error = io::Error;
 
-    type ListTest = TestName<'m>;
+    type ListTest = TestName<'t>;
     fn fmt_list_test(&mut self, data: Self::ListTest) -> Result<(), Self::Error> {
         writeln!(self.target, "{}: test", data.0)
     }

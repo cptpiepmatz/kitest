@@ -11,7 +11,7 @@ use kitest::{
     },
     group::{SimpleGroupRunner, TestGroupHashMap},
     ignore::DefaultIgnore,
-    meta::{Test, TestFnHandle, TestMeta},
+    test::{Test, TestFnHandle, TestMeta},
     panic_handler::DefaultPanicHandler,
     runner::SimpleRunner,
 };
@@ -81,18 +81,18 @@ const TESTS: &[Test<Flag>] = &[
 
 struct FlagFormatter(Stdout);
 
-struct TestName<'m>(&'m str);
+struct TestName<'t>(&'t str);
 
-impl<'m, Extra> From<FmtTestStart<'m, Extra>> for TestName<'m> {
-    fn from(value: FmtTestStart<'m, Extra>) -> Self {
+impl<'t, Extra> From<FmtTestStart<'t, Extra>> for TestName<'t> {
+    fn from(value: FmtTestStart<'t, Extra>) -> Self {
         Self(value.meta.name.as_ref())
     }
 }
 
-impl<'m> TestFormatter<'m, Flag> for FlagFormatter {
+impl<'t> TestFormatter<'t, Flag> for FlagFormatter {
     type Error = io::Error;
 
-    type TestStart = TestName<'m>;
+    type TestStart = TestName<'t>;
     fn fmt_test_start(&mut self, TestName(name): Self::TestStart) -> io::Result<()> {
         writeln!(self.0, "testing test {name}")
     }

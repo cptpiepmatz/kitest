@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    meta::{TestMeta, TestResult},
+    test::{TestMeta, TestResult},
     outcome::{TestFailure, TestStatus},
 };
 

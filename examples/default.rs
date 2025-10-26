@@ -4,7 +4,7 @@ use kitest::{
     filter::DefaultFilter,
     formatter::pretty::PrettyFormatter,
     ignore::DefaultIgnore,
-    meta::{Test, TestFnHandle, TestMeta},
+    test::{Test, TestFnHandle, TestMeta},
     panic_handler::DefaultPanicHandler,
     runner::DefaultRunner,
 };

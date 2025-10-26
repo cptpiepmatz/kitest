@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use crate::meta::TestResult;
+use crate::test::TestResult;
 
 pub struct TestOutcome {
     pub status: TestStatus,

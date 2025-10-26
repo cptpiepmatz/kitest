@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::meta::TestMeta;
+use crate::test::TestMeta;
 
 pub trait TestIgnore<Extra> {
     fn ignore(&self, meta: &TestMeta<Extra>) -> (bool, Option<Cow<'static, str>>);

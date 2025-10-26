@@ -4,7 +4,7 @@ use kitest::{
     filter::NoFilter,
     formatter::pretty::PrettyFormatter,
     ignore::TestIgnore,
-    meta::{Test, TestFnHandle, TestMeta},
+    test::{Test, TestFnHandle, TestMeta},
 };
 
 enum Speed {

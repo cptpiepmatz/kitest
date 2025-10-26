@@ -6,21 +6,21 @@ use std::{
 };
 
 use crate::{
-    meta::TestMeta,
+    test::TestMeta,
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
 };
 
 pub trait TestRunner<Extra> {
-    fn run<'m, 's, I, F>(
+    fn run<'t, 's, I, F>(
         &self,
         tests: I,
-        scope: &'s Scope<'s, 'm>,
-    ) -> impl Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>
+        scope: &'s Scope<'s, 't>,
+    ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
-        I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
+        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)> + Send,
         F: (FnOnce() -> TestStatus) + Send + 's,
-        Extra: 'm + Sync,
-        'm: 's;
+        Extra: 't + Sync,
+        't: 's;
 
     fn worker_count(&self, tests_count: usize) -> NonZeroUsize;
 }
@@ -29,16 +29,16 @@ pub trait TestRunner<Extra> {
 pub struct SimpleRunner;
 
 impl<Extra> TestRunner<Extra> for SimpleRunner {
-    fn run<'m, 's, I, F>(
+    fn run<'t, 's, I, F>(
         &self,
         tests: I,
-        _: &'s Scope<'s, 'm>,
-    ) -> impl Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>
+        _: &'s Scope<'s, 't>,
+    ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
-        I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
+        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)> + Send,
         F: (FnOnce() -> TestStatus) + Send + 's,
-        Extra: 'm + Sync,
-        'm: 's,
+        Extra: 't + Sync,
+        't: 's,
     {
         tests.map(|(test, meta)| {
             let now = Instant::now();
@@ -84,28 +84,28 @@ impl DefaultRunner {
     }
 }
 
-struct DefaultRunnerIterator<'m, 's, I, F, Extra>
+struct DefaultRunnerIterator<'t, 's, I, F, Extra>
 where
-    I: Iterator<Item = (F, &'m TestMeta<Extra>)> + Send,
+    I: Iterator<Item = (F, &'t TestMeta<Extra>)> + Send,
     F: (FnOnce() -> TestStatus) + Send,
-    Extra: 'm + Sync,
-    'm: 's,
+    Extra: 't + Sync,
+    't: 's,
 {
     source: I,
-    push_job: crossbeam_channel::Sender<Option<(F, &'m TestMeta<Extra>)>>,
-    wait_job: crossbeam_channel::Receiver<(&'m TestMeta<Extra>, TestOutcome)>,
-    _scope: &'s Scope<'s, 'm>,
+    push_job: crossbeam_channel::Sender<Option<(F, &'t TestMeta<Extra>)>>,
+    wait_job: crossbeam_channel::Receiver<(&'t TestMeta<Extra>, TestOutcome)>,
+    _scope: &'s Scope<'s, 't>,
     _workers: Vec<ScopedJoinHandle<'s, ()>>,
 }
 
-impl<'m, 's, I, F, Extra> DefaultRunnerIterator<'m, 's, I, F, Extra>
+impl<'t, 's, I, F, Extra> DefaultRunnerIterator<'t, 's, I, F, Extra>
 where
-    I: Iterator<Item = (F, &'m TestMeta<Extra>)> + Send,
+    I: Iterator<Item = (F, &'t TestMeta<Extra>)> + Send,
     F: (FnOnce() -> TestStatus) + Send + 's,
-    Extra: 'm + Sync,
-    'm: 's,
+    Extra: 't + Sync,
+    't: 's,
 {
-    fn new(worker_count: NonZeroUsize, mut iter: I, scope: &'s Scope<'s, 'm>) -> Self {
+    fn new(worker_count: NonZeroUsize, mut iter: I, scope: &'s Scope<'s, 't>) -> Self {
         let (itx, irx) = crossbeam_channel::bounded(worker_count.into());
         let (otx, orx) = crossbeam_channel::bounded(1);
         let workers = (0..worker_count.get())
@@ -147,14 +147,14 @@ where
     }
 }
 
-impl<'m, 's, I, F, Extra> Iterator for DefaultRunnerIterator<'m, 's, I, F, Extra>
+impl<'t, 's, I, F, Extra> Iterator for DefaultRunnerIterator<'t, 's, I, F, Extra>
 where
-    I: Iterator<Item = (F, &'m TestMeta<Extra>)> + Send,
+    I: Iterator<Item = (F, &'t TestMeta<Extra>)> + Send,
     F: (FnOnce() -> TestStatus) + Send + 's,
-    Extra: 'm + Sync,
-    'm: 's,
+    Extra: 't + Sync,
+    't: 's,
 {
-    type Item = (&'m TestMeta<Extra>, TestOutcome);
+    type Item = (&'t TestMeta<Extra>, TestOutcome);
 
     fn next(&mut self) -> Option<Self::Item> {
         let out = self.wait_job.recv().ok();
@@ -171,16 +171,16 @@ where
 }
 
 impl<Extra> TestRunner<Extra> for DefaultRunner {
-    fn run<'m, 's, I, F>(
+    fn run<'t, 's, I, F>(
         &self,
         tests: I,
-        scope: &'s Scope<'s, 'm>,
-    ) -> impl Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>
+        scope: &'s Scope<'s, 't>,
+    ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
-        I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
+        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)> + Send,
         F: (FnOnce() -> TestStatus) + Send + 's,
-        Extra: 'm + Sync,
-        'm: 's,
+        Extra: 't + Sync,
+        't: 's,
     {
         let worker_count = <DefaultRunner as TestRunner<Extra>>::worker_count(self, tests.len());
         DefaultRunnerIterator::new(worker_count, tests, scope)
@@ -227,13 +227,13 @@ enum SmartRunnerIterator<IS, ID> {
     Default(ID),
 }
 
-impl<'m, IS, ID, Extra> Iterator for SmartRunnerIterator<IS, ID>
+impl<'t, IS, ID, Extra> Iterator for SmartRunnerIterator<IS, ID>
 where
-    IS: Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>,
-    ID: Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>,
-    Extra: 'm,
+    IS: Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>,
+    ID: Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>,
+    Extra: 't,
 {
-    type Item = (&'m TestMeta<Extra>, TestOutcome);
+    type Item = (&'t TestMeta<Extra>, TestOutcome);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -244,16 +244,16 @@ where
 }
 
 impl<Extra> TestRunner<Extra> for SmartRunner {
-    fn run<'m, 's, I, F>(
+    fn run<'t, 's, I, F>(
         &self,
         tests: I,
-        scope: &'s Scope<'s, 'm>,
-    ) -> impl Iterator<Item = (&'m TestMeta<Extra>, TestOutcome)>
+        scope: &'s Scope<'s, 't>,
+    ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
-        I: ExactSizeIterator<Item = (F, &'m TestMeta<Extra>)> + Send,
+        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)> + Send,
         F: (FnOnce() -> TestStatus) + Send + 's,
-        Extra: 'm + Sync,
-        'm: 's,
+        Extra: 't + Sync,
+        't: 's,
     {
         match tests.len() <= self.threshold {
             true => SmartRunnerIterator::Simple(<SimpleRunner as TestRunner<Extra>>::run(

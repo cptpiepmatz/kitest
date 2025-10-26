@@ -16,7 +16,7 @@ use crate::{
     },
     group::{TestGroupRunner, TestGrouper, TestGroups},
     ignore::TestIgnore,
-    meta::Test,
+    test::Test,
     outcome::{TestOutcome, TestStatus},
     panic_handler::TestPanicHandler,
     runner::TestRunner,
@@ -26,7 +26,7 @@ pub mod filter;
 pub mod formatter;
 pub mod group;
 pub mod ignore;
-pub mod meta;
+pub mod test;
 pub mod outcome;
 pub mod panic_handler;
 pub mod runner;
@@ -50,21 +50,21 @@ macro_rules! named_fmt {
 }
 
 pub fn run_tests<
-    'm,
+    't,
     Filter: TestFilter<Extra>,
     Runner: TestRunner<Extra>,
-    Ignore: TestIgnore<Extra> + Send + Sync + 'm,
-    PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
-    Formatter: TestFormatter<'m, Extra> + 'm,
-    Extra: RefUnwindSafe + Sync + 'm,
+    Ignore: TestIgnore<Extra> + Send + Sync + 't,
+    PanicHandler: TestPanicHandler<Extra> + Send + Sync + 't,
+    Formatter: TestFormatter<'t, Extra> + 't,
+    Extra: RefUnwindSafe + Sync + 't,
 >(
-    tests: &'m [Test<Extra>],
+    tests: &'t [Test<Extra>],
     filter: Filter,
     runner: Runner,
     ignore: Ignore,
     panic_handler: PanicHandler,
     mut formatter: Formatter,
-) -> TestReport<'m, Formatter::Error> {
+) -> TestReport<'t, Formatter::Error> {
     let now = Instant::now();
 
     let mut fmt_errors = Vec::new();
@@ -169,20 +169,20 @@ pub fn run_tests<
 
 #[allow(clippy::too_many_arguments)]
 pub fn run_grouped_tests<
-    'm,
+    't,
     Filter: TestFilter<Extra>,
     Grouper: TestGrouper<Extra, GroupKey, GroupCtx>,
-    Groups: TestGroups<'m, Extra, GroupKey>,
+    Groups: TestGroups<'t, Extra, GroupKey>,
     GroupRunner: TestGroupRunner<Extra, GroupKey, GroupCtx>,
     Runner: TestRunner<Extra>,
-    Ignore: TestIgnore<Extra> + Send + Sync + 'm,
-    PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
-    Formatter: GroupedTestFormatter<'m, Extra, GroupKey, GroupCtx> + 'm,
-    Extra: RefUnwindSafe + Sync + 'm,
-    GroupKey: Eq + Hash + 'm,
-    GroupCtx: 'm,
+    Ignore: TestIgnore<Extra> + Send + Sync + 't,
+    PanicHandler: TestPanicHandler<Extra> + Send + Sync + 't,
+    Formatter: GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx> + 't,
+    Extra: RefUnwindSafe + Sync + 't,
+    GroupKey: Eq + Hash + 't,
+    GroupCtx: 't,
 >(
-    tests: &'m [Test<Extra>],
+    tests: &'t [Test<Extra>],
     filter: Filter,
     mut grouper: Grouper,
     mut groups: Groups,
@@ -191,10 +191,10 @@ pub fn run_grouped_tests<
     ignore: Ignore,
     panic_handler: PanicHandler,
     mut formatter: Formatter,
-) -> GroupedTestReport<'m, GroupKey, Formatter::Error>
+) -> GroupedTestReport<'t, GroupKey, Formatter::Error>
 where
-    <Formatter as GroupedTestFormatter<'m, Extra, GroupKey, GroupCtx>>::GroupStart: 'm,
-    <Formatter as GroupedTestFormatter<'m, Extra, GroupKey, GroupCtx>>::GroupOutcomes: 'm,
+    <Formatter as GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>>::GroupStart: 't,
+    <Formatter as GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>>::GroupOutcomes: 't,
 {
     let now = Instant::now();
 
@@ -351,33 +351,33 @@ where
     }
 }
 
-pub type TestOutcomes<'m> = HashMap<&'m str, TestOutcome, ahash::RandomState>;
+pub type TestOutcomes<'t> = HashMap<&'t str, TestOutcome, ahash::RandomState>;
 
 #[non_exhaustive]
-pub struct TestReport<'m, FmtError: 'm> {
-    pub outcomes: TestOutcomes<'m>,
+pub struct TestReport<'t, FmtError: 't> {
+    pub outcomes: TestOutcomes<'t>,
     pub duration: Duration,
     pub fmt_errors: Vec<(&'static str, FmtError)>,
 }
 
-pub type GroupedTestOutcomes<'m, GroupKey> =
-    HashMap<GroupKey, HashMap<&'m str, TestOutcome, ahash::RandomState>, ahash::RandomState>;
+pub type GroupedTestOutcomes<'t, GroupKey> =
+    HashMap<GroupKey, HashMap<&'t str, TestOutcome, ahash::RandomState>, ahash::RandomState>;
 
 #[non_exhaustive]
-pub struct GroupedTestReport<'m, GroupKey, FmtError: 'm> {
-    pub outcomes: GroupedTestOutcomes<'m, GroupKey>,
+pub struct GroupedTestReport<'t, GroupKey, FmtError: 't> {
+    pub outcomes: GroupedTestOutcomes<'t, GroupKey>,
     pub duration: Duration,
     pub fmt_errors: Vec<(&'static str, FmtError)>,
 }
 
 pub fn list_tests<
-    'm,
+    't,
     Filter: TestFilter<Extra>,
     Ignore: TestIgnore<Extra>,
-    Formatter: TestListFormatter<'m, Extra>,
-    Extra: Sync + 'm,
+    Formatter: TestListFormatter<'t, Extra>,
+    Extra: Sync + 't,
 >(
-    tests: &'m [Test<Extra>],
+    tests: &'t [Test<Extra>],
     filter: Filter,
     ignore: Ignore,
     mut formatter: Formatter,

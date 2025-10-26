@@ -2,7 +2,7 @@ use std::{borrow::Cow, time::Duration};
 
 use crate::{
     GroupedTestOutcomes, TestOutcomes,
-    meta::{Test, TestMeta},
+    test::{Test, TestMeta},
     outcome::TestOutcome,
 };
 
@@ -29,8 +29,8 @@ pub(crate) enum FmtGroupedTestData<I, S, O, GS, GO> {
     Outcome(GO),
 }
 
-pub struct FmtRunInitData<'m, Extra> {
-    pub tests: &'m [Test<Extra>],
+pub struct FmtRunInitData<'t, Extra> {
+    pub tests: &'t [Test<Extra>],
 }
 
 pub struct FmtRunStart {
@@ -38,30 +38,30 @@ pub struct FmtRunStart {
     pub filtered: usize,
 }
 
-pub struct FmtTestIgnored<'m, 'r, Extra> {
-    pub meta: &'m TestMeta<Extra>,
+pub struct FmtTestIgnored<'t, 'r, Extra> {
+    pub meta: &'t TestMeta<Extra>,
     pub reason: Option<&'r Cow<'static, str>>,
 }
 
-pub struct FmtTestStart<'m, Extra> {
-    pub meta: &'m TestMeta<Extra>,
+pub struct FmtTestStart<'t, Extra> {
+    pub meta: &'t TestMeta<Extra>,
 }
 
-pub struct FmtTestOutcome<'m, 'o, Extra> {
-    pub meta: &'m TestMeta<Extra>,
+pub struct FmtTestOutcome<'t, 'o, Extra> {
+    pub meta: &'t TestMeta<Extra>,
     pub outcome: &'o TestOutcome,
 }
 
-pub struct FmtRunOutcomes<'m, 'o> {
-    pub outcomes: &'o TestOutcomes<'m>,
+pub struct FmtRunOutcomes<'t, 'o> {
+    pub outcomes: &'o TestOutcomes<'t>,
     pub filtered_out: usize,
     pub duration: Duration,
 }
 
-pub trait TestFormatter<'m, Extra: 'm>: Send {
-    type Error: Send + 'm;
+pub trait TestFormatter<'t, Extra: 't>: Send {
+    type Error: Send + 't;
 
-    type RunInit: From<FmtRunInitData<'m, Extra>> + Send;
+    type RunInit: From<FmtRunInitData<'t, Extra>> + Send;
     fn fmt_run_init(&mut self, data: Self::RunInit) -> Result<(), Self::Error> {
         discard!(data)
     }
@@ -71,22 +71,22 @@ pub trait TestFormatter<'m, Extra: 'm>: Send {
         discard!(data)
     }
 
-    type TestIgnored: for<'r> From<FmtTestIgnored<'m, 'r, Extra>> + Send;
+    type TestIgnored: for<'r> From<FmtTestIgnored<'t, 'r, Extra>> + Send;
     fn fmt_test_ignored(&mut self, data: Self::TestIgnored) -> Result<(), Self::Error> {
         discard!(data)
     }
 
-    type TestStart: From<FmtTestStart<'m, Extra>> + Send;
+    type TestStart: From<FmtTestStart<'t, Extra>> + Send;
     fn fmt_test_start(&mut self, data: Self::TestStart) -> Result<(), Self::Error> {
         discard!(data)
     }
 
-    type TestOutcome: for<'o> From<FmtTestOutcome<'m, 'o, Extra>> + Send;
+    type TestOutcome: for<'o> From<FmtTestOutcome<'t, 'o, Extra>> + Send;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
         discard!(data)
     }
 
-    type RunOutcomes: for<'o> From<FmtRunOutcomes<'m, 'o>> + Send;
+    type RunOutcomes: for<'o> From<FmtRunOutcomes<'t, 'o>> + Send;
     fn fmt_run_outcomes(&mut self, data: Self::RunOutcomes) -> Result<(), Self::Error> {
         discard!(data)
     }
@@ -103,20 +103,20 @@ pub struct FmtGroupStart<'g, GroupKey, GroupCtx = ()> {
     pub ctx: Option<&'g GroupCtx>,
 }
 
-pub struct FmtGroupOutcomes<'m, 'g, 'o, GroupKey, GroupCtx = ()> {
-    pub outcomes: &'o TestOutcomes<'m>,
+pub struct FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx = ()> {
+    pub outcomes: &'o TestOutcomes<'t>,
     pub duration: Duration,
     pub key: &'g GroupKey,
     pub ctx: Option<&'g GroupCtx>,
 }
 
-pub struct FmtGroupedRunOutcomes<'m, 'o, GroupKey> {
-    pub outcomes: &'o GroupedTestOutcomes<'m, GroupKey>,
+pub struct FmtGroupedRunOutcomes<'t, 'o, GroupKey> {
+    pub outcomes: &'o GroupedTestOutcomes<'t, GroupKey>,
     pub duration: Duration,
 }
 
-pub trait GroupedTestFormatter<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm = ()>:
-    TestFormatter<'m, Extra>
+pub trait GroupedTestFormatter<'t, Extra: 't, GroupKey: 't, GroupCtx: 't = ()>:
+    TestFormatter<'t, Extra>
 {
     type GroupedRunStart: From<FmtGroupedRunStart> + Send;
     fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
@@ -128,12 +128,12 @@ pub trait GroupedTestFormatter<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm = ()>:
         discard!(data)
     }
 
-    type GroupOutcomes: for<'g, 'o> From<FmtGroupOutcomes<'m, 'g, 'o, GroupKey, GroupCtx>> + Send;
+    type GroupOutcomes: for<'g, 'o> From<FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx>> + Send;
     fn fmt_group_outcomes(&mut self, data: Self::GroupOutcomes) -> Result<(), Self::Error> {
         discard!(data)
     }
 
-    type GroupedRunOutcomes: for<'o> From<FmtGroupedRunOutcomes<'m, 'o, GroupKey>> + Send;
+    type GroupedRunOutcomes: for<'o> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> + Send;
     fn fmt_grouped_run_outcomes(
         &mut self,
         data: Self::GroupedRunOutcomes,
@@ -142,8 +142,8 @@ pub trait GroupedTestFormatter<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm = ()>:
     }
 }
 
-pub struct FmtInitListing<'m, Extra> {
-    pub tests: &'m [Test<Extra>],
+pub struct FmtInitListing<'t, Extra> {
+    pub tests: &'t [Test<Extra>],
 }
 
 pub struct FmtBeginListing {
@@ -151,8 +151,8 @@ pub struct FmtBeginListing {
     pub filtered: usize,
 }
 
-pub struct FmtListTest<'m, Extra> {
-    pub meta: &'m TestMeta<Extra>,
+pub struct FmtListTest<'t, Extra> {
+    pub meta: &'t TestMeta<Extra>,
     pub ignored: (bool, Option<Cow<'static, str>>),
 }
 
@@ -161,10 +161,10 @@ pub struct FmtEndListing {
     pub ignored: usize,
 }
 
-pub trait TestListFormatter<'m, Extra: 'm> {
-    type Error: 'm;
+pub trait TestListFormatter<'t, Extra: 't> {
+    type Error: 't;
 
-    type InitListing: From<FmtInitListing<'m, Extra>>;
+    type InitListing: From<FmtInitListing<'t, Extra>>;
     fn fmt_init_listing(&mut self, data: Self::InitListing) -> Result<(), Self::Error> {
         discard!(data)
     }
@@ -174,7 +174,7 @@ pub trait TestListFormatter<'m, Extra: 'm> {
         discard!(data)
     }
 
-    type ListTest: From<FmtListTest<'m, Extra>>;
+    type ListTest: From<FmtListTest<'t, Extra>>;
     fn fmt_list_test(&mut self, data: Self::ListTest) -> Result<(), Self::Error> {
         discard!(data)
     }
@@ -197,8 +197,8 @@ pub struct FmtListGroupEnd<'g, GroupKey, GroupCtx> {
     pub ctx: &'g GroupCtx,
 }
 
-pub trait GroupedTestListFormatter<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm>:
-    TestListFormatter<'m, Extra>
+pub trait GroupedTestListFormatter<'t, Extra: 't, GroupKey: 't, GroupCtx: 't>:
+    TestListFormatter<'t, Extra>
 {
     type ListGroupStart: for<'g> From<FmtListGroupStart<'g, GroupKey, GroupCtx>>;
     fn fmt_list_group_start(&mut self, data: Self::ListGroupStart) -> Result<(), Self::Error> {
@@ -223,25 +223,25 @@ macro_rules! impl_unit_from {
 }
 
 impl_unit_from![
-    FmtRunInitData<'m, Extra>,
+    FmtRunInitData<'t, Extra>,
     FmtRunStart,
-    FmtTestIgnored<'m, 'r, Extra>,
-    FmtTestStart<'m, Extra>,
-    FmtTestOutcome<'m, 'o, Extra>,
-    FmtRunOutcomes<'m, 'o>,
+    FmtTestIgnored<'t, 'r, Extra>,
+    FmtTestStart<'t, Extra>,
+    FmtTestOutcome<'t, 'o, Extra>,
+    FmtRunOutcomes<'t, 'o>,
     FmtGroupedRunStart,
     FmtGroupStart<'g, GroupKey, GroupCtx>,
-    FmtGroupOutcomes<'m, 'g, 'o, GroupKey, GroupCtx>,
-    FmtGroupedRunOutcomes<'m, 'o, GroupKey>,
-    FmtInitListing<'m, Extra>,
+    FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx>,
+    FmtGroupedRunOutcomes<'t, 'o, GroupKey>,
+    FmtInitListing<'t, Extra>,
     FmtBeginListing,
-    FmtListTest<'m, Extra>,
+    FmtListTest<'t, Extra>,
     FmtEndListing,
     FmtListGroupStart<'g, GroupKey, GroupCtx>,
     FmtListGroupEnd<'g, GroupKey, GroupCtx>,
 ];
 
-impl<'m, Extra: 'm> TestFormatter<'m, Extra> for NoFormatter {
+impl<'t, Extra: 't> TestFormatter<'t, Extra> for NoFormatter {
     type Error = ();
     type RunInit = ();
     type RunStart = ();
@@ -251,7 +251,7 @@ impl<'m, Extra: 'm> TestFormatter<'m, Extra> for NoFormatter {
     type RunOutcomes = ();
 }
 
-impl<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm> GroupedTestFormatter<'m, Extra, GroupKey, GroupCtx>
+impl<'t, Extra: 't, GroupKey: 't, GroupCtx: 't> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
     for NoFormatter
 {
     type GroupedRunStart = ();
@@ -260,7 +260,7 @@ impl<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm> GroupedTestFormatter<'m, Extra, 
     type GroupedRunOutcomes = ();
 }
 
-impl<'m, Extra: 'm> TestListFormatter<'m, Extra> for NoFormatter {
+impl<'t, Extra: 't> TestListFormatter<'t, Extra> for NoFormatter {
     type Error = ();
     type InitListing = ();
     type BeginListing = ();
@@ -268,8 +268,8 @@ impl<'m, Extra: 'm> TestListFormatter<'m, Extra> for NoFormatter {
     type EndListing = ();
 }
 
-impl<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm>
-    GroupedTestListFormatter<'m, Extra, GroupKey, GroupCtx> for NoFormatter
+impl<'t, Extra: 't, GroupKey: 't, GroupCtx: 't>
+    GroupedTestListFormatter<'t, Extra, GroupKey, GroupCtx> for NoFormatter
 {
     type ListGroupStart = ();
     type ListGroupEnd = ();
