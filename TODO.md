@@ -32,5 +32,5 @@
 
 # Planned API
 
-- [ ] `TestExecutor` as a builder to build your test executor together
-- [ ] `TestExecutor::from_args` build a test executor from args like `libtest_mimic::run` takes an arguments object
+- [ ] `TestHarness` as a builder to build your test executor together
+- [ ] `TestHarness::from_args` build a test executor from args like `libtest_mimic::run` takes an arguments object
