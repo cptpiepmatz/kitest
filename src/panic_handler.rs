@@ -4,8 +4,8 @@ use std::{
 };
 
 use crate::{
-    test::{TestMeta, TestResult},
     outcome::{TestFailure, TestStatus},
+    test::{TestMeta, TestResult},
 };
 
 pub trait TestPanicHandler<Extra> {

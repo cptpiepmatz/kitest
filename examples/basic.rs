@@ -7,9 +7,9 @@ use kitest::{
     filter::NoFilter,
     formatter::{FmtTestOutcome, TestFormatter},
     ignore::NoIgnore,
-    test::{Test, TestFnHandle, TestMeta},
     panic_handler::NoPanicHandler,
     runner::SimpleRunner,
+    test::{Test, TestFnHandle, TestMeta},
 };
 
 fn test_a() {}

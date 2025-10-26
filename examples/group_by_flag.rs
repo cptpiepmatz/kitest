@@ -11,9 +11,9 @@ use kitest::{
     },
     group::{SimpleGroupRunner, TestGroupHashMap},
     ignore::DefaultIgnore,
-    test::{Test, TestFnHandle, TestMeta},
     panic_handler::DefaultPanicHandler,
     runner::SimpleRunner,
+    test::{Test, TestFnHandle, TestMeta},
 };
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
@@ -134,6 +134,12 @@ impl GroupedTestFormatter<'_, Flag, Flag> for FlagFormatter {
 }
 
 fn main() {
+    kitest::harness(TESTS)
+        .with_grouper(|meta: &TestMeta<Flag>| meta.extra)
+        .with_runner(SimpleRunner::default())
+        .with_formatter(FlagFormatter(io::stdout()))
+        .run();
+
     kitest::run_grouped_tests(
         TESTS,
         DefaultFilter::default(),

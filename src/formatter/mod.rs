@@ -2,8 +2,8 @@ use std::{borrow::Cow, time::Duration};
 
 use crate::{
     GroupedTestOutcomes, TestOutcomes,
-    test::{Test, TestMeta},
     outcome::TestOutcome,
+    test::{Test, TestMeta},
 };
 
 mod common;

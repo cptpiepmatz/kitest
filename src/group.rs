@@ -23,7 +23,7 @@ where
     }
 }
 
-pub trait TestGroups<'t, Extra: Sync + 't, GroupKey> {
+pub trait TestGroups<'t, Extra: 't, GroupKey> {
     fn add(&mut self, key: GroupKey, test: &'t Test<Extra>);
 
     fn into_groups(

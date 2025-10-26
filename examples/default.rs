@@ -4,9 +4,9 @@ use kitest::{
     filter::DefaultFilter,
     formatter::pretty::PrettyFormatter,
     ignore::DefaultIgnore,
-    test::{Test, TestFnHandle, TestMeta},
     panic_handler::DefaultPanicHandler,
     runner::DefaultRunner,
+    test::{Test, TestFnHandle, TestMeta},
 };
 
 fn test_a() {

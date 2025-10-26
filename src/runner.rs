@@ -6,8 +6,8 @@ use std::{
 };
 
 use crate::{
-    test::TestMeta,
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
+    test::TestMeta,
 };
 
 pub trait TestRunner<Extra> {

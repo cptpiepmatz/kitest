@@ -5,13 +5,13 @@ use crate::test::Test;
 pub struct FilteredTests<'t, I, Extra>
 where
     I: ExactSizeIterator<Item = &'t Test<Extra>> + Send,
-    Extra: Sync + 't,
+    Extra: 't,
 {
     pub tests: I,
     pub filtered: usize,
 }
 
-pub trait TestFilter<Extra: Sync> {
+pub trait TestFilter<Extra> {
     fn filter<'t>(
         &self,
         tests: &'t [Test<Extra>],
