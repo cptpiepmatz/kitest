@@ -1,13 +1,6 @@
 use std::borrow::Cow;
 
-use kitest::{
-    filter::DefaultFilter,
-    formatter::pretty::PrettyFormatter,
-    ignore::DefaultIgnore,
-    panic_handler::DefaultPanicHandler,
-    runner::DefaultRunner,
-    test::{Test, TestFnHandle, TestMeta},
-};
+use kitest::test::{Test, TestFnHandle, TestMeta};
 
 fn test_a() {
     std::thread::sleep(std::time::Duration::from_millis(300));
