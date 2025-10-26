@@ -1,31 +1,33 @@
-use std::{borrow::Cow, fmt::Debug, panic::RefUnwindSafe};
+use std::{borrow::Cow, fmt::Debug, ops::Deref, panic::RefUnwindSafe};
 
-pub struct TestResult(pub Result<(), Box<str>>);
+pub struct Test<Extra = ()> {
+    function: TestFnHandle,
+    pub meta: TestMeta<Extra>,
+}
 
-impl From<()> for TestResult {
-    fn from(_: ()) -> Self {
-        Self(Ok(()))
+impl<Extra> Test<Extra> {
+    pub const fn new(function: TestFnHandle, meta: TestMeta<Extra>) -> Self {
+        Self { function, meta }
+    }
+
+    pub(crate) fn call(&self) -> TestResult {
+        self.function.call()
     }
 }
 
-impl<E: Debug> From<Result<(), E>> for TestResult {
-    fn from(v: Result<(), E>) -> Self {
-        TestResult(v.map_err(|e| format!("{e:#?}").into_boxed_str()))
+impl<Extra> Deref for Test<Extra> {
+    type Target = TestMeta<Extra>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.meta
     }
 }
 
-pub trait TestFn {
-    fn call_test(&self) -> TestResult;
-}
-
-impl<F, T> TestFn for F
-where
-    F: Fn() -> T,
-    T: Into<TestResult>,
-{
-    fn call_test(&self) -> TestResult {
-        (self)().into()
-    }
+pub struct TestMeta<Extra = ()> {
+    pub name: Cow<'static, str>,
+    pub ignore: (bool, Option<Cow<'static, str>>),
+    pub should_panic: (bool, Option<Cow<'static, str>>),
+    pub extra: Extra,
 }
 
 pub enum TestFnHandle {
@@ -60,10 +62,30 @@ impl TestFnHandle {
     }
 }
 
-pub struct TestMeta<Extra = ()> {
-    pub function: TestFnHandle,
-    pub name: Cow<'static, str>,
-    pub ignore: (bool, Option<Cow<'static, str>>),
-    pub should_panic: (bool, Option<Cow<'static, str>>),
-    pub extra: Extra,
+pub trait TestFn {
+    fn call_test(&self) -> TestResult;
+}
+
+impl<F, T> TestFn for F
+where
+    F: Fn() -> T,
+    T: Into<TestResult>,
+{
+    fn call_test(&self) -> TestResult {
+        (self)().into()
+    }
+}
+
+pub struct TestResult(pub Result<(), Box<str>>);
+
+impl From<()> for TestResult {
+    fn from(_: ()) -> Self {
+        Self(Ok(()))
+    }
+}
+
+impl<E: Debug> From<Result<(), E>> for TestResult {
+    fn from(v: Result<(), E>) -> Self {
+        TestResult(v.map_err(|e| format!("{e:#?}").into_boxed_str()))
+    }
 }

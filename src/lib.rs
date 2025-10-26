@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     hash::Hash,
+    panic::RefUnwindSafe,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -15,7 +16,7 @@ use crate::{
     },
     group::{TestGroupRunner, TestGrouper, TestGroups},
     ignore::TestIgnore,
-    meta::TestMeta,
+    meta::Test,
     outcome::{TestOutcome, TestStatus},
     panic_handler::TestPanicHandler,
     runner::TestRunner,
@@ -55,9 +56,9 @@ pub fn run_tests<
     Ignore: TestIgnore<Extra> + Send + Sync + 'm,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
     Formatter: TestFormatter<'m, Extra> + 'm,
-    Extra: Sync + 'm,
+    Extra: RefUnwindSafe + Sync + 'm,
 >(
-    tests: &'m [TestMeta<Extra>],
+    tests: &'m [Test<Extra>],
     filter: Filter,
     runner: Runner,
     ignore: Ignore,
@@ -98,7 +99,8 @@ pub fn run_tests<
             (formatter, fmt_errors)
         });
 
-        let test_runs = tests.into_iter().map(|meta| {
+        let test_runs = tests.into_iter().map(|test| {
+            let meta = &test.meta;
             let ignore = Arc::clone(&ignore);
             let panic_handler = Arc::clone(&panic_handler);
             let ftx = ftx.clone();
@@ -118,7 +120,7 @@ pub fn run_tests<
                     }
 
                     let _ = ftx.send(FmtTestData::Start(FmtTestStart { meta }.into()));
-                    panic_handler.handle(meta)
+                    panic_handler.handle(|| test.call(), meta)
                 },
                 meta,
             )
@@ -176,9 +178,9 @@ pub fn run_grouped_tests<
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
     Formatter: GroupedTestFormatter<'m, GroupKey, Extra> + 'm,
     GroupKey: Eq + Hash + 'm,
-    Extra: Sync + 'm,
+    Extra: RefUnwindSafe + Sync + 'm,
 >(
-    tests: &'m [TestMeta<Extra>],
+    tests: &'m [Test<Extra>],
     filter: Filter,
     grouper: Grouper,
     mut groups: Groups,
@@ -252,7 +254,8 @@ where
             ));
 
             let outcomes = group_runner.run_group(&key, move || {
-                let test_runs = tests.into_iter().map(|meta| {
+                let test_runs = tests.into_iter().map(|test| {
+                    let meta = &test.meta;
                     let ignore = Arc::clone(&ignore);
                     let panic_handler = Arc::clone(&panic_handler);
                     let ftx = ftx.clone();
@@ -274,7 +277,7 @@ where
                             let _ = ftx.send(FmtGroupedTestData::Test(FmtTestData::Start(
                                 FmtTestStart { meta }.into(),
                             )));
-                            panic_handler.handle(meta)
+                            panic_handler.handle(|| test.call(), meta)
                         },
                         meta,
                     )
@@ -364,7 +367,7 @@ pub fn list_tests<
     Formatter: TestListFormatter<'m, Extra>,
     Extra: Sync + 'm,
 >(
-    tests: &'m [TestMeta<Extra>],
+    tests: &'m [Test<Extra>],
     filter: Filter,
     ignore: Ignore,
     mut formatter: Formatter,

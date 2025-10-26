@@ -4,7 +4,7 @@ use kitest::{
     filter::NoFilter,
     formatter::pretty::PrettyFormatter,
     ignore::TestIgnore,
-    meta::{TestFnHandle, TestMeta},
+    meta::{Test, TestFnHandle, TestMeta},
 };
 
 enum Speed {
@@ -16,28 +16,34 @@ fn test_fast_ok() {}
 fn test_fast_fail() {}
 fn test_slow_expensive() {}
 
-const TESTS: &[TestMeta<Speed>] = &[
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| test_fast_ok()),
-        name: Cow::Borrowed("test_fast_ok"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: Speed::Fast,
-    },
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| test_fast_fail()),
-        name: Cow::Borrowed("test_fast_fail"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: Speed::Fast,
-    },
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| test_slow_expensive()),
-        name: Cow::Borrowed("test_slow_expensive"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: Speed::Slow,
-    },
+const TESTS: &[Test<Speed>] = &[
+    Test::new(
+        TestFnHandle::from_static_obj(&|| test_fast_ok()),
+        TestMeta {
+            name: Cow::Borrowed("test_fast_ok"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: Speed::Fast,
+        },
+    ),
+    Test::new(
+        TestFnHandle::from_static_obj(&|| test_fast_fail()),
+        TestMeta {
+            name: Cow::Borrowed("test_fast_fail"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: Speed::Fast,
+        },
+    ),
+    Test::new(
+        TestFnHandle::from_static_obj(&|| test_slow_expensive()),
+        TestMeta {
+            name: Cow::Borrowed("test_slow_expensive"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: Speed::Slow,
+        },
+    ),
 ];
 
 fn main() {

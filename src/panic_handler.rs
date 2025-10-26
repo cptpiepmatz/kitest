@@ -1,22 +1,27 @@
 use std::{
     any::Any,
-    panic::{RefUnwindSafe, catch_unwind},
+    panic::{UnwindSafe, catch_unwind},
 };
 
 use crate::{
-    meta::TestMeta,
+    meta::{TestMeta, TestResult},
     outcome::{TestFailure, TestStatus},
 };
 
 pub trait TestPanicHandler<Extra> {
-    fn handle(&self, meta: &TestMeta<Extra>) -> TestStatus;
+    fn handle<F>(&self, f: F, meta: &TestMeta<Extra>) -> TestStatus
+    where
+        F: FnOnce() -> TestResult + UnwindSafe;
 }
 
 pub struct NoPanicHandler;
 
 impl<Extra> TestPanicHandler<Extra> for NoPanicHandler {
-    fn handle(&self, meta: &TestMeta<Extra>) -> TestStatus {
-        meta.function.call().into()
+    fn handle<F>(&self, f: F, _: &TestMeta<Extra>) -> TestStatus
+    where
+        F: FnOnce() -> TestResult + UnwindSafe,
+    {
+        f().into()
     }
 }
 
@@ -32,9 +37,12 @@ impl DefaultPanicHandler {
     }
 }
 
-impl<Extra: RefUnwindSafe> TestPanicHandler<Extra> for DefaultPanicHandler {
-    fn handle(&self, meta: &TestMeta<Extra>) -> TestStatus {
-        let result = catch_unwind(|| meta.function.call());
+impl<Extra> TestPanicHandler<Extra> for DefaultPanicHandler {
+    fn handle<F>(&self, f: F, meta: &TestMeta<Extra>) -> TestStatus
+    where
+        F: FnOnce() -> TestResult + UnwindSafe,
+    {
+        let result = catch_unwind(f);
         TestStatus::Failed(match (result, meta.should_panic.0) {
             (Ok(test_result), false) => return test_result.into(),
             (Ok(_), true) => TestFailure::DidNotPanic {
@@ -59,14 +67,5 @@ impl<Extra: RefUnwindSafe> TestPanicHandler<Extra> for DefaultPanicHandler {
                 }
             },
         })
-    }
-}
-
-impl<F, Extra> TestPanicHandler<Extra> for F
-where
-    F: Fn(&TestMeta<Extra>) -> TestStatus,
-{
-    fn handle(&self, meta: &TestMeta<Extra>) -> TestStatus {
-        self(meta)
     }
 }

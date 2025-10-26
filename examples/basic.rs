@@ -7,7 +7,7 @@ use kitest::{
     filter::NoFilter,
     formatter::{FmtTestOutcome, TestFormatter},
     ignore::NoIgnore,
-    meta::{TestFnHandle, TestMeta},
+    meta::{Test, TestFnHandle, TestMeta},
     panic_handler::NoPanicHandler,
     runner::SimpleRunner,
 };
@@ -16,21 +16,25 @@ fn test_a() {}
 
 fn test_b() {}
 
-const TESTS: &[TestMeta] = &[
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| test_a()),
-        name: Cow::Borrowed("test_a"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: (),
-    },
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| test_b()),
-        name: Cow::Borrowed("test_b"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: (),
-    },
+const TESTS: &[Test] = &[
+    Test::new(
+        TestFnHandle::from_static_obj(&|| test_a()),
+        TestMeta {
+            name: Cow::Borrowed("test_a"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: (),
+        },
+    ),
+    Test::new(
+        TestFnHandle::from_static_obj(&|| test_b()),
+        TestMeta {
+            name: Cow::Borrowed("test_b"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: (),
+        },
+    ),
 ];
 
 struct BasicFormatter(Stdout);

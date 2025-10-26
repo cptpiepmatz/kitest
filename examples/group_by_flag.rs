@@ -11,7 +11,7 @@ use kitest::{
     },
     group::{SimpleGroupRunner, TestGroupHashMap},
     ignore::DefaultIgnore,
-    meta::{TestFnHandle, TestMeta},
+    meta::{Test, TestFnHandle, TestMeta},
     panic_handler::DefaultPanicHandler,
     runner::SimpleRunner,
 };
@@ -31,42 +31,52 @@ impl Display for Flag {
     }
 }
 
-const TESTS: &[TestMeta<Flag>] = &[
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| ()),
-        name: Cow::Borrowed("a"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: Flag::A,
-    },
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| ()),
-        name: Cow::Borrowed("b"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: Flag::B,
-    },
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| ()),
-        name: Cow::Borrowed("c"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: Flag::A,
-    },
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| ()),
-        name: Cow::Borrowed("d"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: Flag::A,
-    },
-    TestMeta {
-        function: TestFnHandle::from_static_obj(&|| ()),
-        name: Cow::Borrowed("e"),
-        ignore: (false, None),
-        should_panic: (false, None),
-        extra: Flag::B,
-    },
+const TESTS: &[Test<Flag>] = &[
+    Test::new(
+        TestFnHandle::from_static_obj(&|| ()),
+        TestMeta {
+            name: Cow::Borrowed("a"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: Flag::A,
+        },
+    ),
+    Test::new(
+        TestFnHandle::from_static_obj(&|| ()),
+        TestMeta {
+            name: Cow::Borrowed("b"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: Flag::B,
+        },
+    ),
+    Test::new(
+        TestFnHandle::from_static_obj(&|| ()),
+        TestMeta {
+            name: Cow::Borrowed("c"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: Flag::A,
+        },
+    ),
+    Test::new(
+        TestFnHandle::from_static_obj(&|| ()),
+        TestMeta {
+            name: Cow::Borrowed("d"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: Flag::A,
+        },
+    ),
+    Test::new(
+        TestFnHandle::from_static_obj(&|| ()),
+        TestMeta {
+            name: Cow::Borrowed("e"),
+            ignore: (false, None),
+            should_panic: (false, None),
+            extra: Flag::B,
+        },
+    ),
 ];
 
 struct FlagFormatter(Stdout);

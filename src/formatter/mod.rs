@@ -1,6 +1,10 @@
 use std::{borrow::Cow, time::Duration};
 
-use crate::{GroupedTestOutcomes, TestOutcomes, meta::TestMeta, outcome::TestOutcome};
+use crate::{
+    GroupedTestOutcomes, TestOutcomes,
+    meta::{Test, TestMeta},
+    outcome::TestOutcome,
+};
 
 mod common;
 pub mod pretty;
@@ -26,7 +30,7 @@ pub(crate) enum FmtGroupedTestData<I, S, O, GS, GO> {
 }
 
 pub struct FmtRunInitData<'m, Extra> {
-    pub tests: &'m [TestMeta<Extra>],
+    pub tests: &'m [Test<Extra>],
 }
 
 pub struct FmtRunStartData {
@@ -134,7 +138,7 @@ pub trait GroupedTestFormatter<'m, GroupKey: 'm, Extra: 'm>: TestFormatter<'m, E
 }
 
 pub struct FmtInitListing<'m, Extra> {
-    pub tests: &'m [TestMeta<Extra>],
+    pub tests: &'m [Test<Extra>],
 }
 
 pub struct FmtBeginListing {

@@ -3,7 +3,7 @@ use std::{
     hash::{BuildHasher, Hash},
 };
 
-use crate::meta::TestMeta;
+use crate::meta::{Test, TestMeta};
 
 pub trait TestGrouper<GroupKey, Extra> {
     fn group(&self, meta: &TestMeta<Extra>) -> GroupKey;
@@ -19,11 +19,11 @@ where
 }
 
 pub trait TestGroups<'m, GroupKey, Extra>:
-    IntoIterator<Item = (GroupKey, Vec<&'m TestMeta<Extra>>)>
+    IntoIterator<Item = (GroupKey, Vec<&'m Test<Extra>>)>
 where
     Extra: 'm,
 {
-    fn add(&mut self, key: GroupKey, meta: &'m TestMeta<Extra>);
+    fn add(&mut self, key: GroupKey, test: &'m Test<Extra>);
 
     fn len(&self) -> usize;
 
@@ -33,7 +33,7 @@ where
 }
 
 pub type TestGroupHashMap<'m, GroupKey, Extra, RandomState = std::hash::RandomState> =
-    HashMap<GroupKey, Vec<&'m TestMeta<Extra>>, RandomState>;
+    HashMap<GroupKey, Vec<&'m Test<Extra>>, RandomState>;
 
 impl<'m, GroupKey, Extra, RandomState> TestGroups<'m, GroupKey, Extra>
     for TestGroupHashMap<'m, GroupKey, Extra, RandomState>
@@ -41,8 +41,8 @@ where
     GroupKey: Eq + Hash,
     RandomState: BuildHasher + Default,
 {
-    fn add(&mut self, key: GroupKey, meta: &'m TestMeta<Extra>) {
-        self.entry(key).or_default().push(meta);
+    fn add(&mut self, key: GroupKey, test: &'m Test<Extra>) {
+        self.entry(key).or_default().push(test);
     }
 
     fn len(&self) -> usize {
@@ -50,14 +50,14 @@ where
     }
 }
 
-pub type TestGroupBTreeMap<'m, GroupKey, Extra> = BTreeMap<GroupKey, Vec<&'m TestMeta<Extra>>>;
+pub type TestGroupBTreeMap<'m, GroupKey, Extra> = BTreeMap<GroupKey, Vec<&'m Test<Extra>>>;
 
 impl<'m, GroupKey, Extra> TestGroups<'m, GroupKey, Extra> for TestGroupBTreeMap<'m, GroupKey, Extra>
 where
     GroupKey: Ord,
 {
-    fn add(&mut self, key: GroupKey, meta: &'m TestMeta<Extra>) {
-        self.entry(key).or_default().push(meta);
+    fn add(&mut self, key: GroupKey, test: &'m Test<Extra>) {
+        self.entry(key).or_default().push(test);
     }
 
     fn len(&self) -> usize {
