@@ -11,7 +11,7 @@ use crate::{
     outcome::TestStatus,
     panic_handler::TestPanicHandler,
     runner::TestRunner,
-    test::{Test, TestResult},
+    test::Test,
 };
 
 pub struct TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter> {
@@ -150,8 +150,57 @@ impl<
     Formatter: TestListFormatter<'t, Extra>,
 > TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
 {
-    pub fn list(self) -> impl ExactSizeIterator<Item = (&'static str, Formatter::Error)> {
-        [todo!()].into_iter()
+    pub fn list(
+        self,
+    ) -> impl IntoIterator<IntoIter = impl ExactSizeIterator<Item = (&'static str, Formatter::Error)>>
+    {
+        let mut formatter = self.formatter;
+        let mut fmt_errors = Vec::new();
+        fmt_errors.push_on_error(named_fmt!(
+            formatter.fmt_init_listing(FmtInitListing { tests: self.tests }.into())
+        ));
+
+        let FilteredTests { tests, filtered } = self.filter.filter(self.tests);
+        fmt_errors.push_on_error(named_fmt!(
+            formatter.fmt_begin_listing(
+                FmtBeginListing {
+                    tests: tests.len(),
+                    filtered
+                }
+                .into()
+            )
+        ));
+
+        let mut active_count = 0;
+        let mut ignore_count = 0;
+        for test in tests {
+            let ignored = self.ignore.ignore(test);
+            match ignored.0 {
+                true => ignore_count += 1,
+                false => active_count += 1,
+            }
+            fmt_errors.push_on_error(named_fmt!(
+                formatter.fmt_list_test(
+                    FmtListTest {
+                        meta: test,
+                        ignored
+                    }
+                    .into()
+                )
+            ));
+        }
+
+        fmt_errors.push_on_error(named_fmt!(
+            formatter.fmt_end_listing(
+                FmtEndListing {
+                    active: active_count,
+                    ignored: ignore_count
+                }
+                .into()
+            )
+        ));
+
+        fmt_errors
     }
 }
 

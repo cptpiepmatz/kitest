@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use kitest::{
     filter::NoFilter,
-    formatter::pretty::PrettyFormatter,
     ignore::TestIgnore,
     test::{Test, TestFnHandle, TestMeta},
 };
@@ -47,7 +46,10 @@ const TESTS: &[Test<Speed>] = &[
 ];
 
 fn main() {
-    kitest::list_tests(TESTS, NoFilter, IgnoreSlow, PrettyFormatter::default());
+    kitest::harness(TESTS)
+        .with_filter(NoFilter)
+        .with_ignore(IgnoreSlow)
+        .list();
 }
 
 struct IgnoreSlow;
