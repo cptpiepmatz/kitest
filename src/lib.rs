@@ -239,7 +239,7 @@ where
         let panic_handler = Arc::new(panic_handler);
         let runner = Arc::new(runner);
 
-        let group_runs = groups.into_iter().map(|(key, tests)| {
+        let group_runs = groups.into_groups().map(|(key, tests)| {
             let now = Instant::now();
 
             let ignore = Arc::clone(&ignore);

@@ -23,12 +23,17 @@ where
     }
 }
 
-pub trait TestGroups<'m, Extra, GroupKey>:
-    IntoIterator<Item = (GroupKey, Vec<&'m Test<Extra>>)>
-where
-    Extra: 'm,
-{
+pub trait TestGroups<'m, Extra: Sync + 'm, GroupKey> {
     fn add(&mut self, key: GroupKey, test: &'m Test<Extra>);
+
+    fn into_groups(
+        self,
+    ) -> impl ExactSizeIterator<
+        Item = (
+            GroupKey,
+            impl ExactSizeIterator<Item = &'m Test<Extra>> + Send,
+        ),
+    >;
 
     fn len(&self) -> usize;
 
@@ -40,7 +45,7 @@ where
 pub type TestGroupHashMap<'m, Extra, GroupKey, RandomState = std::hash::RandomState> =
     HashMap<GroupKey, Vec<&'m Test<Extra>>, RandomState>;
 
-impl<'m, Extra, GroupKey, RandomState> TestGroups<'m, Extra, GroupKey>
+impl<'m, Extra: Sync + 'm, GroupKey, RandomState> TestGroups<'m, Extra, GroupKey>
     for TestGroupHashMap<'m, Extra, GroupKey, RandomState>
 where
     GroupKey: Eq + Hash,
@@ -50,6 +55,18 @@ where
         self.entry(key).or_default().push(test);
     }
 
+    fn into_groups(
+        self,
+    ) -> impl ExactSizeIterator<
+        Item = (
+            GroupKey,
+            impl ExactSizeIterator<Item = &'m Test<Extra>> + Send,
+        ),
+    > {
+        self.into_iter()
+            .map(|(key, tests)| (key, tests.into_iter()))
+    }
+
     fn len(&self) -> usize {
         self.values().map(|g| g.len()).sum()
     }
@@ -57,12 +74,25 @@ where
 
 pub type TestGroupBTreeMap<'m, Extra, GroupKey> = BTreeMap<GroupKey, Vec<&'m Test<Extra>>>;
 
-impl<'m, Extra, GroupKey> TestGroups<'m, Extra, GroupKey> for TestGroupBTreeMap<'m, Extra, GroupKey>
+impl<'m, Extra: Sync + 'm, GroupKey> TestGroups<'m, Extra, GroupKey>
+    for TestGroupBTreeMap<'m, Extra, GroupKey>
 where
     GroupKey: Ord,
 {
     fn add(&mut self, key: GroupKey, test: &'m Test<Extra>) {
         self.entry(key).or_default().push(test);
+    }
+
+    fn into_groups(
+        self,
+    ) -> impl ExactSizeIterator<
+        Item = (
+            GroupKey,
+            impl ExactSizeIterator<Item = &'m Test<Extra>> + Send,
+        ),
+    > {
+        self.into_iter()
+            .map(|(key, tests)| (key, tests.into_iter()))
     }
 
     fn len(&self) -> usize {
