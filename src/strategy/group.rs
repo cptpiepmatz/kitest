@@ -28,12 +28,7 @@ pub trait TestGroups<'t, Extra: 't, GroupKey> {
 
     fn into_groups(
         self,
-    ) -> impl ExactSizeIterator<
-        Item = (
-            GroupKey,
-            impl ExactSizeIterator<Item = &'t Test<Extra>> + Send,
-        ),
-    >;
+    ) -> impl ExactSizeIterator<Item = (GroupKey, impl ExactSizeIterator<Item = &'t Test<Extra>>)>;
 
     fn len(&self) -> usize;
 
@@ -45,7 +40,7 @@ pub trait TestGroups<'t, Extra: 't, GroupKey> {
 pub type TestGroupHashMap<'t, Extra, GroupKey, RandomState = std::hash::RandomState> =
     HashMap<GroupKey, Vec<&'t Test<Extra>>, RandomState>;
 
-impl<'t, Extra: Sync + 't, GroupKey, RandomState> TestGroups<'t, Extra, GroupKey>
+impl<'t, Extra: 't, GroupKey, RandomState> TestGroups<'t, Extra, GroupKey>
     for TestGroupHashMap<'t, Extra, GroupKey, RandomState>
 where
     GroupKey: Eq + Hash,
@@ -57,12 +52,8 @@ where
 
     fn into_groups(
         self,
-    ) -> impl ExactSizeIterator<
-        Item = (
-            GroupKey,
-            impl ExactSizeIterator<Item = &'t Test<Extra>> + Send,
-        ),
-    > {
+    ) -> impl ExactSizeIterator<Item = (GroupKey, impl ExactSizeIterator<Item = &'t Test<Extra>>)>
+    {
         self.into_iter()
             .map(|(key, tests)| (key, tests.into_iter()))
     }
@@ -74,7 +65,7 @@ where
 
 pub type TestGroupBTreeMap<'t, Extra, GroupKey> = BTreeMap<GroupKey, Vec<&'t Test<Extra>>>;
 
-impl<'t, Extra: Sync + 't, GroupKey> TestGroups<'t, Extra, GroupKey>
+impl<'t, Extra: 't, GroupKey> TestGroups<'t, Extra, GroupKey>
     for TestGroupBTreeMap<'t, Extra, GroupKey>
 where
     GroupKey: Ord,
@@ -85,12 +76,8 @@ where
 
     fn into_groups(
         self,
-    ) -> impl ExactSizeIterator<
-        Item = (
-            GroupKey,
-            impl ExactSizeIterator<Item = &'t Test<Extra>> + Send,
-        ),
-    > {
+    ) -> impl ExactSizeIterator<Item = (GroupKey, impl ExactSizeIterator<Item = &'t Test<Extra>>)>
+    {
         self.into_iter()
             .map(|(key, tests)| (key, tests.into_iter()))
     }

@@ -9,18 +9,17 @@ use crate::{
 };
 
 pub trait TestPanicHandler<Extra> {
-    fn handle<F>(&self, f: F, meta: &TestMeta<Extra>) -> TestStatus
-    where
-        F: FnOnce() -> TestResult + UnwindSafe;
+    fn handle<F: FnOnce() -> TestResult + UnwindSafe>(
+        &self,
+        f: F,
+        meta: &TestMeta<Extra>,
+    ) -> TestStatus;
 }
 
 pub struct NoPanicHandler;
 
 impl<Extra> TestPanicHandler<Extra> for NoPanicHandler {
-    fn handle<F>(&self, f: F, _: &TestMeta<Extra>) -> TestStatus
-    where
-        F: FnOnce() -> TestResult + UnwindSafe,
-    {
+    fn handle<F: FnOnce() -> TestResult>(&self, f: F, _: &TestMeta<Extra>) -> TestStatus {
         f().into()
     }
 }
@@ -38,10 +37,11 @@ impl DefaultPanicHandler {
 }
 
 impl<Extra> TestPanicHandler<Extra> for DefaultPanicHandler {
-    fn handle<F>(&self, f: F, meta: &TestMeta<Extra>) -> TestStatus
-    where
-        F: FnOnce() -> TestResult + UnwindSafe,
-    {
+    fn handle<F: FnOnce() -> TestResult + UnwindSafe>(
+        &self,
+        f: F,
+        meta: &TestMeta<Extra>,
+    ) -> TestStatus {
         let result = catch_unwind(f);
         TestStatus::Failed(match (result, meta.should_panic.0) {
             (Ok(test_result), false) => return test_result.into(),

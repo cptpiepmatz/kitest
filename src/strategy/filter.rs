@@ -4,7 +4,7 @@ use crate::test::Test;
 
 pub struct FilteredTests<'t, I, Extra>
 where
-    I: ExactSizeIterator<Item = &'t Test<Extra>> + Send,
+    I: ExactSizeIterator<Item = &'t Test<Extra>>,
     Extra: 't,
 {
     pub tests: I,
@@ -15,7 +15,7 @@ pub trait TestFilter<Extra> {
     fn filter<'t>(
         &self,
         tests: &'t [Test<Extra>],
-    ) -> FilteredTests<'t, impl ExactSizeIterator<Item = &'t Test<Extra>> + Send, Extra>;
+    ) -> FilteredTests<'t, impl ExactSizeIterator<Item = &'t Test<Extra>>, Extra>;
 }
 
 pub struct NoFilter;
@@ -24,7 +24,7 @@ impl<Extra: Sync> TestFilter<Extra> for NoFilter {
     fn filter<'t>(
         &self,
         tests: &'t [Test<Extra>],
-    ) -> FilteredTests<'t, impl ExactSizeIterator<Item = &'t Test<Extra>> + Send, Extra> {
+    ) -> FilteredTests<'t, impl ExactSizeIterator<Item = &'t Test<Extra>>, Extra> {
         FilteredTests {
             tests: tests.iter(),
             filtered: 0,
@@ -64,11 +64,11 @@ impl<'t, Extra> Iterator for DefaultFilterIterator<'t, Extra> {
 
 impl<'t, Extra> ExactSizeIterator for DefaultFilterIterator<'t, Extra> {}
 
-impl<Extra: Sync> TestFilter<Extra> for DefaultFilter {
+impl<Extra> TestFilter<Extra> for DefaultFilter {
     fn filter<'t>(
         &self,
         tests: &'t [Test<Extra>],
-    ) -> FilteredTests<'t, impl ExactSizeIterator<Item = &'t Test<Extra>> + Send, Extra> {
+    ) -> FilteredTests<'t, impl ExactSizeIterator<Item = &'t Test<Extra>>, Extra> {
         if self.filter.is_empty() && self.skip.is_empty() {
             return FilteredTests {
                 tests: DefaultFilterIterator::Slice(tests.iter()),
@@ -119,6 +119,7 @@ impl<Extra: Sync> TestFilter<Extra> for DefaultFilter {
                 false => remaining.push(meta),
             }
         }
+
         FilteredTests {
             tests: DefaultFilterIterator::Vec(remaining.into_iter()),
             filtered,

@@ -71,12 +71,11 @@ impl<'t> TestFormatter<'t, ()> for BasicFormatter {
 }
 
 fn main() {
-    kitest::run_tests(
-        TESTS,
-        NoFilter,
-        SimpleRunner,
-        NoIgnore,
-        NoPanicHandler,
-        BasicFormatter(io::stdout()),
-    );
+    kitest::harness(TESTS)
+        .with_filter(NoFilter)
+        .with_runner(SimpleRunner)
+        .with_ignore(NoIgnore)
+        .with_panic_handler(NoPanicHandler)
+        .with_formatter(BasicFormatter(io::stdout()))
+        .run();
 }

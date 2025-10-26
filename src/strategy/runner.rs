@@ -17,10 +17,9 @@ pub trait TestRunner<Extra> {
         scope: &'s Scope<'s, 't>,
     ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
-        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)> + Send,
+        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)>,
         F: (FnOnce() -> TestStatus) + Send + 's,
-        Extra: 't + Sync,
-        't: 's;
+        Extra: 't;
 
     fn worker_count(&self, tests_count: usize) -> NonZeroUsize;
 }
@@ -35,10 +34,9 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
         _: &'s Scope<'s, 't>,
     ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
-        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)> + Send,
+        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)>,
         F: (FnOnce() -> TestStatus) + Send + 's,
-        Extra: 't + Sync,
-        't: 's,
+        Extra: 't,
     {
         tests.map(|(test, meta)| {
             let now = Instant::now();
@@ -86,10 +84,9 @@ impl DefaultRunner {
 
 struct DefaultRunnerIterator<'t, 's, I, F, Extra>
 where
-    I: Iterator<Item = (F, &'t TestMeta<Extra>)> + Send,
+    I: Iterator<Item = (F, &'t TestMeta<Extra>)>,
     F: (FnOnce() -> TestStatus) + Send,
-    Extra: 't + Sync,
-    't: 's,
+    Extra: 't,
 {
     source: I,
     push_job: crossbeam_channel::Sender<Option<(F, &'t TestMeta<Extra>)>>,
@@ -98,12 +95,11 @@ where
     _workers: Vec<ScopedJoinHandle<'s, ()>>,
 }
 
-impl<'t, 's, I, F, Extra> DefaultRunnerIterator<'t, 's, I, F, Extra>
+impl<'t, 's, I, F, Extra: Sync> DefaultRunnerIterator<'t, 's, I, F, Extra>
 where
-    I: Iterator<Item = (F, &'t TestMeta<Extra>)> + Send,
+    I: Iterator<Item = (F, &'t TestMeta<Extra>)>,
     F: (FnOnce() -> TestStatus) + Send + 's,
-    Extra: 't + Sync,
-    't: 's,
+    Extra: 't,
 {
     fn new(worker_count: NonZeroUsize, mut iter: I, scope: &'s Scope<'s, 't>) -> Self {
         let (itx, irx) = crossbeam_channel::bounded(worker_count.into());
@@ -149,10 +145,9 @@ where
 
 impl<'t, 's, I, F, Extra> Iterator for DefaultRunnerIterator<'t, 's, I, F, Extra>
 where
-    I: Iterator<Item = (F, &'t TestMeta<Extra>)> + Send,
+    I: Iterator<Item = (F, &'t TestMeta<Extra>)>,
     F: (FnOnce() -> TestStatus) + Send + 's,
-    Extra: 't + Sync,
-    't: 's,
+    Extra: 't,
 {
     type Item = (&'t TestMeta<Extra>, TestOutcome);
 
@@ -170,17 +165,16 @@ where
     }
 }
 
-impl<Extra> TestRunner<Extra> for DefaultRunner {
+impl<Extra: Sync> TestRunner<Extra> for DefaultRunner {
     fn run<'t, 's, I, F>(
         &self,
         tests: I,
         scope: &'s Scope<'s, 't>,
     ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
-        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)> + Send,
+        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)>,
         F: (FnOnce() -> TestStatus) + Send + 's,
-        Extra: 't + Sync,
-        't: 's,
+        Extra: 't,
     {
         let worker_count = <DefaultRunner as TestRunner<Extra>>::worker_count(self, tests.len());
         DefaultRunnerIterator::new(worker_count, tests, scope)
@@ -243,17 +237,16 @@ where
     }
 }
 
-impl<Extra> TestRunner<Extra> for SmartRunner {
+impl<Extra: Sync> TestRunner<Extra> for SmartRunner {
     fn run<'t, 's, I, F>(
         &self,
         tests: I,
         scope: &'s Scope<'s, 't>,
     ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
-        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)> + Send,
+        I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)>,
         F: (FnOnce() -> TestStatus) + Send + 's,
-        Extra: 't + Sync,
-        't: 's,
+        Extra: 't,
     {
         match tests.len() <= self.threshold {
             true => SmartRunnerIterator::Simple(<SimpleRunner as TestRunner<Extra>>::run(

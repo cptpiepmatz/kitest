@@ -31,3 +31,23 @@ pub fn harness<'t, Extra>(
         formatter: PrettyFormatter::default(),
     }
 }
+
+trait FmtErrors<E> {
+    fn push_on_error<T>(&mut self, data: (&'static str, Result<T, E>));
+}
+
+impl<E> FmtErrors<E> for Vec<(&'static str, E)> {
+    fn push_on_error<T>(&mut self, (name, res): (&'static str, Result<T, E>)) {
+        if let Err(err) = res {
+            self.push((name, err));
+        }
+    }
+}
+
+macro_rules! named_fmt {
+    ($fmt:ident.$method:ident($expr:expr)) => {
+        (stringify!($method), $fmt.$method($expr))
+    };
+}
+
+pub(self) use named_fmt;

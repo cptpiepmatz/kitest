@@ -52,12 +52,5 @@ const TESTS: &[Test] = &[
 ];
 
 fn main() {
-    kitest::run_tests(
-        TESTS,
-        DefaultFilter::default(),
-        DefaultRunner::default(),
-        DefaultIgnore::default(),
-        DefaultPanicHandler::default(),
-        PrettyFormatter::default(),
-    );
+    kitest::harness(TESTS).run();
 }
