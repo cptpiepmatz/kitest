@@ -1,27 +1,25 @@
 use std::{
     collections::HashMap,
     hash::Hash,
-    io,
-    marker::PhantomData,
     panic::RefUnwindSafe,
     sync::Arc,
     time::{Duration, Instant},
 };
 
 use crate::{
-    filter::{DefaultFilter, FilteredTests, TestFilter},
+    filter::{FilteredTests, TestFilter},
     formatter::{
         FmtBeginListing, FmtEndListing, FmtGroupOutcomes, FmtGroupStart, FmtGroupedRunOutcomes,
         FmtGroupedRunStart, FmtGroupedTestData, FmtInitListing, FmtListGroupEnd, FmtListGroupStart,
         FmtListGroups, FmtListTest, FmtRunInitData, FmtRunOutcomes, FmtRunStart, FmtTestData,
         FmtTestIgnored, FmtTestOutcome, FmtTestStart, GroupedTestFormatter,
-        GroupedTestListFormatter, TestFormatter, TestListFormatter, pretty::PrettyFormatter,
+        GroupedTestListFormatter, TestFormatter, TestListFormatter,
     },
-    group::{SimpleGroupRunner, TestGroupHashMap, TestGroupRunner, TestGrouper, TestGroups},
-    ignore::{DefaultIgnore, TestIgnore},
+    group::{TestGroupRunner, TestGrouper, TestGroups},
+    ignore::TestIgnore,
     outcome::{TestOutcome, TestStatus},
-    panic_handler::{DefaultPanicHandler, TestPanicHandler},
-    runner::{DefaultRunner, TestRunner},
+    panic_handler::TestPanicHandler,
+    runner::TestRunner,
     test::Test,
 };
 
