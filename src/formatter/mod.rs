@@ -33,8 +33,8 @@ pub struct FmtRunInitData<'m, Extra> {
     pub tests: &'m [Test<Extra>],
 }
 
-pub struct FmtRunStartData {
-    pub tests: usize,
+pub struct FmtRunStart {
+    pub active: usize,
     pub filtered: usize,
 }
 
@@ -54,6 +54,7 @@ pub struct FmtTestOutcome<'m, 'o, Extra> {
 
 pub struct FmtRunOutcomes<'m, 'o> {
     pub outcomes: &'o TestOutcomes<'m>,
+    pub filtered_out: usize,
     pub duration: Duration,
 }
 
@@ -65,7 +66,7 @@ pub trait TestFormatter<'m, Extra: 'm>: Send {
         discard!(data)
     }
 
-    type RunStart: From<FmtRunStartData> + Send;
+    type RunStart: From<FmtRunStart> + Send;
     fn fmt_run_start(&mut self, data: Self::RunStart) -> Result<(), Self::Error> {
         discard!(data)
     }
@@ -217,7 +218,7 @@ macro_rules! impl_unit_from {
 
 impl_unit_from![
     FmtRunInitData<'m, Extra>,
-    FmtRunStartData,
+    FmtRunStart,
     FmtTestIgnored<'m, 'r, Extra>,
     FmtTestStart<'m, Extra>,
     FmtTestOutcome<'m, 'o, Extra>,

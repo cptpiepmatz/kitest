@@ -15,6 +15,7 @@ pub struct TestOutcome {
     pub attachments: TestOutcomeAttachments,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TestStatus {
     Passed,
     TimedOut,
@@ -23,6 +24,7 @@ pub enum TestStatus {
     Other,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TestFailure {
     Error(Box<str>),
     Panicked(Box<str>),

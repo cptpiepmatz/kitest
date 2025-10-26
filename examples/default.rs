@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use kitest::{
     filter::DefaultFilter,
-    formatter::NoFormatter,
+    formatter::{pretty::PrettyFormatter},
     ignore::DefaultIgnore,
     meta::{Test, TestFnHandle, TestMeta},
     panic_handler::DefaultPanicHandler,
@@ -10,15 +10,15 @@ use kitest::{
 };
 
 fn test_a() {
-    std::thread::sleep(std::time::Duration::from_secs(3));
+    std::thread::sleep(std::time::Duration::from_millis(300));
 }
 
 fn test_b() {
-    std::thread::sleep(std::time::Duration::from_secs(1));
+    std::thread::sleep(std::time::Duration::from_millis(100));
 }
 
 fn test_c() {
-    std::thread::sleep(std::time::Duration::from_secs(2));
+    std::thread::sleep(std::time::Duration::from_millis(200));
 }
 
 const TESTS: &[Test] = &[
@@ -58,6 +58,6 @@ fn main() {
         DefaultRunner::default(),
         DefaultIgnore::default(),
         DefaultPanicHandler::default(),
-        NoFormatter,
+        PrettyFormatter::default(),
     );
 }

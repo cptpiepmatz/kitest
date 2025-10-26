@@ -11,7 +11,7 @@ use crate::{
     formatter::{
         FmtBeginListing, FmtEndListing, FmtGroupOutcomes, FmtGroupStart, FmtGroupedRunOutcomes,
         FmtGroupedRunStart, FmtGroupedTestData, FmtInitListing, FmtListTest, FmtRunInitData,
-        FmtRunOutcomes, FmtRunStartData, FmtTestData, FmtTestIgnored, FmtTestOutcome, FmtTestStart,
+        FmtRunOutcomes, FmtRunStart, FmtTestData, FmtTestIgnored, FmtTestOutcome, FmtTestStart,
         GroupedTestFormatter, TestFormatter, TestListFormatter,
     },
     group::{TestGroupRunner, TestGrouper, TestGroups},
@@ -75,8 +75,8 @@ pub fn run_tests<
     let FilteredTests { tests, filtered } = filter.filter(tests);
     fmt_errors.push_on_error(named_fmt!(
         formatter.fmt_run_start(
-            FmtRunStartData {
-                tests: tests.len(),
+            FmtRunStart {
+                active: tests.len(),
                 filtered
             }
             .into()
@@ -153,6 +153,7 @@ pub fn run_tests<
         formatter.fmt_run_outcomes(
             FmtRunOutcomes {
                 outcomes: &outcomes,
+                filtered_out: filtered,
                 duration
             }
             .into()
