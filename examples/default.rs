@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use kitest::{
     filter::DefaultFilter,
-    formatter::{pretty::PrettyFormatter},
+    formatter::pretty::PrettyFormatter,
     ignore::DefaultIgnore,
     meta::{Test, TestFnHandle, TestMeta},
     panic_handler::DefaultPanicHandler,

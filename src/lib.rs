@@ -171,19 +171,20 @@ pub fn run_tests<
 pub fn run_grouped_tests<
     'm,
     Filter: TestFilter<Extra>,
-    Grouper: TestGrouper<GroupKey, Extra>,
-    Groups: TestGroups<'m, GroupKey, Extra>,
-    GroupRunner: TestGroupRunner<GroupKey, Extra>,
+    Grouper: TestGrouper<Extra, GroupKey, GroupCtx>,
+    Groups: TestGroups<'m, Extra, GroupKey>,
+    GroupRunner: TestGroupRunner<Extra, GroupKey, GroupCtx>,
     Runner: TestRunner<Extra>,
     Ignore: TestIgnore<Extra> + Send + Sync + 'm,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 'm,
-    Formatter: GroupedTestFormatter<'m, GroupKey, Extra> + 'm,
-    GroupKey: Eq + Hash + 'm,
+    Formatter: GroupedTestFormatter<'m, Extra, GroupKey, GroupCtx> + 'm,
     Extra: RefUnwindSafe + Sync + 'm,
+    GroupKey: Eq + Hash + 'm,
+    GroupCtx: 'm,
 >(
     tests: &'m [Test<Extra>],
     filter: Filter,
-    grouper: Grouper,
+    mut grouper: Grouper,
     mut groups: Groups,
     group_runner: GroupRunner,
     runner: Runner,
@@ -192,8 +193,8 @@ pub fn run_grouped_tests<
     mut formatter: Formatter,
 ) -> GroupedTestReport<'m, GroupKey, Formatter::Error>
 where
-    <Formatter as GroupedTestFormatter<'m, GroupKey, Extra>>::GroupStart: 'm,
-    <Formatter as GroupedTestFormatter<'m, GroupKey, Extra>>::GroupOutcomes: 'm,
+    <Formatter as GroupedTestFormatter<'m, Extra, GroupKey, GroupCtx>>::GroupStart: 'm,
+    <Formatter as GroupedTestFormatter<'m, Extra, GroupKey, GroupCtx>>::GroupOutcomes: 'm,
 {
     let now = Instant::now();
 
@@ -245,75 +246,83 @@ where
             let panic_handler = Arc::clone(&panic_handler);
             let runner = Arc::clone(&runner);
             let ftx = ftx.clone();
+            let ctx = grouper.group_ctx(&key);
 
             let _ = ftx.send(FmtGroupedTestData::Start(
                 FmtGroupStart {
-                    key: &key,
                     tests: tests.len(),
+                    key: &key,
+                    ctx,
                 }
                 .into(),
             ));
 
-            let outcomes = group_runner.run_group(&key, move || {
-                let test_runs = tests.into_iter().map(|test| {
-                    let meta = &test.meta;
-                    let ignore = Arc::clone(&ignore);
-                    let panic_handler = Arc::clone(&panic_handler);
-                    let ftx = ftx.clone();
+            let outcomes = group_runner.run_group(
+                move || {
+                    let test_runs = tests.into_iter().map(|test| {
+                        let meta = &test.meta;
+                        let ignore = Arc::clone(&ignore);
+                        let panic_handler = Arc::clone(&panic_handler);
+                        let ftx = ftx.clone();
 
-                    (
-                        move || {
-                            let (ignored, reason) = ignore.ignore(meta);
-                            if ignored {
-                                let _ = ftx.send(FmtGroupedTestData::Test(FmtTestData::Ignored(
-                                    FmtTestIgnored {
-                                        meta,
-                                        reason: reason.as_ref(),
-                                    }
-                                    .into(),
+                        (
+                            move || {
+                                let (ignored, reason) = ignore.ignore(meta);
+                                if ignored {
+                                    let _ =
+                                        ftx.send(FmtGroupedTestData::Test(FmtTestData::Ignored(
+                                            FmtTestIgnored {
+                                                meta,
+                                                reason: reason.as_ref(),
+                                            }
+                                            .into(),
+                                        )));
+                                    return TestStatus::Ignored { reason };
+                                };
+
+                                let _ = ftx.send(FmtGroupedTestData::Test(FmtTestData::Start(
+                                    FmtTestStart { meta }.into(),
                                 )));
-                                return TestStatus::Ignored { reason };
-                            };
+                                panic_handler.handle(|| test.call(), meta)
+                            },
+                            meta,
+                        )
+                    });
 
-                            let _ = ftx.send(FmtGroupedTestData::Test(FmtTestData::Start(
-                                FmtTestStart { meta }.into(),
+                    runner
+                        .run(test_runs, scope)
+                        .inspect(|(meta, outcome)| {
+                            let _ = ftx.send(FmtGroupedTestData::Test(FmtTestData::Outcome(
+                                FmtTestOutcome {
+                                    meta: *meta,
+                                    outcome,
+                                }
+                                .into(),
                             )));
-                            panic_handler.handle(|| test.call(), meta)
-                        },
-                        meta,
-                    )
-                });
+                        })
+                        .map(|(meta, outcome)| (meta.name.as_ref(), outcome))
+                        .collect()
+                },
+                &key,
+                ctx,
+            );
 
-                runner
-                    .run(test_runs, scope)
-                    .inspect(|(meta, outcome)| {
-                        let _ = ftx.send(FmtGroupedTestData::Test(FmtTestData::Outcome(
-                            FmtTestOutcome {
-                                meta: *meta,
-                                outcome,
-                            }
-                            .into(),
-                        )));
-                    })
-                    .map(|(meta, outcome)| (meta.name.as_ref(), outcome))
-                    .collect()
-            });
-
-            (key, outcomes, now.elapsed())
+            (outcomes, now.elapsed(), key, ctx)
         });
 
         let grouped_outcomes = group_runs
-            .inspect(|(key, outcomes, duration)| {
+            .inspect(|(outcomes, duration, key, ctx)| {
                 let _ = ftx.send(FmtGroupedTestData::Outcome(
                     FmtGroupOutcomes {
-                        key,
                         outcomes,
                         duration: *duration,
+                        key,
+                        ctx: *ctx,
                     }
                     .into(),
                 ));
             })
-            .map(|(key, outcomes, _)| (key, outcomes))
+            .map(|(outcomes, _, key, _)| (key, outcomes))
             .collect();
 
         drop(ftx);

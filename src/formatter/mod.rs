@@ -97,15 +97,17 @@ pub struct FmtGroupedRunStart {
     pub filtered: usize,
 }
 
-pub struct FmtGroupStart<'g, GroupKey> {
-    pub key: &'g GroupKey,
+pub struct FmtGroupStart<'g, GroupKey, GroupCtx = ()> {
     pub tests: usize,
+    pub key: &'g GroupKey,
+    pub ctx: Option<&'g GroupCtx>,
 }
 
-pub struct FmtGroupOutcomes<'m, 'g, 'o, GroupKey> {
-    pub key: &'g GroupKey,
+pub struct FmtGroupOutcomes<'m, 'g, 'o, GroupKey, GroupCtx = ()> {
     pub outcomes: &'o TestOutcomes<'m>,
     pub duration: Duration,
+    pub key: &'g GroupKey,
+    pub ctx: Option<&'g GroupCtx>,
 }
 
 pub struct FmtGroupedRunOutcomes<'m, 'o, GroupKey> {
@@ -113,18 +115,20 @@ pub struct FmtGroupedRunOutcomes<'m, 'o, GroupKey> {
     pub duration: Duration,
 }
 
-pub trait GroupedTestFormatter<'m, GroupKey: 'm, Extra: 'm>: TestFormatter<'m, Extra> {
+pub trait GroupedTestFormatter<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm = ()>:
+    TestFormatter<'m, Extra>
+{
     type GroupedRunStart: From<FmtGroupedRunStart> + Send;
     fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
         discard!(data)
     }
 
-    type GroupStart: for<'g> From<FmtGroupStart<'g, GroupKey>> + Send;
+    type GroupStart: for<'g> From<FmtGroupStart<'g, GroupKey, GroupCtx>> + Send;
     fn fmt_group_start(&mut self, data: Self::GroupStart) -> Result<(), Self::Error> {
         discard!(data)
     }
 
-    type GroupOutcomes: for<'g, 'o> From<FmtGroupOutcomes<'m, 'g, 'o, GroupKey>> + Send;
+    type GroupOutcomes: for<'g, 'o> From<FmtGroupOutcomes<'m, 'g, 'o, GroupKey, GroupCtx>> + Send;
     fn fmt_group_outcomes(&mut self, data: Self::GroupOutcomes) -> Result<(), Self::Error> {
         discard!(data)
     }
@@ -181,25 +185,27 @@ pub trait TestListFormatter<'m, Extra: 'm> {
     }
 }
 
-pub struct FmtListGroupStart<'g, GroupKey> {
-    pub key: &'g GroupKey,
+pub struct FmtListGroupStart<'g, GroupKey, GroupCtx> {
     pub tests: usize,
+    pub key: &'g GroupKey,
+    pub ctx: &'g GroupCtx,
 }
 
-pub struct FmtListGroupEnd<'g, GroupKey> {
-    pub key: &'g GroupKey,
+pub struct FmtListGroupEnd<'g, GroupKey, GroupCtx> {
     pub tests: usize,
+    pub key: &'g GroupKey,
+    pub ctx: &'g GroupCtx,
 }
 
-pub trait GroupedTestListFormatter<'m, GroupKey: 'm, Extra: 'm>:
+pub trait GroupedTestListFormatter<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm>:
     TestListFormatter<'m, Extra>
 {
-    type ListGroupStart: for<'g> From<FmtListGroupStart<'g, GroupKey>>;
+    type ListGroupStart: for<'g> From<FmtListGroupStart<'g, GroupKey, GroupCtx>>;
     fn fmt_list_group_start(&mut self, data: Self::ListGroupStart) -> Result<(), Self::Error> {
         discard!(data)
     }
 
-    type ListGroupEnd: for<'g> From<FmtListGroupEnd<'g, GroupKey>>;
+    type ListGroupEnd: for<'g> From<FmtListGroupEnd<'g, GroupKey, GroupCtx>>;
     fn fmt_list_group_end(&mut self, data: Self::ListGroupEnd) -> Result<(), Self::Error> {
         discard!(data)
     }
@@ -224,15 +230,15 @@ impl_unit_from![
     FmtTestOutcome<'m, 'o, Extra>,
     FmtRunOutcomes<'m, 'o>,
     FmtGroupedRunStart,
-    FmtGroupStart<'g, GroupKey>,
-    FmtGroupOutcomes<'m, 'g, 'o, GroupKey>,
+    FmtGroupStart<'g, GroupKey, GroupCtx>,
+    FmtGroupOutcomes<'m, 'g, 'o, GroupKey, GroupCtx>,
     FmtGroupedRunOutcomes<'m, 'o, GroupKey>,
     FmtInitListing<'m, Extra>,
     FmtBeginListing,
     FmtListTest<'m, Extra>,
     FmtEndListing,
-    FmtListGroupStart<'g, GroupKey>,
-    FmtListGroupEnd<'g, GroupKey>,
+    FmtListGroupStart<'g, GroupKey, GroupCtx>,
+    FmtListGroupEnd<'g, GroupKey, GroupCtx>,
 ];
 
 impl<'m, Extra: 'm> TestFormatter<'m, Extra> for NoFormatter {
@@ -245,7 +251,9 @@ impl<'m, Extra: 'm> TestFormatter<'m, Extra> for NoFormatter {
     type RunOutcomes = ();
 }
 
-impl<'m, GroupKey: 'm, Extra: 'm> GroupedTestFormatter<'m, GroupKey, Extra> for NoFormatter {
+impl<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm> GroupedTestFormatter<'m, Extra, GroupKey, GroupCtx>
+    for NoFormatter
+{
     type GroupedRunStart = ();
     type GroupStart = ();
     type GroupOutcomes = ();
@@ -260,7 +268,9 @@ impl<'m, Extra: 'm> TestListFormatter<'m, Extra> for NoFormatter {
     type EndListing = ();
 }
 
-impl<'m, GroupKey: 'm, Extra: 'm> GroupedTestListFormatter<'m, GroupKey, Extra> for NoFormatter {
+impl<'m, Extra: 'm, GroupKey: 'm, GroupCtx: 'm>
+    GroupedTestListFormatter<'m, Extra, GroupKey, GroupCtx> for NoFormatter
+{
     type ListGroupStart = ();
     type ListGroupEnd = ();
 }
