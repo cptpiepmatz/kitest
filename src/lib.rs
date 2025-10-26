@@ -9,27 +9,24 @@ use std::{
 use crate::{
     filter::{FilteredTests, TestFilter},
     formatter::{
-        FmtBeginListing, FmtEndListing, FmtGroupOutcomes, FmtGroupStart, FmtGroupedRunOutcomes,
-        FmtGroupedRunStart, FmtGroupedTestData, FmtInitListing, FmtListTest, FmtRunInitData,
-        FmtRunOutcomes, FmtRunStart, FmtTestData, FmtTestIgnored, FmtTestOutcome, FmtTestStart,
-        GroupedTestFormatter, TestFormatter, TestListFormatter,
+        FmtBeginListing, FmtEndListing, FmtGroupOutcomes, FmtGroupStart, FmtGroupedRunOutcomes, FmtGroupedRunStart, FmtGroupedTestData, FmtInitListing, FmtListGroupEnd, FmtListGroupStart, FmtListGroups, FmtListTest, FmtRunInitData, FmtRunOutcomes, FmtRunStart, FmtTestData, FmtTestIgnored, FmtTestOutcome, FmtTestStart, GroupedTestFormatter, GroupedTestListFormatter, TestFormatter, TestListFormatter
     },
     group::{TestGroupRunner, TestGrouper, TestGroups},
     ignore::TestIgnore,
-    test::Test,
     outcome::{TestOutcome, TestStatus},
     panic_handler::TestPanicHandler,
     runner::TestRunner,
+    test::Test,
 };
 
 pub mod filter;
 pub mod formatter;
 pub mod group;
 pub mod ignore;
-pub mod test;
 pub mod outcome;
 pub mod panic_handler;
 pub mod runner;
+pub mod test;
 
 trait FmtErrors<E> {
     fn push_on_error<T>(&mut self, data: (&'static str, Result<T, E>));
@@ -204,7 +201,7 @@ where
     ));
 
     let FilteredTests { tests, filtered } = filter.filter(tests);
-    tests.for_each(|meta| groups.add(grouper.group(meta), meta));
+    tests.for_each(|test| groups.add(grouper.group(test), test));
 
     fmt_errors.push_on_error(named_fmt!(
         formatter.fmt_grouped_run_start(
@@ -400,14 +397,124 @@ pub fn list_tests<
 
     let mut active_count = 0;
     let mut ignore_count = 0;
-    for meta in tests {
-        let ignored = ignore.ignore(meta);
+    for test in tests {
+        let ignored = ignore.ignore(test);
         match ignored.0 {
             true => ignore_count += 1,
             false => active_count += 1,
         }
         fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_list_test(FmtListTest { meta, ignored }.into())
+            formatter.fmt_list_test(
+                FmtListTest {
+                    meta: test,
+                    ignored
+                }
+                .into()
+            )
+        ));
+    }
+
+    fmt_errors.push_on_error(named_fmt!(
+        formatter.fmt_end_listing(
+            FmtEndListing {
+                active: active_count,
+                ignored: ignore_count
+            }
+            .into()
+        )
+    ));
+
+    fmt_errors
+}
+
+pub fn list_grouped_tests<
+    't,
+    Filter: TestFilter<Extra>,
+    Ignore: TestIgnore<Extra>,
+    Grouper: TestGrouper<Extra, GroupKey, GroupCtx>,
+    Groups: TestGroups<'t, Extra, GroupKey>,
+    Formatter: GroupedTestListFormatter<'t, Extra, GroupKey, GroupCtx>,
+    Extra: Sync + 't,
+    GroupKey: 't,
+    GroupCtx: 't,
+>(
+    tests: &'t [Test<Extra>],
+    filter: Filter,
+    ignore: Ignore,
+    mut grouper: Grouper,
+    mut groups: Groups,
+    mut formatter: Formatter,
+) -> Vec<(&'static str, Formatter::Error)> {
+    let mut fmt_errors = Vec::new();
+    fmt_errors.push_on_error(named_fmt!(
+        formatter.fmt_init_listing(FmtInitListing { tests }.into())
+    ));
+
+    let FilteredTests { tests, filtered } = filter.filter(tests);
+    fmt_errors.push_on_error(named_fmt!(
+        formatter.fmt_begin_listing(
+            FmtBeginListing {
+                tests: tests.len(),
+                filtered
+            }
+            .into()
+        )
+    ));
+
+    tests.for_each(|test| groups.add(grouper.group(test), test));
+    let groups = groups.into_groups();
+    fmt_errors.push_on_error(named_fmt!(
+        formatter.fmt_list_groups(
+            FmtListGroups {
+                groups: groups.len()
+            }
+            .into()
+        )
+    ));
+
+    let mut active_count = 0;
+    let mut ignore_count = 0;
+    for (key, tests) in groups {
+        let ctx = grouper.group_ctx(&key);
+        let tests_len = tests.len();
+
+        fmt_errors.push_on_error(named_fmt!(
+            formatter.fmt_list_group_start(
+                FmtListGroupStart {
+                    tests: tests_len,
+                    key: &key,
+                    ctx
+                }
+                .into()
+            )
+        ));
+
+        for test in tests {
+            let ignored = ignore.ignore(test);
+            match ignored.0 {
+                true => ignore_count += 1,
+                false => active_count += 1,
+            }
+            fmt_errors.push_on_error(named_fmt!(
+                formatter.fmt_list_test(
+                    FmtListTest {
+                        meta: test,
+                        ignored
+                    }
+                    .into()
+                )
+            ));
+        }
+
+        fmt_errors.push_on_error(named_fmt!(
+            formatter.fmt_list_group_end(
+                FmtListGroupEnd {
+                    tests: tests_len,
+                    key: &key,
+                    ctx
+                }
+                .into()
+            )
         ));
     }
 

@@ -185,21 +185,30 @@ pub trait TestListFormatter<'t, Extra: 't> {
     }
 }
 
+pub struct FmtListGroups {
+    pub groups: usize,
+}
+
 pub struct FmtListGroupStart<'g, GroupKey, GroupCtx> {
     pub tests: usize,
     pub key: &'g GroupKey,
-    pub ctx: &'g GroupCtx,
+    pub ctx: Option<&'g GroupCtx>,
 }
 
 pub struct FmtListGroupEnd<'g, GroupKey, GroupCtx> {
     pub tests: usize,
     pub key: &'g GroupKey,
-    pub ctx: &'g GroupCtx,
+    pub ctx: Option<&'g GroupCtx>,
 }
 
 pub trait GroupedTestListFormatter<'t, Extra: 't, GroupKey: 't, GroupCtx: 't>:
     TestListFormatter<'t, Extra>
 {
+    type ListGroups: From<FmtListGroups>;
+    fn fmt_list_groups(&mut self, data: Self::ListGroups) -> Result<(), Self::Error> {
+        discard!(data)
+    }
+
     type ListGroupStart: for<'g> From<FmtListGroupStart<'g, GroupKey, GroupCtx>>;
     fn fmt_list_group_start(&mut self, data: Self::ListGroupStart) -> Result<(), Self::Error> {
         discard!(data)
@@ -237,6 +246,7 @@ impl_unit_from![
     FmtBeginListing,
     FmtListTest<'t, Extra>,
     FmtEndListing,
+    FmtListGroups,
     FmtListGroupStart<'g, GroupKey, GroupCtx>,
     FmtListGroupEnd<'g, GroupKey, GroupCtx>,
 ];
@@ -271,6 +281,7 @@ impl<'t, Extra: 't> TestListFormatter<'t, Extra> for NoFormatter {
 impl<'t, Extra: 't, GroupKey: 't, GroupCtx: 't>
     GroupedTestListFormatter<'t, Extra, GroupKey, GroupCtx> for NoFormatter
 {
+    type ListGroups = ();
     type ListGroupStart = ();
     type ListGroupEnd = ();
 }
