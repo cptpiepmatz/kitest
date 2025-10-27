@@ -39,7 +39,7 @@ impl<
         let mut formatter = self.formatter;
         let mut fmt_errors = Vec::new();
         fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_run_init(FmtRunInitData { tests: self.tests }.into())
+            formatter.fmt_run_init(FmtRunInit { tests: self.tests }.into())
         ));
 
         let FilteredTests {
@@ -171,6 +171,11 @@ impl<
             tests,
             filtered_out: filtered,
         } = self.filter.filter(self.tests);
+        let res = FmtBeginListing {
+            tests: tests.len(),
+            filtered,
+        }
+        .fmt(|data| formatter.fmt_begin_listing(data));
         fmt_errors.push_on_error(named_fmt!(
             formatter.fmt_begin_listing(
                 FmtBeginListing {

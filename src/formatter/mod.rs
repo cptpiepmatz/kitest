@@ -30,7 +30,7 @@ pub(crate) enum FmtGroupedTestData<I, S, O, GS, GO> {
     Outcome(GO),
 }
 
-pub struct FmtRunInitData<'t, Extra> {
+pub struct FmtRunInit<'t, Extra> {
     pub tests: &'t [Test<Extra>],
 }
 
@@ -62,7 +62,7 @@ pub struct FmtRunOutcomes<'t, 'o> {
 pub trait TestFormatter<'t, Extra: 't>: Send {
     type Error: Send + 't;
 
-    type RunInit: From<FmtRunInitData<'t, Extra>> + Send;
+    type RunInit: From<FmtRunInit<'t, Extra>> + Send;
     fn fmt_run_init(&mut self, data: Self::RunInit) -> Result<(), Self::Error> {
         discard!(data)
     }
@@ -221,6 +221,52 @@ pub trait GroupedTestListFormatter<'t, Extra: 't, GroupKey: 't, GroupCtx: 't>:
     }
 }
 
+pub(crate) trait IntoFormatError: Sized {
+    fn fmt<F, Data, Err>(self, f: F) -> Result<(), (FormatError, Err)>
+    where
+        F: FnMut(Data) -> Result<(), Err>,
+        Data: From<Self>;
+}
+
+macro_rules! make_format_error {
+    {$($name:ident$(<$($generic:tt),*>)?: $key:ident),* $(,)?} => {$(
+        impl$(<$($generic),*>)? IntoFormatError for $name$(<$($generic),*>)? {
+            fn fmt<F, Data, Err>(self, mut f: F) -> Result<(), (FormatError, Err)>
+            where
+                F: FnMut(Data) -> Result<(), Err>,
+                Data: From<Self> {
+                    f(self.into()).map_err(|err| (FormatError::$key, err))
+                }
+        })*
+
+        #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+        #[non_exhaustive]
+        pub enum FormatError {
+            $($key),*
+        }
+    };
+}
+
+make_format_error! {
+    FmtRunInit<'t, Extra>: RunInit,
+    FmtRunStart: RunStart,
+    FmtTestIgnored<'t, 'r, Extra>: TestIgnored,
+    FmtTestStart<'t, Extra>: TestStart,
+    FmtTestOutcome<'t, 'o, Extra>: TestOutcome,
+    FmtRunOutcomes<'t, 'o>: RunOutcomes,
+    FmtGroupedRunStart: GroupedRunStart,
+    FmtGroupStart<'g, GroupKey, GroupCtx>: GroupStart,
+    FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx>: GroupOutcomes,
+    FmtGroupedRunOutcomes<'t, 'o, GroupKey>: GroupedRunOutcomes,
+    FmtInitListing<'t, Extra>: InitListing,
+    FmtBeginListing: BeginListing,
+    FmtListTest<'t, Extra>: ListTest,
+    FmtEndListing: EndListing,
+    FmtListGroups: ListGroups,
+    FmtListGroupStart<'g, GroupKey, GroupCtx>: ListGroupStart,
+    FmtListGroupEnd<'g, GroupKey, GroupCtx>: ListGroupEnd,
+}
+
 #[derive(Default)]
 pub struct NoFormatter;
 
@@ -233,7 +279,7 @@ macro_rules! impl_unit_from {
 }
 
 impl_unit_from![
-    FmtRunInitData<'t, Extra>,
+    FmtRunInit<'t, Extra>,
     FmtRunStart,
     FmtTestIgnored<'t, 'r, Extra>,
     FmtTestStart<'t, Extra>,
