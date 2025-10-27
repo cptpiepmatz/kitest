@@ -1,15 +1,15 @@
-mod test;
 use std::io;
-
-pub use test::TestHarness;
-
-mod grouped_test;
-pub use grouped_test::GroupedTestHarness;
 
 use crate::{
     filter::DefaultFilter, formatter::pretty::PrettyFormatter, ignore::DefaultIgnore,
     panic_handler::DefaultPanicHandler, runner::DefaultRunner, test::Test,
 };
+
+mod test;
+pub use test::TestHarness;
+
+mod grouped_test;
+pub use grouped_test::GroupedTestHarness;
 
 pub fn harness<'t, Extra>(
     tests: &'t [Test<Extra>],

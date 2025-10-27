@@ -1,7 +1,5 @@
 use std::{marker::PhantomData, panic::RefUnwindSafe, sync::Arc, time::Instant};
 
-use super::{FmtErrors, named_fmt};
-
 use crate::{
     GroupedTestHarness, TestReport,
     filter::{FilteredTests, TestFilter},
@@ -13,6 +11,8 @@ use crate::{
     runner::TestRunner,
     test::Test,
 };
+
+use super::{FmtErrors, named_fmt};
 
 pub struct TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter> {
     pub(crate) tests: &'t [Test<Extra>],
