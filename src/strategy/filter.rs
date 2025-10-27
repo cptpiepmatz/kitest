@@ -8,7 +8,7 @@ where
     Extra: 't,
 {
     pub tests: I,
-    pub filtered: usize,
+    pub filtered_out: usize,
 }
 
 pub trait TestFilter<Extra> {
@@ -27,7 +27,7 @@ impl<Extra: Sync> TestFilter<Extra> for NoFilter {
     ) -> FilteredTests<'t, impl ExactSizeIterator<Item = &'t Test<Extra>>, Extra> {
         FilteredTests {
             tests: tests.iter(),
-            filtered: 0,
+            filtered_out: 0,
         }
     }
 }
@@ -72,7 +72,7 @@ impl<Extra> TestFilter<Extra> for DefaultFilter {
         if self.filter.is_empty() && self.skip.is_empty() {
             return FilteredTests {
                 tests: DefaultFilterIterator::Slice(tests.iter()),
-                filtered: 0,
+                filtered_out: 0,
             };
         }
 
@@ -97,7 +97,7 @@ impl<Extra> TestFilter<Extra> for DefaultFilter {
             }
             return FilteredTests {
                 tests: DefaultFilterIterator::Vec(remaining.into_iter()),
-                filtered,
+                filtered_out: filtered,
             };
         }
 
@@ -122,7 +122,7 @@ impl<Extra> TestFilter<Extra> for DefaultFilter {
 
         FilteredTests {
             tests: DefaultFilterIterator::Vec(remaining.into_iter()),
-            filtered,
+            filtered_out: filtered,
         }
     }
 }

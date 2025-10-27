@@ -79,7 +79,7 @@ impl<
             formatter.fmt_run_init(FmtRunInitData { tests: self.tests }.into())
         ));
 
-        let FilteredTests { tests, filtered } = self.filter.filter(self.tests);
+        let FilteredTests { tests, filtered_out: filtered } = self.filter.filter(self.tests);
         tests.for_each(|test| self.groups.add(self.grouper.group(test), test));
 
         fmt_errors.push_on_error(named_fmt!(
@@ -272,7 +272,7 @@ impl<
             formatter.fmt_init_listing(FmtInitListing { tests: self.tests }.into())
         ));
 
-        let FilteredTests { tests, filtered } = self.filter.filter(self.tests);
+        let FilteredTests { tests, filtered_out: filtered } = self.filter.filter(self.tests);
         fmt_errors.push_on_error(named_fmt!(
             formatter.fmt_begin_listing(
                 FmtBeginListing {
