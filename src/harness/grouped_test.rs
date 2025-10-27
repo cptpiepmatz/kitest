@@ -5,14 +5,13 @@ use crate::{
     filter::{FilteredTests, TestFilter},
     formatter::*,
     group::{TestGroupRunner, TestGrouper, TestGroups},
+    harness::FmtErrors,
     ignore::{IgnoreDecision, TestIgnore},
     outcome::TestStatus,
     panic_handler::TestPanicHandler,
     runner::TestRunner,
     test::Test,
 };
-
-use super::{FmtErrors, named_fmt};
 
 pub struct GroupedTestHarness<
     't,
@@ -75,9 +74,9 @@ impl<
 
         let mut formatter = self.formatter;
         let mut fmt_errors = Vec::new();
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_run_init(FmtRunInit { tests: self.tests }.into())
-        ));
+        fmt_errors.push_on_error(
+            FmtRunInit { tests: self.tests }.fmt(|data| formatter.fmt_run_init(data)),
+        );
 
         let FilteredTests {
             tests,
@@ -85,15 +84,13 @@ impl<
         } = self.filter.filter(self.tests);
         tests.for_each(|test| self.groups.add(self.grouper.group(test), test));
 
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_grouped_run_start(
-                FmtGroupedRunStart {
-                    tests: self.groups.len(),
-                    filtered
-                }
-                .into()
-            )
-        ));
+        fmt_errors.push_on_error(
+            FmtGroupedRunStart {
+                tests: self.groups.len(),
+                filtered,
+            }
+            .fmt(|data| formatter.fmt_grouped_run_start(data)),
+        );
         let (grouped_outcomes, mut formatter, mut fmt_errors) = std::thread::scope(move |scope| {
             // TODO: prefer getting only the MAX value and not the total count of tests for the worker_count estimation
             let (ftx, frx) =
@@ -101,21 +98,21 @@ impl<
             let fmt_thread = scope.spawn(move || {
                 while let Ok(fmt_data) = frx.recv() {
                     fmt_errors.push_on_error(match fmt_data {
-                        FmtGroupedTestData::Start(data) => {
-                            named_fmt!(formatter.fmt_group_start(data))
-                        }
-                        FmtGroupedTestData::Test(data) => match data {
-                            FmtTestData::Ignored(data) => {
-                                named_fmt!(formatter.fmt_test_ignored(data))
-                            }
-                            FmtTestData::Start(data) => named_fmt!(formatter.fmt_test_start(data)),
-                            FmtTestData::Outcome(data) => {
-                                named_fmt!(formatter.fmt_test_outcome(data))
-                            }
-                        },
-                        FmtGroupedTestData::Outcome(data) => {
-                            named_fmt!(formatter.fmt_group_outcomes(data))
-                        }
+                        FmtGroupedTestData::Start(data) => formatter
+                            .fmt_group_start(data)
+                            .map_err(|err| (FormatError::GroupStart, err)),
+                        FmtGroupedTestData::Test(FmtTestData::Ignored(data)) => formatter
+                            .fmt_test_ignored(data)
+                            .map_err(|err| (FormatError::TestIgnored, err)),
+                        FmtGroupedTestData::Test(FmtTestData::Start(data)) => formatter
+                            .fmt_test_start(data)
+                            .map_err(|err| (FormatError::TestStart, err)),
+                        FmtGroupedTestData::Test(FmtTestData::Outcome(data)) => formatter
+                            .fmt_test_outcome(data)
+                            .map_err(|err| (FormatError::TestOutcome, err)),
+                        FmtGroupedTestData::Outcome(data) => formatter
+                            .fmt_group_outcomes(data)
+                            .map_err(|err| (FormatError::GroupOutcomes, err)),
                     });
                 }
                 (formatter, fmt_errors)
@@ -222,15 +219,13 @@ impl<
         });
 
         let duration = now.elapsed();
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_grouped_run_outcomes(
-                FmtGroupedRunOutcomes {
-                    outcomes: &grouped_outcomes,
-                    duration
-                }
-                .into()
-            )
-        ));
+        fmt_errors.push_on_error(
+            FmtGroupedRunOutcomes {
+                outcomes: &grouped_outcomes,
+                duration,
+            }
+            .fmt(|data| formatter.fmt_grouped_run_outcomes(data)),
+        );
 
         GroupedTestReport {
             outcomes: grouped_outcomes,
@@ -269,37 +264,33 @@ impl<
         Formatter,
     >
 {
-    pub fn list(mut self) -> Vec<(&'static str, Formatter::Error)> {
+    pub fn list(mut self) -> Vec<(FormatError, Formatter::Error)> {
         let mut formatter = self.formatter;
         let mut fmt_errors = Vec::new();
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_init_listing(FmtInitListing { tests: self.tests }.into())
-        ));
+        fmt_errors.push_on_error(
+            FmtInitListing { tests: self.tests }.fmt(|data| formatter.fmt_init_listing(data)),
+        );
 
         let FilteredTests {
             tests,
             filtered_out: filtered,
         } = self.filter.filter(self.tests);
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_begin_listing(
-                FmtBeginListing {
-                    tests: tests.len(),
-                    filtered
-                }
-                .into()
-            )
-        ));
+        fmt_errors.push_on_error(
+            FmtBeginListing {
+                tests: tests.len(),
+                filtered,
+            }
+            .fmt(|data| formatter.fmt_begin_listing(data)),
+        );
 
         tests.for_each(|test| self.groups.add(self.grouper.group(test), test));
         let groups = self.groups.into_groups();
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_list_groups(
-                FmtListGroups {
-                    groups: groups.len()
-                }
-                .into()
-            )
-        ));
+        fmt_errors.push_on_error(
+            FmtListGroups {
+                groups: groups.len(),
+            }
+            .fmt(|data| formatter.fmt_list_groups(data)),
+        );
 
         let mut active_count = 0;
         let mut ignore_count = 0;
@@ -307,16 +298,14 @@ impl<
             let ctx = self.grouper.group_ctx(&key);
             let tests_len = tests.len();
 
-            fmt_errors.push_on_error(named_fmt!(
-                formatter.fmt_list_group_start(
-                    FmtListGroupStart {
-                        tests: tests_len,
-                        key: &key,
-                        ctx
-                    }
-                    .into()
-                )
-            ));
+            fmt_errors.push_on_error(
+                FmtListGroupStart {
+                    tests: tests_len,
+                    key: &key,
+                    ctx,
+                }
+                .fmt(|data| formatter.fmt_list_group_start(data)),
+            );
 
             for test in tests {
                 let ignored = self.ignore.ignore(test);
@@ -326,38 +315,32 @@ impl<
                         ignore_count += 1
                     }
                 }
-                fmt_errors.push_on_error(named_fmt!(
-                    formatter.fmt_list_test(
-                        FmtListTest {
-                            meta: test,
-                            ignored
-                        }
-                        .into()
-                    )
-                ));
+                fmt_errors.push_on_error(
+                    FmtListTest {
+                        meta: test,
+                        ignored,
+                    }
+                    .fmt(|data| formatter.fmt_list_test(data)),
+                );
             }
 
-            fmt_errors.push_on_error(named_fmt!(
-                formatter.fmt_list_group_end(
-                    FmtListGroupEnd {
-                        tests: tests_len,
-                        key: &key,
-                        ctx
-                    }
-                    .into()
-                )
-            ));
+            fmt_errors.push_on_error(
+                FmtListGroupEnd {
+                    tests: tests_len,
+                    key: &key,
+                    ctx,
+                }
+                .fmt(|data| formatter.fmt_list_group_end(data)),
+            );
         }
 
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_end_listing(
-                FmtEndListing {
-                    active: active_count,
-                    ignored: ignore_count
-                }
-                .into()
-            )
-        ));
+        fmt_errors.push_on_error(
+            FmtEndListing {
+                active: active_count,
+                ignored: ignore_count,
+            }
+            .fmt(|data| formatter.fmt_end_listing(data)),
+        );
 
         fmt_errors
     }

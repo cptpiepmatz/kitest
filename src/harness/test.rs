@@ -5,14 +5,13 @@ use crate::{
     filter::{FilteredTests, TestFilter},
     formatter::*,
     group::{SimpleGroupRunner, TestGroupHashMap, TestGrouper},
+    harness::FmtErrors,
     ignore::{IgnoreDecision, TestIgnore},
     outcome::TestStatus,
     panic_handler::TestPanicHandler,
     runner::TestRunner,
     test::Test,
 };
-
-use super::{FmtErrors, named_fmt};
 
 pub struct TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter> {
     pub(crate) tests: &'t [Test<Extra>],
@@ -38,23 +37,21 @@ impl<
 
         let mut formatter = self.formatter;
         let mut fmt_errors = Vec::new();
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_run_init(FmtRunInit { tests: self.tests }.into())
-        ));
+        fmt_errors.push_on_error(
+            FmtRunInit { tests: self.tests }.fmt(|data| formatter.fmt_run_init(data)),
+        );
 
         let FilteredTests {
             tests,
             filtered_out: filtered,
         } = self.filter.filter(self.tests);
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_run_start(
-                FmtRunStart {
-                    active: tests.len(),
-                    filtered
-                }
-                .into()
-            )
-        ));
+        fmt_errors.push_on_error(
+            FmtRunStart {
+                active: tests.len(),
+                filtered,
+            }
+            .fmt(|data| formatter.fmt_run_start(data)),
+        );
 
         let ignore = Arc::new(self.ignore);
         let panic_handler = Arc::new(self.panic_handler);
@@ -65,9 +62,15 @@ impl<
             let fmt_thread = scope.spawn(move || {
                 while let Ok(fmt_data) = frx.recv() {
                     fmt_errors.push_on_error(match fmt_data {
-                        FmtTestData::Ignored(data) => named_fmt!(formatter.fmt_test_ignored(data)),
-                        FmtTestData::Start(data) => named_fmt!(formatter.fmt_test_start(data)),
-                        FmtTestData::Outcome(data) => named_fmt!(formatter.fmt_test_outcome(data)),
+                        FmtTestData::Ignored(data) => formatter
+                            .fmt_test_ignored(data)
+                            .map_err(|err| (FormatError::TestIgnored, err)),
+                        FmtTestData::Start(data) => formatter
+                            .fmt_test_start(data)
+                            .map_err(|err| (FormatError::TestStart, err)),
+                        FmtTestData::Outcome(data) => formatter
+                            .fmt_test_outcome(data)
+                            .map_err(|err| (FormatError::TestOutcome, err)),
                     });
                 }
                 (formatter, fmt_errors)
@@ -128,16 +131,14 @@ impl<
         });
 
         let duration = now.elapsed();
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_run_outcomes(
-                FmtRunOutcomes {
-                    outcomes: &outcomes,
-                    filtered_out: filtered,
-                    duration
-                }
-                .into()
-            )
-        ));
+        fmt_errors.push_on_error(
+            FmtRunOutcomes {
+                outcomes: &outcomes,
+                filtered_out: filtered,
+                duration,
+            }
+            .fmt(|data| formatter.fmt_run_outcomes(data)),
+        );
 
         TestReport {
             outcomes,
@@ -159,32 +160,23 @@ impl<
 {
     pub fn list(
         self,
-    ) -> impl IntoIterator<IntoIter = impl ExactSizeIterator<Item = (&'static str, Formatter::Error)>>
+    ) -> impl IntoIterator<IntoIter = impl ExactSizeIterator<Item = (FormatError, Formatter::Error)>>
     {
         let mut formatter = self.formatter;
         let mut fmt_errors = Vec::new();
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_init_listing(FmtInitListing { tests: self.tests }.into())
-        ));
+        fmt_errors.push_on_error(
+            FmtInitListing { tests: self.tests }.fmt(|data| formatter.fmt_init_listing(data)),
+        );
 
         let FilteredTests {
             tests,
             filtered_out: filtered,
         } = self.filter.filter(self.tests);
-        let res = FmtBeginListing {
+        fmt_errors.push_on_error(FmtBeginListing {
             tests: tests.len(),
             filtered,
         }
-        .fmt(|data| formatter.fmt_begin_listing(data));
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_begin_listing(
-                FmtBeginListing {
-                    tests: tests.len(),
-                    filtered
-                }
-                .into()
-            )
-        ));
+        .fmt(|data| formatter.fmt_begin_listing(data)));
 
         let mut active_count = 0;
         let mut ignore_count = 0;
@@ -194,26 +186,22 @@ impl<
                 IgnoreDecision::Run => active_count += 1,
                 IgnoreDecision::Ignore | IgnoreDecision::IgnoreWithReason(_) => ignore_count += 1,
             }
-            fmt_errors.push_on_error(named_fmt!(
-                formatter.fmt_list_test(
-                    FmtListTest {
-                        meta: test,
-                        ignored
-                    }
-                    .into()
-                )
-            ));
+            fmt_errors.push_on_error(
+                FmtListTest {
+                    meta: test,
+                    ignored,
+                }
+                .fmt(|data| formatter.fmt_list_test(data)),
+            );
         }
 
-        fmt_errors.push_on_error(named_fmt!(
-            formatter.fmt_end_listing(
-                FmtEndListing {
-                    active: active_count,
-                    ignored: ignore_count
-                }
-                .into()
-            )
-        ));
+        fmt_errors.push_on_error(
+            FmtEndListing {
+                active: active_count,
+                ignored: ignore_count,
+            }
+            .fmt(|data| formatter.fmt_end_listing(data)),
+        );
 
         fmt_errors
     }

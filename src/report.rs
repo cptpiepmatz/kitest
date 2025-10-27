@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use crate::outcome::TestOutcome;
+use crate::{formatter::FormatError, outcome::TestOutcome};
 
 pub type TestOutcomes<'t> = HashMap<&'t str, TestOutcome, ahash::RandomState>;
 
@@ -8,7 +8,7 @@ pub type TestOutcomes<'t> = HashMap<&'t str, TestOutcome, ahash::RandomState>;
 pub struct TestReport<'t, FmtError: 't> {
     pub outcomes: TestOutcomes<'t>,
     pub duration: Duration,
-    pub fmt_errors: Vec<(&'static str, FmtError)>,
+    pub fmt_errors: Vec<(FormatError, FmtError)>,
 }
 
 pub type GroupedTestOutcomes<'t, GroupKey> =
@@ -18,5 +18,5 @@ pub type GroupedTestOutcomes<'t, GroupKey> =
 pub struct GroupedTestReport<'t, GroupKey, FmtError: 't> {
     pub outcomes: GroupedTestOutcomes<'t, GroupKey>,
     pub duration: Duration,
-    pub fmt_errors: Vec<(&'static str, FmtError)>,
+    pub fmt_errors: Vec<(FormatError, FmtError)>,
 }
