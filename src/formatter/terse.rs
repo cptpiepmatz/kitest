@@ -1,6 +1,6 @@
 pub use std::io;
 
-use crate::formatter::TestListFormatter;
+use crate::formatter::*;
 
 pub use super::common::{ColorSetting, TestName};
 

@@ -7,6 +7,8 @@ use std::{
 
 use crate::test::TestResult;
 
+#[derive(Debug)]
+#[non_exhaustive]
 pub struct TestOutcome {
     pub status: TestStatus,
     pub duration: Duration,
@@ -16,6 +18,7 @@ pub struct TestOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum TestStatus {
     Passed,
     TimedOut,
@@ -25,6 +28,7 @@ pub enum TestStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum TestFailure {
     Error(Box<str>),
     Panicked(Box<str>),
@@ -46,7 +50,7 @@ impl From<TestResult> for TestStatus {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct TestOutcomeAttachments(
     HashMap<TypeId, Box<dyn Any + Send + Sync + 'static>, ahash::RandomState>,
 );

@@ -10,6 +10,7 @@ use crate::{
 mod common;
 pub mod pretty;
 pub mod terse;
+pub mod no;
 
 macro_rules! discard {
     ($data:expr) => {{
@@ -18,41 +19,55 @@ macro_rules! discard {
     }};
 }
 
+#[derive(Debug)]
 pub(crate) enum FmtTestData<I, S, O> {
     Ignored(I),
     Start(S),
     Outcome(O),
 }
 
+#[derive(Debug)]
 pub(crate) enum FmtGroupedTestData<I, S, O, GS, GO> {
     Test(FmtTestData<I, S, O>),
     Start(GS),
     Outcome(GO),
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtRunInit<'t, Extra> {
     pub tests: &'t [Test<Extra>],
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtRunStart {
     pub active: usize,
     pub filtered: usize,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtTestIgnored<'t, 'r, Extra> {
     pub meta: &'t TestMeta<Extra>,
     pub reason: Option<&'r Cow<'static, str>>,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtTestStart<'t, Extra> {
     pub meta: &'t TestMeta<Extra>,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtTestOutcome<'t, 'o, Extra> {
     pub meta: &'t TestMeta<Extra>,
     pub outcome: &'o TestOutcome,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtRunOutcomes<'t, 'o> {
     pub outcomes: &'o TestOutcomes<'t>,
     pub filtered_out: usize,
@@ -93,17 +108,23 @@ pub trait TestFormatter<'t, Extra: 't>: Send {
     }
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtGroupedRunStart {
     pub tests: usize,
     pub filtered: usize,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtGroupStart<'g, GroupKey, GroupCtx = ()> {
     pub tests: usize,
     pub key: &'g GroupKey,
     pub ctx: Option<&'g GroupCtx>,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx = ()> {
     pub outcomes: &'o TestOutcomes<'t>,
     pub duration: Duration,
@@ -111,6 +132,8 @@ pub struct FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx = ()> {
     pub ctx: Option<&'g GroupCtx>,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtGroupedRunOutcomes<'t, 'o, GroupKey> {
     pub outcomes: &'o GroupedTestOutcomes<'t, GroupKey>,
     pub duration: Duration,
@@ -143,20 +166,28 @@ pub trait GroupedTestFormatter<'t, Extra: 't, GroupKey: 't, GroupCtx: 't = ()>:
     }
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtInitListing<'t, Extra> {
     pub tests: &'t [Test<Extra>],
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtBeginListing {
     pub tests: usize,
     pub filtered: usize,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtListTest<'t, Extra> {
     pub meta: &'t TestMeta<Extra>,
     pub ignored: IgnoreDecision,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtEndListing {
     pub active: usize,
     pub ignored: usize,
@@ -186,16 +217,22 @@ pub trait TestListFormatter<'t, Extra: 't> {
     }
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtListGroups {
     pub groups: usize,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtListGroupStart<'g, GroupKey, GroupCtx> {
     pub tests: usize,
     pub key: &'g GroupKey,
     pub ctx: Option<&'g GroupCtx>,
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct FmtListGroupEnd<'g, GroupKey, GroupCtx> {
     pub tests: usize,
     pub key: &'g GroupKey,
@@ -265,70 +302,4 @@ make_format_error! {
     FmtListGroups: ListGroups,
     FmtListGroupStart<'g, GroupKey, GroupCtx>: ListGroupStart,
     FmtListGroupEnd<'g, GroupKey, GroupCtx>: ListGroupEnd,
-}
-
-#[derive(Default)]
-pub struct NoFormatter;
-
-macro_rules! impl_unit_from {
-    [$($name:ident$(<$($generic:tt),*>)?),* $(,)?] => {$(
-        impl$(<$($generic),*>)? From<$name$(<$($generic),*>)?> for () {
-            fn from(_: $name$(<$($generic),*>)?) -> () {}
-        })*
-    };
-}
-
-impl_unit_from![
-    FmtRunInit<'t, Extra>,
-    FmtRunStart,
-    FmtTestIgnored<'t, 'r, Extra>,
-    FmtTestStart<'t, Extra>,
-    FmtTestOutcome<'t, 'o, Extra>,
-    FmtRunOutcomes<'t, 'o>,
-    FmtGroupedRunStart,
-    FmtGroupStart<'g, GroupKey, GroupCtx>,
-    FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx>,
-    FmtGroupedRunOutcomes<'t, 'o, GroupKey>,
-    FmtInitListing<'t, Extra>,
-    FmtBeginListing,
-    FmtListTest<'t, Extra>,
-    FmtEndListing,
-    FmtListGroups,
-    FmtListGroupStart<'g, GroupKey, GroupCtx>,
-    FmtListGroupEnd<'g, GroupKey, GroupCtx>,
-];
-
-impl<'t, Extra: 't> TestFormatter<'t, Extra> for NoFormatter {
-    type Error = ();
-    type RunInit = ();
-    type RunStart = ();
-    type TestIgnored = ();
-    type TestStart = ();
-    type TestOutcome = ();
-    type RunOutcomes = ();
-}
-
-impl<'t, Extra: 't, GroupKey: 't, GroupCtx: 't> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
-    for NoFormatter
-{
-    type GroupedRunStart = ();
-    type GroupStart = ();
-    type GroupOutcomes = ();
-    type GroupedRunOutcomes = ();
-}
-
-impl<'t, Extra: 't> TestListFormatter<'t, Extra> for NoFormatter {
-    type Error = ();
-    type InitListing = ();
-    type BeginListing = ();
-    type ListTest = ();
-    type EndListing = ();
-}
-
-impl<'t, Extra: 't, GroupKey: 't, GroupCtx: 't>
-    GroupedTestListFormatter<'t, Extra, GroupKey, GroupCtx> for NoFormatter
-{
-    type ListGroups = ();
-    type ListGroupStart = ();
-    type ListGroupEnd = ();
 }

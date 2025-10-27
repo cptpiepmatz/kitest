@@ -1,6 +1,6 @@
 use crate::formatter::FmtListTest;
 
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub enum ColorSetting {
     #[default]
     Automatic,
@@ -8,6 +8,7 @@ pub enum ColorSetting {
     Never,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TestName<'t>(pub &'t str);
 
 impl<'t, Extra> From<FmtListTest<'t, Extra>> for TestName<'t> {

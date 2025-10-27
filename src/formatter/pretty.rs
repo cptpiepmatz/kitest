@@ -1,10 +1,7 @@
 use std::{io, time::Duration};
 
 use crate::{
-    formatter::{
-        FmtEndListing, FmtRunOutcomes, FmtRunStart, FmtTestOutcome, TestFormatter,
-        TestListFormatter,
-    },
+    formatter::*,
     outcome::TestStatus,
 };
 

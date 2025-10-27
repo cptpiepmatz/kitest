@@ -1,5 +1,7 @@
 use std::{borrow::Cow, fmt::Debug, ops::Deref, panic::RefUnwindSafe};
 
+#[derive(Debug)]
+#[non_exhaustive]
 pub struct Test<Extra = ()> {
     function: TestFnHandle,
     pub meta: TestMeta<Extra>,
@@ -23,6 +25,7 @@ impl<Extra> Deref for Test<Extra> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TestMeta<Extra = ()> {
     pub name: Cow<'static, str>,
     pub ignore: (bool, Option<Cow<'static, str>>),
@@ -30,10 +33,21 @@ pub struct TestMeta<Extra = ()> {
     pub extra: Extra,
 }
 
+#[non_exhaustive]
 pub enum TestFnHandle {
     Ptr(fn() -> TestResult),
     Owned(Box<dyn TestFn + Send + Sync + RefUnwindSafe>),
     Static(&'static (dyn TestFn + Send + Sync + RefUnwindSafe)),
+}
+
+impl Debug for TestFnHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ptr(ptr) => f.debug_tuple("Ptr").field(ptr).finish(),
+            Self::Owned(_) => write!(f, "Owned(...)"),
+            Self::Static(_) => write!(f, "Static(...)"),
+        }
+    }
 }
 
 impl TestFnHandle {
@@ -76,6 +90,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct TestResult(pub Result<(), Box<str>>);
 
 impl From<()> for TestResult {

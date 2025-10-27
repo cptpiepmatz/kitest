@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use crate::test::TestMeta;
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum IgnoreDecision {
     Run,
     Ignore,
