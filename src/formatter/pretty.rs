@@ -1,12 +1,10 @@
 use std::{io, time::Duration};
 
-use crate::{
-    formatter::*,
-    outcome::TestStatus,
-};
+use crate::{formatter::*, outcome::TestStatus};
 
 pub use super::common::{ColorSetting, TestName};
 
+#[derive(Debug)]
 pub struct PrettyFormatter<W: io::Write + io::IsTerminal> {
     pub target: W,
     pub color_settings: ColorSetting,
@@ -31,6 +29,7 @@ impl<W: io::Write + io::IsTerminal> PrettyFormatter<W> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PrettyTestCount(usize);
 
 impl From<FmtRunStart> for PrettyTestCount {
@@ -45,6 +44,7 @@ impl From<FmtEndListing> for PrettyTestCount {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrettyTestOutcome<'t> {
     pub name: &'t str,
     pub status: TestStatus,
@@ -59,6 +59,7 @@ impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for PrettyTestOutcome<'t
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PrettyRunOutcomes {
     pub passed: usize,
     pub failed: usize,

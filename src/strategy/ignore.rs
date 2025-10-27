@@ -13,6 +13,7 @@ pub trait TestIgnore<Extra> {
     fn ignore(&self, meta: &TestMeta<Extra>) -> IgnoreDecision;
 }
 
+#[derive(Debug, Default)]
 pub struct NoIgnore;
 
 impl<Extra> TestIgnore<Extra> for NoIgnore {
@@ -21,7 +22,7 @@ impl<Extra> TestIgnore<Extra> for NoIgnore {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub enum DefaultIgnore {
     IncludeIgnored,
     IgnoredOnly,

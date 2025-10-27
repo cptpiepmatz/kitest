@@ -4,6 +4,7 @@ use crate::formatter::*;
 
 pub use super::common::{ColorSetting, TestName};
 
+#[derive(Debug)]
 pub struct TerseFormatter<W: io::Write> {
     pub target: W,
     pub color_setting: ColorSetting,

@@ -93,7 +93,7 @@ pub trait TestGroupRunner<Extra, GroupKey, GroupCtx> {
         F: FnOnce() -> T;
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct SimpleGroupRunner;
 
 impl<Extra, GroupKey, GroupCtx> TestGroupRunner<Extra, GroupKey, GroupCtx> for SimpleGroupRunner {

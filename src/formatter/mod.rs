@@ -8,9 +8,9 @@ use crate::{
 };
 
 mod common;
+pub mod no;
 pub mod pretty;
 pub mod terse;
-pub mod no;
 
 macro_rules! discard {
     ($data:expr) => {{

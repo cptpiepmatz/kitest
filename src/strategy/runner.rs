@@ -24,7 +24,7 @@ pub trait TestRunner<Extra> {
     fn worker_count(&self, tests_count: usize) -> NonZeroUsize;
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct SimpleRunner;
 
 impl<Extra> TestRunner<Extra> for SimpleRunner {
@@ -60,6 +60,7 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
     }
 }
 
+#[derive(Debug)]
 pub struct DefaultRunner {
     threads: NonZeroUsize,
 }
@@ -185,10 +186,21 @@ impl<Extra: Sync> TestRunner<Extra> for DefaultRunner {
     }
 }
 
+#[derive(Debug)]
 pub struct SmartRunner {
     threshold: usize,
     simple: SimpleRunner,
     default: DefaultRunner,
+}
+
+impl Default for SmartRunner {
+    fn default() -> Self {
+        Self {
+            threshold: 4,
+            simple: SimpleRunner,
+            default: DefaultRunner::default(),
+        }
+    }
 }
 
 impl SmartRunner {
@@ -203,16 +215,6 @@ impl SmartRunner {
     pub fn with_threads(mut self, threads: NonZeroUsize) -> Self {
         self.default.threads = threads;
         self
-    }
-}
-
-impl Default for SmartRunner {
-    fn default() -> Self {
-        Self {
-            threshold: 4,
-            simple: SimpleRunner,
-            default: DefaultRunner::default(),
-        }
     }
 }
 

@@ -2,6 +2,7 @@ use std::{slice, vec};
 
 use crate::test::Test;
 
+#[derive(Debug)]
 pub struct FilteredTests<'t, I, Extra>
 where
     I: ExactSizeIterator<Item = &'t Test<Extra>>,
@@ -18,6 +19,7 @@ pub trait TestFilter<Extra> {
     ) -> FilteredTests<'t, impl ExactSizeIterator<Item = &'t Test<Extra>>, Extra>;
 }
 
+#[derive(Debug, Default)]
 pub struct NoFilter;
 
 impl<Extra: Sync> TestFilter<Extra> for NoFilter {
@@ -32,13 +34,14 @@ impl<Extra: Sync> TestFilter<Extra> for NoFilter {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct DefaultFilter {
     exact: bool,
     filter: Vec<String>,
     skip: Vec<String>,
 }
 
+#[derive(Debug)]
 enum DefaultFilterIterator<'t, Extra> {
     Slice(slice::Iter<'t, Test<Extra>>),
     Vec(vec::IntoIter<&'t Test<Extra>>),

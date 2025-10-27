@@ -8,7 +8,7 @@ pub enum ColorSetting {
     Never,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TestName<'t>(pub &'t str);
 
 impl<'t, Extra> From<FmtListTest<'t, Extra>> for TestName<'t> {

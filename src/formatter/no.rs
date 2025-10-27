@@ -1,6 +1,6 @@
 use crate::formatter::*;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct NoFormatter;
 
 macro_rules! impl_unit_from {

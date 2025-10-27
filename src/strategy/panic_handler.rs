@@ -16,6 +16,7 @@ pub trait TestPanicHandler<Extra> {
     ) -> TestStatus;
 }
 
+#[derive(Debug, Default)]
 pub struct NoPanicHandler;
 
 impl<Extra> TestPanicHandler<Extra> for NoPanicHandler {
@@ -24,7 +25,7 @@ impl<Extra> TestPanicHandler<Extra> for NoPanicHandler {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct DefaultPanicHandler;
 
 impl DefaultPanicHandler {

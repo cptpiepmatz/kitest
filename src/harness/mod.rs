@@ -43,11 +43,3 @@ impl<E> FmtErrors<E> for Vec<E> {
         }
     }
 }
-
-// macro_rules! named_fmt {
-//     ($fmt:ident.$method:ident($expr:expr)) => {
-//         (stringify!($method), $fmt.$method($expr))
-//     };
-// }
-
-// pub(self) use named_fmt;

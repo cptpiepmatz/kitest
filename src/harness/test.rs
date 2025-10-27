@@ -13,6 +13,7 @@ use crate::{
     test::Test,
 };
 
+#[derive(Debug)]
 pub struct TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter> {
     pub(crate) tests: &'t [Test<Extra>],
     pub(crate) filter: Filter,
@@ -172,11 +173,13 @@ impl<
             tests,
             filtered_out: filtered,
         } = self.filter.filter(self.tests);
-        fmt_errors.push_on_error(FmtBeginListing {
-            tests: tests.len(),
-            filtered,
-        }
-        .fmt(|data| formatter.fmt_begin_listing(data)));
+        fmt_errors.push_on_error(
+            FmtBeginListing {
+                tests: tests.len(),
+                filtered,
+            }
+            .fmt(|data| formatter.fmt_begin_listing(data)),
+        );
 
         let mut active_count = 0;
         let mut ignore_count = 0;

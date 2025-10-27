@@ -13,6 +13,7 @@ use crate::{
     test::Test,
 };
 
+#[derive(Debug)]
 pub struct GroupedTestHarness<
     't,
     Extra,
