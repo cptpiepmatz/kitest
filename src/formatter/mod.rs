@@ -2,6 +2,7 @@ use std::{borrow::Cow, time::Duration};
 
 use crate::{
     GroupedTestOutcomes, TestOutcomes,
+    ignore::IgnoreDecision,
     outcome::TestOutcome,
     test::{Test, TestMeta},
 };
@@ -153,7 +154,7 @@ pub struct FmtBeginListing {
 
 pub struct FmtListTest<'t, Extra> {
     pub meta: &'t TestMeta<Extra>,
-    pub ignored: (bool, Option<Cow<'static, str>>),
+    pub ignored: IgnoreDecision,
 }
 
 pub struct FmtEndListing {

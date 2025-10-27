@@ -2,15 +2,21 @@ use std::borrow::Cow;
 
 use crate::test::TestMeta;
 
+pub enum IgnoreDecision {
+    Run,
+    Ignore,
+    IgnoreWithReason(Cow<'static, str>),
+}
+
 pub trait TestIgnore<Extra> {
-    fn ignore(&self, meta: &TestMeta<Extra>) -> (bool, Option<Cow<'static, str>>);
+    fn ignore(&self, meta: &TestMeta<Extra>) -> IgnoreDecision;
 }
 
 pub struct NoIgnore;
 
 impl<Extra> TestIgnore<Extra> for NoIgnore {
-    fn ignore(&self, _: &TestMeta<Extra>) -> (bool, Option<Cow<'static, str>>) {
-        (false, None)
+    fn ignore(&self, _: &TestMeta<Extra>) -> IgnoreDecision {
+        IgnoreDecision::Run
     }
 }
 
@@ -23,20 +29,23 @@ pub enum DefaultIgnore {
 }
 
 impl<Extra> TestIgnore<Extra> for DefaultIgnore {
-    fn ignore(&self, meta: &TestMeta<Extra>) -> (bool, Option<Cow<'static, str>>) {
+    fn ignore(&self, meta: &TestMeta<Extra>) -> IgnoreDecision {
         match (self, meta.ignore.0) {
-            (Self::IncludeIgnored, _) => (false, None),
-            (Self::IgnoredOnly, true) | (Self::Default, false) => (false, None),
-            (Self::IgnoredOnly, false) | (Self::Default, true) => (true, meta.ignore.1.clone()),
+            (Self::IncludeIgnored, _) => IgnoreDecision::Run,
+            (Self::IgnoredOnly, true) | (Self::Default, false) => IgnoreDecision::Run,
+            (Self::IgnoredOnly, false) | (Self::Default, true) => match meta.ignore.1.clone() {
+                Some(reason) => IgnoreDecision::IgnoreWithReason(reason),
+                None => IgnoreDecision::Ignore,
+            },
         }
     }
 }
 
 impl<Extra, F> TestIgnore<Extra> for F
 where
-    F: Fn(&TestMeta<Extra>) -> (bool, Option<Cow<'static, str>>),
+    F: Fn(&TestMeta<Extra>) -> IgnoreDecision,
 {
-    fn ignore(&self, meta: &TestMeta<Extra>) -> (bool, Option<Cow<'static, str>>) {
+    fn ignore(&self, meta: &TestMeta<Extra>) -> IgnoreDecision {
         self(meta)
     }
 }

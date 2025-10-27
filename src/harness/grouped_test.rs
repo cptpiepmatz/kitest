@@ -5,7 +5,7 @@ use crate::{
     filter::{FilteredTests, TestFilter},
     formatter::*,
     group::{TestGroupRunner, TestGrouper, TestGroups},
-    ignore::TestIgnore,
+    ignore::{IgnoreDecision, TestIgnore},
     outcome::TestStatus,
     panic_handler::TestPanicHandler,
     runner::TestRunner,
@@ -79,7 +79,10 @@ impl<
             formatter.fmt_run_init(FmtRunInitData { tests: self.tests }.into())
         ));
 
-        let FilteredTests { tests, filtered_out: filtered } = self.filter.filter(self.tests);
+        let FilteredTests {
+            tests,
+            filtered_out: filtered,
+        } = self.filter.filter(self.tests);
         tests.for_each(|test| self.groups.add(self.grouper.group(test), test));
 
         fmt_errors.push_on_error(named_fmt!(
@@ -150,24 +153,25 @@ impl<
 
                             (
                                 move || {
-                                    let (ignored, reason) = ignore.ignore(meta);
-                                    if ignored {
-                                        let _ = ftx.send(FmtGroupedTestData::Test(
-                                            FmtTestData::Ignored(
-                                                FmtTestIgnored {
-                                                    meta,
-                                                    reason: reason.as_ref(),
-                                                }
-                                                .into(),
-                                            ),
-                                        ));
-                                        return TestStatus::Ignored { reason };
+                                    let reason = match ignore.ignore(meta) {
+                                        IgnoreDecision::Run => {
+                                            let _ = ftx.send(FmtGroupedTestData::Test(
+                                                FmtTestData::Start(FmtTestStart { meta }.into()),
+                                            ));
+                                            return panic_handler.handle(|| test.call(), meta);
+                                        }
+                                        IgnoreDecision::Ignore => None,
+                                        IgnoreDecision::IgnoreWithReason(reason) => Some(reason),
                                     };
-
-                                    let _ = ftx.send(FmtGroupedTestData::Test(FmtTestData::Start(
-                                        FmtTestStart { meta }.into(),
-                                    )));
-                                    panic_handler.handle(|| test.call(), meta)
+                                    let _ =
+                                        ftx.send(FmtGroupedTestData::Test(FmtTestData::Ignored(
+                                            FmtTestIgnored {
+                                                meta,
+                                                reason: reason.as_ref(),
+                                            }
+                                            .into(),
+                                        )));
+                                    TestStatus::Ignored { reason }
                                 },
                                 meta,
                             )
@@ -272,7 +276,10 @@ impl<
             formatter.fmt_init_listing(FmtInitListing { tests: self.tests }.into())
         ));
 
-        let FilteredTests { tests, filtered_out: filtered } = self.filter.filter(self.tests);
+        let FilteredTests {
+            tests,
+            filtered_out: filtered,
+        } = self.filter.filter(self.tests);
         fmt_errors.push_on_error(named_fmt!(
             formatter.fmt_begin_listing(
                 FmtBeginListing {
@@ -313,9 +320,11 @@ impl<
 
             for test in tests {
                 let ignored = self.ignore.ignore(test);
-                match ignored.0 {
-                    true => ignore_count += 1,
-                    false => active_count += 1,
+                match &ignored {
+                    IgnoreDecision::Run => active_count += 1,
+                    IgnoreDecision::Ignore | IgnoreDecision::IgnoreWithReason(_) => {
+                        ignore_count += 1
+                    }
                 }
                 fmt_errors.push_on_error(named_fmt!(
                     formatter.fmt_list_test(

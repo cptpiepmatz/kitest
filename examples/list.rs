@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use kitest::{
     filter::NoFilter,
-    ignore::TestIgnore,
+    ignore::{IgnoreDecision, TestIgnore},
     test::{Test, TestFnHandle, TestMeta},
 };
 
@@ -55,10 +55,10 @@ fn main() {
 struct IgnoreSlow;
 
 impl TestIgnore<Speed> for IgnoreSlow {
-    fn ignore(&self, meta: &TestMeta<Speed>) -> (bool, Option<Cow<'static, str>>) {
+    fn ignore(&self, meta: &TestMeta<Speed>) -> IgnoreDecision {
         match meta.extra {
-            Speed::Fast => (false, None),
-            Speed::Slow => (true, Some("too slow".into())),
+            Speed::Fast => IgnoreDecision::Run,
+            Speed::Slow => IgnoreDecision::IgnoreWithReason("too slow".into()),
         }
     }
 }
