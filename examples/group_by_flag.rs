@@ -5,13 +5,9 @@ use std::{
 };
 
 use kitest::{
-    filter::DefaultFilter,
     formatter::{
         FmtGroupOutcomes, FmtGroupStart, FmtTestStart, GroupedTestFormatter, TestFormatter,
     },
-    group::{SimpleGroupRunner, TestGroupHashMap},
-    ignore::DefaultIgnore,
-    panic_handler::DefaultPanicHandler,
     runner::SimpleRunner,
     test::{Test, TestFnHandle, TestMeta},
 };
@@ -139,16 +135,4 @@ fn main() {
         .with_runner(SimpleRunner::default())
         .with_formatter(FlagFormatter(io::stdout()))
         .run();
-
-    kitest::run_grouped_tests(
-        TESTS,
-        DefaultFilter::default(),
-        |meta: &TestMeta<Flag>| meta.extra,
-        TestGroupHashMap::<'_, _, _>::default(),
-        SimpleGroupRunner::default(),
-        SimpleRunner::default(),
-        DefaultIgnore::default(),
-        DefaultPanicHandler::default(),
-        FlagFormatter(io::stdout()),
-    );
 }
