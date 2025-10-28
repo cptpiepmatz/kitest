@@ -1,4 +1,4 @@
-use std::{borrow::Cow, time::Duration};
+use std::{borrow::Cow, num::NonZeroUsize, time::Duration};
 
 use crate::{
     GroupedTestOutcomes, TestOutcomes,
@@ -119,6 +119,7 @@ pub struct FmtGroupedRunStart {
 #[non_exhaustive]
 pub struct FmtGroupStart<'g, GroupKey, GroupCtx = ()> {
     pub tests: usize,
+    pub worker_count: NonZeroUsize,
     pub key: &'g GroupKey,
     pub ctx: Option<&'g GroupCtx>,
 }

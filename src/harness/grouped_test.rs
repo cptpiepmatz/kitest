@@ -135,6 +135,7 @@ impl<
                 let _ = ftx.send(FmtGroupedTestData::Start(
                     FmtGroupStart {
                         tests: tests.len(),
+                        worker_count: runner.worker_count(tests.len()),
                         key: &key,
                         ctx,
                     }
