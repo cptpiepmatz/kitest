@@ -11,6 +11,9 @@ pub use harness::*;
 mod report;
 pub use report::*;
 
+mod whatever;
+pub use whatever::*;
+
 #[test]
 fn foo() {}
 

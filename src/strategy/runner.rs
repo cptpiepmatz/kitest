@@ -18,7 +18,7 @@ pub trait TestRunner<Extra> {
     ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)>,
-        F: (FnOnce() -> TestStatus) + Send + 's,
+        F: (Fn() -> TestStatus) + Send + 's,
         Extra: 't;
 
     fn worker_count(&self, tests_count: usize) -> NonZeroUsize;
@@ -35,7 +35,7 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
     ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)>,
-        F: (FnOnce() -> TestStatus) + Send + 's,
+        F: (Fn() -> TestStatus) + Send + 's,
         Extra: 't,
     {
         tests.map(|(test, meta)| {
@@ -86,7 +86,7 @@ impl DefaultRunner {
 struct DefaultRunnerIterator<'t, 's, I, F, Extra>
 where
     I: Iterator<Item = (F, &'t TestMeta<Extra>)>,
-    F: (FnOnce() -> TestStatus) + Send,
+    F: (Fn() -> TestStatus) + Send,
     Extra: 't,
 {
     source: I,
@@ -99,7 +99,7 @@ where
 impl<'t, 's, I, F, Extra: Sync> DefaultRunnerIterator<'t, 's, I, F, Extra>
 where
     I: Iterator<Item = (F, &'t TestMeta<Extra>)>,
-    F: (FnOnce() -> TestStatus) + Send + 's,
+    F: (Fn() -> TestStatus) + Send + 's,
     Extra: 't,
 {
     fn new(worker_count: NonZeroUsize, mut iter: I, scope: &'s Scope<'s, 't>) -> Self {
@@ -147,7 +147,7 @@ where
 impl<'t, 's, I, F, Extra> Iterator for DefaultRunnerIterator<'t, 's, I, F, Extra>
 where
     I: Iterator<Item = (F, &'t TestMeta<Extra>)>,
-    F: (FnOnce() -> TestStatus) + Send + 's,
+    F: (Fn() -> TestStatus) + Send + 's,
     Extra: 't,
 {
     type Item = (&'t TestMeta<Extra>, TestOutcome);
@@ -174,7 +174,7 @@ impl<Extra: Sync> TestRunner<Extra> for DefaultRunner {
     ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)>,
-        F: (FnOnce() -> TestStatus) + Send + 's,
+        F: (Fn() -> TestStatus) + Send + 's,
         Extra: 't,
     {
         let worker_count = <DefaultRunner as TestRunner<Extra>>::worker_count(self, tests.len());
@@ -247,7 +247,7 @@ impl<Extra: Sync> TestRunner<Extra> for SmartRunner {
     ) -> impl Iterator<Item = (&'t TestMeta<Extra>, TestOutcome)>
     where
         I: ExactSizeIterator<Item = (F, &'t TestMeta<Extra>)>,
-        F: (FnOnce() -> TestStatus) + Send + 's,
+        F: (Fn() -> TestStatus) + Send + 's,
         Extra: 't,
     {
         match tests.len() <= self.threshold {
