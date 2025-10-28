@@ -1,0 +1,13 @@
+[package]
+name = "macros-support"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "./macros.rs"
+proc-macro = true
+
+[dependencies]
+quote = "1"
+syn = { version = "2", features = ["full"] }

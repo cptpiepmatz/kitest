@@ -7,3 +7,11 @@ publish = false
 [dependencies]
 ahash = "0.8.12"
 crossbeam-channel = "0.5.15"
+
+[workspace]
+resolver = "3"
+members = ["examples/macros/support"]
+
+[dev-dependencies]
+linkme = "0.3.35"
+macros-support = { path = "./examples/macros/support" }
