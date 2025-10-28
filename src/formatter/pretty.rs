@@ -113,7 +113,7 @@ impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send> TestFormatter<'t, Extr
             TestStatus::Ignored { reason: None } => write!(self.target, "ignored")?,
             TestStatus::TimedOut => todo!(),
             TestStatus::Failed(_test_failure) => todo!(),
-            TestStatus::Other => todo!(),
+            TestStatus::Other(_) => todo!(),
         };
         writeln!(self.target)
     }

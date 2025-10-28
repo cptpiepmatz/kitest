@@ -91,7 +91,7 @@ where
 }
 
 #[derive(Debug)]
-pub struct TestResult(pub Result<(), Box<str>>);
+pub struct TestResult(pub Result<(), String>);
 
 impl From<()> for TestResult {
     fn from(_: ()) -> Self {
@@ -101,6 +101,6 @@ impl From<()> for TestResult {
 
 impl<E: Debug> From<Result<(), E>> for TestResult {
     fn from(v: Result<(), E>) -> Self {
-        TestResult(v.map_err(|e| format!("{e:#?}").into_boxed_str()))
+        TestResult(v.map_err(|e| format!("{e:#?}")))
     }
 }

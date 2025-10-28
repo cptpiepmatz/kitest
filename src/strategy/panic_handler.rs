@@ -29,11 +29,11 @@ impl<Extra> TestPanicHandler<Extra> for NoPanicHandler {
 pub struct DefaultPanicHandler;
 
 impl DefaultPanicHandler {
-    pub fn downcast_panic_err(err: Box<dyn Any + Send + 'static>) -> Box<str> {
+    pub fn downcast_panic_err(err: Box<dyn Any + Send + 'static>) -> String {
         err.downcast::<&'static str>()
-            .map(|s| s.to_string().into_boxed_str())
-            .or_else(|err| err.downcast::<String>().map(|s| s.into_boxed_str()))
-            .unwrap_or_else(|_| String::from("non-string panic payload").into_boxed_str())
+            .map(|s| s.to_string())
+            .or_else(|err| err.downcast::<String>().map(|s| *s))
+            .unwrap_or_else(|_| String::from("non-string panic payload"))
     }
 }
 
@@ -47,11 +47,7 @@ impl<Extra> TestPanicHandler<Extra> for DefaultPanicHandler {
         TestStatus::Failed(match (result, meta.should_panic.0) {
             (Ok(test_result), false) => return test_result.into(),
             (Ok(_), true) => TestFailure::DidNotPanic {
-                expected: meta
-                    .should_panic
-                    .1
-                    .as_ref()
-                    .map(|s| s.to_string().into_boxed_str()),
+                expected: meta.should_panic.1.as_ref().map(|s| s.to_string()),
             },
             (Err(err), false) => TestFailure::Panicked(Self::downcast_panic_err(err)),
             (Err(err), true) => match &meta.should_panic.1 {
@@ -62,7 +58,7 @@ impl<Extra> TestPanicHandler<Extra> for DefaultPanicHandler {
                         true => return TestStatus::Passed,
                         false => TestFailure::PanicMismatch {
                             got: msg,
-                            expected: Some(expected.to_string().into_boxed_str()),
+                            expected: Some(expected.to_string()),
                         },
                     }
                 }

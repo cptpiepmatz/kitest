@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use crate::test::TestResult;
+use crate::{BoxedWhatever, test::TestResult};
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -24,20 +24,20 @@ pub enum TestStatus {
     TimedOut,
     Ignored { reason: Option<Cow<'static, str>> },
     Failed(TestFailure),
-    Other,
+    Other(BoxedWhatever),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TestFailure {
-    Error(Box<str>),
-    Panicked(Box<str>),
+    Error(BoxedWhatever),
+    Panicked(String),
     DidNotPanic {
-        expected: Option<Box<str>>,
+        expected: Option<String>,
     },
     PanicMismatch {
-        got: Box<str>,
-        expected: Option<Box<str>>,
+        got: String,
+        expected: Option<String>,
     },
 }
 
@@ -45,7 +45,7 @@ impl From<TestResult> for TestStatus {
     fn from(value: TestResult) -> Self {
         match value.0 {
             Ok(_) => TestStatus::Passed,
-            Err(err) => TestStatus::Failed(TestFailure::Error(err)),
+            Err(err) => TestStatus::Failed(TestFailure::Error(Box::new(err))),
         }
     }
 }
