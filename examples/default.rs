@@ -1,6 +1,10 @@
 use std::borrow::Cow;
 
-use kitest::test::{Test, TestFnHandle, TestMeta};
+use kitest::{
+    ignore::IgnoreStatus,
+    panic_handler::PanicExpectation,
+    test::{Test, TestFnHandle, TestMeta},
+};
 
 fn test_a() {
     std::thread::sleep(std::time::Duration::from_millis(300));
@@ -19,8 +23,8 @@ const TESTS: &[Test] = &[
         TestFnHandle::from_static_obj(&|| test_a()),
         TestMeta {
             name: Cow::Borrowed("test_a"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: (),
         },
     ),
@@ -28,8 +32,8 @@ const TESTS: &[Test] = &[
         TestFnHandle::from_static_obj(&|| test_b()),
         TestMeta {
             name: Cow::Borrowed("test_b"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: (),
         },
     ),
@@ -37,8 +41,8 @@ const TESTS: &[Test] = &[
         TestFnHandle::from_static_obj(&|| test_c()),
         TestMeta {
             name: Cow::Borrowed("test_c"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: (),
         },
     ),

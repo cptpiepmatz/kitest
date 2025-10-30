@@ -2,7 +2,7 @@ use std::mem;
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, ItemFn};
+use syn::{ItemFn, parse_macro_input};
 
 #[proc_macro_attribute]
 pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -29,8 +29,8 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 kitest::test::TestFnHandle::Ptr(#name),
                 kitest::test::TestMeta {
                     name: std::borrow::Cow::Borrowed(#func_name_str),
-                    ignore: (false, None),
-                    should_panic: (false, None),
+                    ignore: kitest::ignore::IgnoreStatus::Run,
+                    should_panic: kitest::panic_handler::PanicExpectation::ShouldNotPanic,
                     extra: crate::Extra {
                         experimental: #experimental,
                         flaky: #flaky,

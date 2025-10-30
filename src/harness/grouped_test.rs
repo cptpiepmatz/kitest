@@ -6,7 +6,7 @@ use crate::{
     formatter::*,
     group::{TestGroupRunner, TestGrouper, TestGroups},
     harness::FmtErrors,
-    ignore::{IgnoreDecision, TestIgnore},
+    ignore::{IgnoreStatus, TestIgnore},
     outcome::TestStatus,
     panic_handler::TestPanicHandler,
     runner::TestRunner,
@@ -153,14 +153,14 @@ impl<
                             (
                                 move || {
                                     let reason = match ignore.ignore(meta) {
-                                        IgnoreDecision::Run => {
+                                        IgnoreStatus::Run => {
                                             let _ = ftx.send(FmtGroupedTestData::Test(
                                                 FmtTestData::Start(FmtTestStart { meta }.into()),
                                             ));
                                             return panic_handler.handle(|| test.call(), meta);
                                         }
-                                        IgnoreDecision::Ignore => None,
-                                        IgnoreDecision::IgnoreWithReason(reason) => Some(reason),
+                                        IgnoreStatus::Ignore => None,
+                                        IgnoreStatus::IgnoreWithReason(reason) => Some(reason),
                                     };
                                     let _ =
                                         ftx.send(FmtGroupedTestData::Test(FmtTestData::Ignored(
@@ -312,10 +312,8 @@ impl<
             for test in tests {
                 let ignored = self.ignore.ignore(test);
                 match &ignored {
-                    IgnoreDecision::Run => active_count += 1,
-                    IgnoreDecision::Ignore | IgnoreDecision::IgnoreWithReason(_) => {
-                        ignore_count += 1
-                    }
+                    IgnoreStatus::Run => active_count += 1,
+                    IgnoreStatus::Ignore | IgnoreStatus::IgnoreWithReason(_) => ignore_count += 1,
                 }
                 fmt_errors.push_on_error(
                     FmtListTest {

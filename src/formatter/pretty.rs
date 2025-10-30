@@ -141,12 +141,14 @@ impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send> TestFormatter<'t, Extr
     type TestStart = ();
 }
 
-impl<'t, Extra: 't, GroupKey: 't, GroupCtx: 't, W: io::Write + io::IsTerminal + Send> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx> for PrettyFormatter<W> {
+impl<'t, Extra: 't, GroupKey: 't, GroupCtx: 't, W: io::Write + io::IsTerminal + Send>
+    GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx> for PrettyFormatter<W>
+{
     type GroupedRunStart = ();
     type GroupStart = ();
     type GroupOutcomes = ();
     type GroupedRunOutcomes = ();
-} 
+}
 
 impl<'t, Extra: 't, W: io::Write + io::IsTerminal> TestListFormatter<'t, Extra>
     for PrettyFormatter<W>

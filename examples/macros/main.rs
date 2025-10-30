@@ -1,7 +1,9 @@
 use std::{thread, time::Duration};
 
 use kitest::{
-    group::TestGroupBTreeMap, ignore::IgnoreDecision, test::{Test, TestMeta}
+    group::TestGroupBTreeMap,
+    ignore::IgnoreStatus,
+    test::{Test, TestMeta},
 };
 
 #[macro_use]
@@ -51,7 +53,7 @@ fn flaky_test() {
 
     // another absurd truth:
     // any string always starts with "" (empty prefix)
-    assert!( "kitest".starts_with(""), "empty prefix should match" );
+    assert!("kitest".starts_with(""), "empty prefix should match");
 }
 
 /// Marked experimental. We'll group these later.
@@ -93,7 +95,11 @@ fn ordering_flaky_test() {
     // The default sort of these numbers must be ascending
     let mut nums = vec![3, 1, 2, 1];
     nums.sort();
-    assert_eq!(nums, vec![1, 1, 2, 3], "sort() should be stable-ish ascending");
+    assert_eq!(
+        nums,
+        vec![1, 1, 2, 3],
+        "sort() should be stable-ish ascending"
+    );
 
     // sleep to mimic race windows
     thread::sleep(Duration::from_millis(9));
@@ -166,10 +172,7 @@ fn time_moves_forward_test() {
     let before = std::time::Instant::now();
     thread::sleep(Duration::from_millis(2));
     let after = std::time::Instant::now();
-    assert!(
-        after >= before,
-        "time should move forward, not backwards"
-    );
+    assert!(after >= before, "time should move forward, not backwards");
 }
 
 /// If this fails, Rust forgot how references work.
@@ -188,8 +191,16 @@ fn ref_identity_test() {
 /// Make sure bool::then_some works like we think.
 #[test]
 fn then_some_test() {
-    assert_eq!(true.then_some(10), Some(10), "true.then_some should give Some");
-    assert_eq!(false.then_some(10), None, "false.then_some should give None");
+    assert_eq!(
+        true.then_some(10),
+        Some(10),
+        "true.then_some should give Some"
+    );
+    assert_eq!(
+        false.then_some(10),
+        None,
+        "false.then_some should give None"
+    );
 }
 
 /// If your macro system stores these tests in TESTS with metadata `Extra`,
@@ -202,8 +213,8 @@ fn main() {
 
     kitest::harness(&TESTS)
         .with_ignore(|meta: &TestMeta<Extra>| match (meta.extra.flaky, in_ci) {
-            (true, true) => IgnoreDecision::IgnoreWithReason("flaky in CI".into()),
-            _ => IgnoreDecision::Run,
+            (true, true) => IgnoreStatus::IgnoreWithReason("flaky in CI".into()),
+            _ => IgnoreStatus::Run,
         })
         // group tests by the experimental flag so we can e.g. run them last
         .with_grouper(|meta: &TestMeta<Extra>| meta.extra.experimental)

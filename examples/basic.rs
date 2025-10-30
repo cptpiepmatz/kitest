@@ -6,8 +6,8 @@ use std::{
 use kitest::{
     filter::NoFilter,
     formatter::{FmtTestOutcome, TestFormatter},
-    ignore::NoIgnore,
-    panic_handler::NoPanicHandler,
+    ignore::{IgnoreStatus, NoIgnore},
+    panic_handler::{NoPanicHandler, PanicExpectation},
     runner::SimpleRunner,
     test::{Test, TestFnHandle, TestMeta},
 };
@@ -21,8 +21,8 @@ const TESTS: &[Test] = &[
         TestFnHandle::from_static_obj(&|| test_a()),
         TestMeta {
             name: Cow::Borrowed("test_a"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: (),
         },
     ),
@@ -30,8 +30,8 @@ const TESTS: &[Test] = &[
         TestFnHandle::from_static_obj(&|| test_b()),
         TestMeta {
             name: Cow::Borrowed("test_b"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: (),
         },
     ),

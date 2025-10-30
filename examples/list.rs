@@ -2,7 +2,8 @@ use std::borrow::Cow;
 
 use kitest::{
     filter::NoFilter,
-    ignore::{IgnoreDecision, TestIgnore},
+    ignore::{IgnoreStatus, TestIgnore},
+    panic_handler::PanicExpectation,
     test::{Test, TestFnHandle, TestMeta},
 };
 
@@ -20,8 +21,8 @@ const TESTS: &[Test<Speed>] = &[
         TestFnHandle::from_static_obj(&|| test_fast_ok()),
         TestMeta {
             name: Cow::Borrowed("test_fast_ok"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: Speed::Fast,
         },
     ),
@@ -29,8 +30,8 @@ const TESTS: &[Test<Speed>] = &[
         TestFnHandle::from_static_obj(&|| test_fast_fail()),
         TestMeta {
             name: Cow::Borrowed("test_fast_fail"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: Speed::Fast,
         },
     ),
@@ -38,8 +39,8 @@ const TESTS: &[Test<Speed>] = &[
         TestFnHandle::from_static_obj(&|| test_slow_expensive()),
         TestMeta {
             name: Cow::Borrowed("test_slow_expensive"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: Speed::Slow,
         },
     ),
@@ -55,10 +56,10 @@ fn main() {
 struct IgnoreSlow;
 
 impl TestIgnore<Speed> for IgnoreSlow {
-    fn ignore(&self, meta: &TestMeta<Speed>) -> IgnoreDecision {
+    fn ignore(&self, meta: &TestMeta<Speed>) -> IgnoreStatus {
         match meta.extra {
-            Speed::Fast => IgnoreDecision::Run,
-            Speed::Slow => IgnoreDecision::IgnoreWithReason("too slow".into()),
+            Speed::Fast => IgnoreStatus::Run,
+            Speed::Slow => IgnoreStatus::IgnoreWithReason("too slow".into()),
         }
     }
 }

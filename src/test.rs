@@ -1,5 +1,7 @@
 use std::{borrow::Cow, fmt::Debug, ops::Deref, panic::RefUnwindSafe};
 
+use crate::{ignore::IgnoreStatus, panic_handler::PanicExpectation};
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct Test<Extra = ()> {
@@ -28,8 +30,8 @@ impl<Extra> Deref for Test<Extra> {
 #[derive(Debug, Clone)]
 pub struct TestMeta<Extra = ()> {
     pub name: Cow<'static, str>,
-    pub ignore: (bool, Option<Cow<'static, str>>),
-    pub should_panic: (bool, Option<Cow<'static, str>>),
+    pub ignore: IgnoreStatus,
+    pub should_panic: PanicExpectation,
     pub extra: Extra,
 }
 

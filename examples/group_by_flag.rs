@@ -8,6 +8,8 @@ use kitest::{
     formatter::{
         FmtGroupOutcomes, FmtGroupStart, FmtTestStart, GroupedTestFormatter, TestFormatter,
     },
+    ignore::IgnoreStatus,
+    panic_handler::PanicExpectation,
     runner::SimpleRunner,
     test::{Test, TestFnHandle, TestMeta},
 };
@@ -32,8 +34,8 @@ const TESTS: &[Test<Flag>] = &[
         TestFnHandle::from_static_obj(&|| ()),
         TestMeta {
             name: Cow::Borrowed("a"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: Flag::A,
         },
     ),
@@ -41,8 +43,8 @@ const TESTS: &[Test<Flag>] = &[
         TestFnHandle::from_static_obj(&|| ()),
         TestMeta {
             name: Cow::Borrowed("b"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: Flag::B,
         },
     ),
@@ -50,8 +52,8 @@ const TESTS: &[Test<Flag>] = &[
         TestFnHandle::from_static_obj(&|| ()),
         TestMeta {
             name: Cow::Borrowed("c"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: Flag::A,
         },
     ),
@@ -59,8 +61,8 @@ const TESTS: &[Test<Flag>] = &[
         TestFnHandle::from_static_obj(&|| ()),
         TestMeta {
             name: Cow::Borrowed("d"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: Flag::A,
         },
     ),
@@ -68,8 +70,8 @@ const TESTS: &[Test<Flag>] = &[
         TestFnHandle::from_static_obj(&|| ()),
         TestMeta {
             name: Cow::Borrowed("e"),
-            ignore: (false, None),
-            should_panic: (false, None),
+            ignore: IgnoreStatus::Run,
+            should_panic: PanicExpectation::ShouldNotPanic,
             extra: Flag::B,
         },
     ),

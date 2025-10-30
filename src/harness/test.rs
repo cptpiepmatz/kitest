@@ -6,7 +6,7 @@ use crate::{
     formatter::*,
     group::{SimpleGroupRunner, TestGroupHashMap, TestGrouper},
     harness::FmtErrors,
-    ignore::{IgnoreDecision, TestIgnore},
+    ignore::{IgnoreStatus, TestIgnore},
     outcome::TestStatus,
     panic_handler::TestPanicHandler,
     runner::TestRunner,
@@ -86,12 +86,12 @@ impl<
                 (
                     move || {
                         let reason = match ignore.ignore(meta) {
-                            IgnoreDecision::Run => {
+                            IgnoreStatus::Run => {
                                 let _ = ftx.send(FmtTestData::Start(FmtTestStart { meta }.into()));
                                 return panic_handler.handle(|| test.call(), meta);
                             }
-                            IgnoreDecision::Ignore => None,
-                            IgnoreDecision::IgnoreWithReason(cow) => Some(cow),
+                            IgnoreStatus::Ignore => None,
+                            IgnoreStatus::IgnoreWithReason(cow) => Some(cow),
                         };
 
                         let _ = ftx.send(FmtTestData::Ignored(
@@ -186,8 +186,8 @@ impl<
         for test in tests {
             let ignored = self.ignore.ignore(test);
             match &ignored {
-                IgnoreDecision::Run => active_count += 1,
-                IgnoreDecision::Ignore | IgnoreDecision::IgnoreWithReason(_) => ignore_count += 1,
+                IgnoreStatus::Run => active_count += 1,
+                IgnoreStatus::Ignore | IgnoreStatus::IgnoreWithReason(_) => ignore_count += 1,
             }
             fmt_errors.push_on_error(
                 FmtListTest {
