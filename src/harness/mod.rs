@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use std::io;
 
 use crate::{
@@ -26,7 +28,7 @@ pub fn harness<'t, Extra>(
         tests,
         filter: DefaultFilter::default(),
         ignore: DefaultIgnore::Default,
-        panic_handler: DefaultPanicHandler::default(),
+        panic_handler: DefaultPanicHandler,
         runner: DefaultRunner::default(),
         formatter: PrettyFormatter::default(),
     }
