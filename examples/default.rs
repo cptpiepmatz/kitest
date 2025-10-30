@@ -1,9 +1,7 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, io::stdout};
 
 use kitest::{
-    ignore::IgnoreStatus,
-    panic_handler::PanicExpectation,
-    test::{Test, TestFnHandle, TestMeta},
+    formatter::{pretty::PrettyFormatter, terse::ColorSetting}, ignore::IgnoreStatus, panic_handler::PanicExpectation, test::{Test, TestFnHandle, TestMeta}
 };
 
 fn test_a() {
@@ -32,7 +30,7 @@ const TESTS: &[Test] = &[
         TestFnHandle::from_static_obj(&|| test_b()),
         TestMeta {
             name: Cow::Borrowed("test_b"),
-            ignore: IgnoreStatus::Run,
+            ignore: IgnoreStatus::IgnoreWithReason(Cow::Borrowed("we don't need this")),
             should_panic: PanicExpectation::ShouldNotPanic,
             extra: (),
         },
@@ -49,5 +47,8 @@ const TESTS: &[Test] = &[
 ];
 
 fn main() {
-    kitest::harness(TESTS).run();
+    kitest::harness(TESTS).with_formatter(PrettyFormatter {
+        target: stdout(),
+        color_settings: ColorSetting::Always,
+    }).run();
 }

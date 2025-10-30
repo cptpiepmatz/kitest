@@ -10,7 +10,7 @@ crossbeam-channel = "0.5.15"
 
 [workspace]
 resolver = "3"
-members = ["examples/macros/support"]
+members = ["examples/macros/support", "doc"]
 
 [dev-dependencies]
 linkme = "0.3.35"

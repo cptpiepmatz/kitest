@@ -2,7 +2,7 @@ use std::{io, time::Duration};
 
 use crate::{formatter::*, outcome::TestStatus};
 
-pub use super::common::{ColorSetting, TestName};
+pub use super::common::{ColorSetting, TestName, colors::*};
 
 #[derive(Debug)]
 pub struct PrettyFormatter<W: io::Write + io::IsTerminal> {
@@ -105,16 +105,28 @@ impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send> TestFormatter<'t, Extr
     type TestOutcome = PrettyTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
         write!(self.target, "test {} ... ", data.name)?;
-        match data.status {
-            TestStatus::Passed => write!(self.target, "ok")?,
-            TestStatus::Ignored {
-                reason: Some(reason),
-            } => write!(self.target, "ignored, {}", reason)?,
-            TestStatus::Ignored { reason: None } => write!(self.target, "ignored")?,
-            TestStatus::TimedOut => todo!(),
-            TestStatus::Failed(_test_failure) => todo!(),
-            TestStatus::Other(_) => todo!(),
-        };
+    match (data.status, self.use_color()) {
+        (TestStatus::Passed, true) => write!(self.target, "{GREEN}ok{RESET}")?,
+        (TestStatus::Passed, false) => write!(self.target, "ok")?,
+        (TestStatus::Ignored { reason: Some(reason) }, true) => {
+            write!(self.target, "{YELLOW}ignored, {}{RESET}", reason)?
+        }
+        (TestStatus::Ignored { reason: Some(reason) }, false) => {
+            write!(self.target, "ignored, {}", reason)?
+        }
+        (TestStatus::Ignored { reason: None }, true) => {
+            write!(self.target, "{YELLOW}ignored{RESET}")?
+        }
+        (TestStatus::Ignored { reason: None }, false) => {
+            write!(self.target, "ignored")?
+        }
+        (TestStatus::TimedOut, true) => write!(self.target, "{RED}timed out{RESET}")?,
+        (TestStatus::TimedOut, false) => write!(self.target, "timed out")?,
+        (TestStatus::Failed(_test_failure), true) => write!(self.target, "{RED}FAILED{RESET}")?,
+        (TestStatus::Failed(_test_failure), false) => write!(self.target, "FAILED")?,
+        (TestStatus::Other(_), true) => write!(self.target, "{RED}error{RESET}")?,
+        (TestStatus::Other(_), false) => write!(self.target, "error")?,
+    };
         writeln!(self.target)
     }
 
@@ -129,11 +141,13 @@ impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send> TestFormatter<'t, Extr
             duration,
         }: Self::RunOutcomes,
     ) -> Result<(), Self::Error> {
+        writeln!(self.target)?;
         writeln!(
             self.target,
-            "\ntest result: ok. {passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; finished in {:.2}s",
+            "test result: ok. {passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; finished in {:.2}s",
             duration.as_secs_f64()
-        )
+        )?;
+        writeln!(self.target)
     }
 
     type RunInit = ();

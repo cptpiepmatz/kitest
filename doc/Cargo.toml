@@ -1,0 +1,12 @@
+[package]
+name = "predoc"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "ansi-to-html"
+path = "./ansi_to_html.rs"
+
+[dependencies]
+ansi-to-html = "0.2"

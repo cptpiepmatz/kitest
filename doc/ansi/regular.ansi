@@ -1,0 +1,8 @@
+
+running 3 tests
+test test_b ... [33mignored, we don't need this[0m
+test test_c ... [32mok[0m
+test test_a ... [32mok[0m
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 filtered out; finished in 0.30s
+
