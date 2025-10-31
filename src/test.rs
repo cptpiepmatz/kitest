@@ -2,7 +2,7 @@ use std::{borrow::Cow, fmt::Debug, ops::Deref, panic::RefUnwindSafe};
 
 use crate::{ignore::IgnoreStatus, panic_handler::PanicExpectation};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[non_exhaustive]
 pub struct Test<Extra = ()> {
     function: TestFnHandle,
@@ -27,7 +27,7 @@ impl<Extra> Deref for Test<Extra> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TestMeta<Extra = ()> {
     pub name: Cow<'static, str>,
     pub ignore: IgnoreStatus,
@@ -49,6 +49,12 @@ impl Debug for TestFnHandle {
             Self::Owned(_) => write!(f, "Owned(...)"),
             Self::Static(_) => write!(f, "Static(...)"),
         }
+    }
+}
+
+impl Default for TestFnHandle {
+    fn default() -> Self {
+        Self::Static(&|| {})
     }
 }
 

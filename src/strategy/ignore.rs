@@ -10,6 +10,27 @@ pub enum IgnoreStatus {
     IgnoreWithReason(Cow<'static, str>),
 }
 
+impl From<bool> for IgnoreStatus {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Self::Ignore,
+            false => Self::Run,
+        }
+    }
+}
+
+impl From<&'static str> for IgnoreStatus {
+    fn from(value: &'static str) -> Self {
+        Self::IgnoreWithReason(value.into())
+    }
+}
+
+impl From<String> for IgnoreStatus {
+    fn from(value: String) -> Self {
+        Self::IgnoreWithReason(value.into())
+    }
+}
+
 pub trait TestIgnore<Extra> {
     fn ignore(&self, meta: &TestMeta<Extra>) -> IgnoreStatus;
 }

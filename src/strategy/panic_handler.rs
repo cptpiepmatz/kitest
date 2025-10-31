@@ -17,6 +17,27 @@ pub enum PanicExpectation {
     ShouldPanicWithExpected(Cow<'static, str>),
 }
 
+impl From<bool> for PanicExpectation {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Self::ShouldPanic,
+            false => Self::ShouldNotPanic,
+        }
+    }
+}
+
+impl From<&'static str> for PanicExpectation {
+    fn from(value: &'static str) -> Self {
+        Self::ShouldPanicWithExpected(value.into())
+    }
+}
+
+impl From<String> for PanicExpectation {
+    fn from(value: String) -> Self {
+        Self::ShouldPanicWithExpected(value.into())
+    }
+}
+
 pub trait TestPanicHandler<Extra> {
     fn handle<F: FnOnce() -> TestResult + UnwindSafe>(
         &self,
