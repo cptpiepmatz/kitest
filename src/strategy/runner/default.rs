@@ -1,7 +1,15 @@
-use std::{cmp, num::NonZeroUsize, thread::{Scope, ScopedJoinHandle}, time::Instant};
+use std::{
+    cmp,
+    num::NonZeroUsize,
+    thread::{Scope, ScopedJoinHandle},
+    time::Instant,
+};
 
-use crate::{outcome::{TestOutcome, TestOutcomeAttachments, TestStatus}, runner::TestRunner, test::TestMeta};
-
+use crate::{
+    outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
+    runner::TestRunner,
+    test::TestMeta,
+};
 
 #[derive(Debug)]
 pub struct DefaultRunner {

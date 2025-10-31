@@ -1,6 +1,10 @@
 use std::{num::NonZeroUsize, thread::Scope};
 
-use crate::{outcome::{TestOutcome, TestStatus}, runner::{DefaultRunner, SimpleRunner, TestRunner}, test::TestMeta};
+use crate::{
+    outcome::{TestOutcome, TestStatus},
+    runner::{DefaultRunner, SimpleRunner, TestRunner},
+    test::TestMeta,
+};
 
 #[derive(Debug)]
 pub struct SmartRunner {

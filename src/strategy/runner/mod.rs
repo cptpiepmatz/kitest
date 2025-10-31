@@ -1,7 +1,4 @@
-use std::{
-    num::NonZeroUsize,
-    thread::Scope,
-};
+use std::{num::NonZeroUsize, thread::Scope};
 
 use crate::{
     outcome::{TestOutcome, TestStatus},
@@ -30,6 +27,3 @@ pub trait TestRunner<Extra> {
 
     fn worker_count(&self, tests_count: usize) -> NonZeroUsize;
 }
-
-
-
