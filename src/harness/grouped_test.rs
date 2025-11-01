@@ -1,4 +1,4 @@
-use std::{hash::Hash, marker::PhantomData, panic::RefUnwindSafe, sync::Arc, time::Instant};
+use std::{marker::PhantomData, panic::RefUnwindSafe, sync::Arc, time::Instant};
 
 use crate::{
     GroupedTestReport,
@@ -44,7 +44,7 @@ pub struct GroupedTestHarness<
 impl<
     't,
     Extra: RefUnwindSafe + Sync,
-    GroupKey: Hash + Eq + 't,
+    GroupKey: 't,
     GroupCtx: 't,
     Filter: TestFilter<Extra>,
     Grouper: TestGrouper<Extra, GroupKey, GroupCtx>,
