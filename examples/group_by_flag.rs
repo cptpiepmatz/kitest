@@ -134,7 +134,7 @@ impl GroupedTestFormatter<'_, Flag, Flag> for FlagFormatter {
 fn main() {
     kitest::harness(TESTS)
         .with_grouper(|meta: &TestMeta<Flag>| meta.extra)
-        .with_runner(SimpleRunner)
+        .with_runner(SimpleRunner::default())
         .with_formatter(FlagFormatter(io::stdout()))
         .run();
 }

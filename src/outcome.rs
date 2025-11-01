@@ -17,6 +17,24 @@ pub struct TestOutcome {
     pub attachments: TestOutcomeAttachments,
 }
 
+impl TestOutcome {
+    pub fn passed(&self) -> bool {
+        self.status.passed()
+    }
+
+    pub fn timed_out(&self) -> bool {
+        self.status.timed_out()
+    }
+
+    pub fn ignored(&self) -> bool {
+        self.status.ignored()
+    }
+
+    pub fn failed(&self) -> bool {
+        self.status.failed()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TestStatus {
@@ -25,6 +43,24 @@ pub enum TestStatus {
     Ignored { reason: Option<Cow<'static, str>> },
     Failed(TestFailure),
     Other(BoxedWhatever),
+}
+
+impl TestStatus {
+    pub fn passed(&self) -> bool {
+        matches!(self, TestStatus::Passed)
+    }
+
+    pub fn timed_out(&self) -> bool {
+        matches!(self, TestStatus::TimedOut)
+    }
+
+    pub fn ignored(&self) -> bool {
+        matches!(self, TestStatus::Ignored { .. })
+    }
+
+    pub fn failed(&self) -> bool {
+        matches!(self, TestStatus::Failed(_))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -14,16 +14,9 @@ pub use report::*;
 mod whatever;
 pub use whatever::*;
 
+#[cfg(any(test, doctest))]
+mod test_support;
+
 /// Custom highlighted code?
 #[doc = include_str!("../doc/html/regular.ansi.html")]
 pub const WOW: &str = "WOW";
-
-#[test]
-fn foo() {}
-
-#[test]
-fn bar() {}
-
-#[test]
-#[ignore = "for a reason"]
-fn ignored() {}

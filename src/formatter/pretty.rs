@@ -73,18 +73,21 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes {
         Self {
             passed: value
                 .outcomes
-                .values()
-                .filter(|outcome| outcome.status == TestStatus::Passed)
+                .iter()
+                .map(|(_, outcome)| outcome)
+                .filter(|outcome| outcome.passed())
                 .count(),
             failed: value
                 .outcomes
-                .values()
-                .filter(|outcome| matches!(outcome.status, TestStatus::Failed(_)))
+                .iter()
+                .map(|(_, outcome)| outcome)
+                .filter(|outcome| outcome.failed())
                 .count(),
             ignored: value
                 .outcomes
-                .values()
-                .filter(|outcome| matches!(outcome.status, TestStatus::Ignored { .. }))
+                .iter()
+                .map(|(_, outcome)| outcome)
+                .filter(|outcome| outcome.ignored())
                 .count(),
             filtered_out: value.filtered_out,
             duration: value.duration,

@@ -17,7 +17,7 @@ impl Default for SmartRunner {
     fn default() -> Self {
         Self {
             threshold: 4,
-            simple: SimpleRunner,
+            simple: SimpleRunner::default(),
             default: DefaultRunner::default(),
         }
     }
