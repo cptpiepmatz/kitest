@@ -87,9 +87,7 @@ impl From<TestResult> for TestStatus {
 }
 
 #[derive(Default, Debug)]
-pub struct TestOutcomeAttachments(
-    HashMap<TypeId, Box<dyn Any + Send + Sync + 'static>>,
-);
+pub struct TestOutcomeAttachments(HashMap<TypeId, Box<dyn Any + Send + Sync + 'static>>);
 
 impl TestOutcomeAttachments {
     pub fn new() -> Self {
