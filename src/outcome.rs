@@ -88,7 +88,7 @@ impl From<TestResult> for TestStatus {
 
 #[derive(Default, Debug)]
 pub struct TestOutcomeAttachments(
-    HashMap<TypeId, Box<dyn Any + Send + Sync + 'static>, ahash::RandomState>,
+    HashMap<TypeId, Box<dyn Any + Send + Sync + 'static>>,
 );
 
 impl TestOutcomeAttachments {
