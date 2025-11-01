@@ -39,10 +39,12 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
                 )
             })
             .scan(true, |keep, (meta, outcome)| {
-                if !self.keep_going && !*keep {
-                    return None;
-                };
-                *keep = outcome.passed();
+                if !self.keep_going {
+                    if !*keep {
+                        return None;
+                    }
+                    *keep = !outcome.failed();
+                }
                 Some((meta, outcome))
             })
     }
@@ -55,7 +57,7 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_support::*;
+    use crate::{ignore::DefaultIgnore, test_support::*};
 
     #[test]
     fn run_all_ok_tests() {
@@ -66,17 +68,19 @@ mod tests {
     }
 
     #[test]
-    fn abort_after_failed_test() {
+    fn abort_only_after_failed_test() {
         let tests = &[
             test! {name: "ok"},
+            test! {name: "ignored", ignore: true},
             test! {name: "fail", func: || Err(())},
             test! {name: "never"},
         ];
 
         let report = harness(tests)
+            .with_ignore(DefaultIgnore::default())
             .with_runner(SimpleRunner { keep_going: false })
             .run();
-        assert_eq!(report.outcomes.len(), 2);
+        assert_eq!(report.outcomes.len(), 3);
     }
 
     #[test]
