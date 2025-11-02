@@ -53,3 +53,52 @@ impl<Extra> TestPanicHandler<Extra> for DefaultPanicHandler {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{runner::SimpleRunner, test_support::*};
+
+    #[test]
+    fn handling_panics_works() {
+        let tests = &[
+            test! {
+                name: "ok",
+                should_panic: false,
+                func: || ()
+            },
+            test! {
+                name: "panic",
+                should_panic: true,
+                func: || assert!(false)
+            },
+            test! {
+                name: "panic_with_expectation",
+                should_panic: "expectation",
+                func: || if true { panic!("expectation here") }
+            },
+            test! {
+                name: "did_not_panic",
+                should_panic: true,
+                func: || assert!(true)
+            },
+            test! {
+                name: "panic_mismatch",
+                should_panic: "expectation",
+                func: || if true { panic!("something else") }
+            },
+        ];
+
+        let report = harness(tests)
+            .with_panic_handler(DefaultPanicHandler)
+            .with_runner(SimpleRunner::default().with_keep_going(true))
+            .run();
+        let outcomes = report.outcomes;
+
+        assert!(outcomes[0].1.passed());
+        assert!(outcomes[1].1.passed());
+        assert!(outcomes[2].1.passed());
+        assert!(outcomes[3].1.failed());
+        assert!(outcomes[4].1.failed());
+    }
+}
