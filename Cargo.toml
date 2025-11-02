@@ -7,6 +7,9 @@ publish = false
 [dependencies]
 crossbeam-channel = "0.5.15"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ci)'] }
+
 [workspace]
 resolver = "3"
 members = ["examples/macros/support", "doc"]

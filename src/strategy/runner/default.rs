@@ -147,6 +147,7 @@ mod tests {
     use crate::test_support::*;
 
     #[test]
+    #[cfg_attr(all(ci, target_os = "macos"), ignore = "too slow on macos")]
     fn run_tests_in_parallel() {
         let tests = &[
             test! {name: "a", func: || thread::sleep(Duration::from_millis(100))},
@@ -193,6 +194,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(all(ci, target_os = "macos"), ignore = "too slow on macos")]
     fn expected_execution_time() {
         const PADDING: Duration = Duration::from_millis(50);
 
