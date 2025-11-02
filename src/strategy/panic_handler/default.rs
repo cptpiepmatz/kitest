@@ -1,59 +1,13 @@
 use std::{
     any::Any,
-    borrow::Cow,
     panic::{UnwindSafe, catch_unwind},
 };
 
 use crate::{
     outcome::{TestFailure, TestStatus},
+    panic_handler::{PanicExpectation, TestPanicHandler},
     test::{TestMeta, TestResult},
 };
-
-#[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub enum PanicExpectation {
-    #[default]
-    ShouldNotPanic,
-    ShouldPanic,
-    ShouldPanicWithExpected(Cow<'static, str>),
-}
-
-impl From<bool> for PanicExpectation {
-    fn from(value: bool) -> Self {
-        match value {
-            true => Self::ShouldPanic,
-            false => Self::ShouldNotPanic,
-        }
-    }
-}
-
-impl From<&'static str> for PanicExpectation {
-    fn from(value: &'static str) -> Self {
-        Self::ShouldPanicWithExpected(value.into())
-    }
-}
-
-impl From<String> for PanicExpectation {
-    fn from(value: String) -> Self {
-        Self::ShouldPanicWithExpected(value.into())
-    }
-}
-
-pub trait TestPanicHandler<Extra> {
-    fn handle<F: FnOnce() -> TestResult + UnwindSafe>(
-        &self,
-        f: F,
-        meta: &TestMeta<Extra>,
-    ) -> TestStatus;
-}
-
-#[derive(Debug, Default)]
-pub struct NoPanicHandler;
-
-impl<Extra> TestPanicHandler<Extra> for NoPanicHandler {
-    fn handle<F: FnOnce() -> TestResult>(&self, f: F, _: &TestMeta<Extra>) -> TestStatus {
-        f().into()
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct DefaultPanicHandler;
