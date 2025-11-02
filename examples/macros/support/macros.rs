@@ -30,7 +30,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 kitest::test::TestMeta {
                     name: std::borrow::Cow::Borrowed(#func_name_str),
                     ignore: kitest::ignore::IgnoreStatus::Run,
-                    should_panic: kitest::panic_handler::PanicExpectation::ShouldNotPanic,
+                    should_panic: kitest::panic::PanicExpectation::ShouldNotPanic,
                     extra: crate::Extra {
                         experimental: #experimental,
                         flaky: #flaky,

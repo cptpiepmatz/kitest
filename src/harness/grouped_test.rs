@@ -8,7 +8,7 @@ use crate::{
     harness::FmtErrors,
     ignore::{IgnoreStatus, TestIgnore},
     outcome::TestStatus,
-    panic_handler::TestPanicHandler,
+    panic::TestPanicHandler,
     runner::TestRunner,
     test::Test,
 };

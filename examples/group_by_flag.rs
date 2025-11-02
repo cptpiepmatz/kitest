@@ -9,7 +9,7 @@ use kitest::{
         FmtGroupOutcomes, FmtGroupStart, FmtTestStart, GroupedTestFormatter, TestFormatter,
     },
     ignore::IgnoreStatus,
-    panic_handler::PanicExpectation,
+    panic::PanicExpectation,
     runner::SimpleRunner,
     test::{Test, TestFnHandle, TestMeta},
 };

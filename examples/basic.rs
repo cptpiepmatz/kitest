@@ -7,7 +7,7 @@ use kitest::{
     filter::NoFilter,
     formatter::{FmtTestOutcome, TestFormatter},
     ignore::{IgnoreStatus, NoIgnore},
-    panic_handler::{NoPanicHandler, PanicExpectation},
+    panic::{NoPanicHandler, PanicExpectation},
     runner::SimpleRunner,
     test::{Test, TestFnHandle, TestMeta},
 };

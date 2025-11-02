@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     outcome::{TestFailure, TestStatus},
-    panic_handler::{PanicExpectation, TestPanicHandler},
+    panic::{PanicExpectation, TestPanicHandler},
     test::{TestMeta, TestResult},
 };
 

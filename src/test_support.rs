@@ -5,7 +5,7 @@ use crate::{
     filter::NoFilter,
     formatter::no::NoFormatter,
     ignore::{IgnoreStatus, NoIgnore},
-    panic_handler::{NoPanicHandler, PanicExpectation},
+    panic::{NoPanicHandler, PanicExpectation},
     runner::SimpleRunner,
     test::{Test, TestFn, TestFnHandle, TestMeta},
 };

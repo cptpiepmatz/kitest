@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use kitest::{
     filter::NoFilter,
     ignore::{IgnoreStatus, TestIgnore},
-    panic_handler::PanicExpectation,
+    panic::PanicExpectation,
     test::{Test, TestFnHandle, TestMeta},
 };
 

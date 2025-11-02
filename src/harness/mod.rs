@@ -4,7 +4,7 @@ use std::io;
 
 use crate::{
     filter::DefaultFilter, formatter::pretty::PrettyFormatter, ignore::DefaultIgnore,
-    panic_handler::DefaultPanicHandler, runner::DefaultRunner, test::Test,
+    panic::DefaultPanicHandler, runner::DefaultRunner, test::Test,
 };
 
 mod test;

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Debug, ops::Deref, panic::RefUnwindSafe};
 
-use crate::{ignore::IgnoreStatus, panic_handler::PanicExpectation};
+use crate::{ignore::IgnoreStatus, panic::PanicExpectation};
 
 #[derive(Debug, Default)]
 #[non_exhaustive]

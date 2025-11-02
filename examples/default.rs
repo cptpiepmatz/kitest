@@ -3,7 +3,7 @@ use std::{borrow::Cow, io::stdout};
 use kitest::{
     formatter::{pretty::PrettyFormatter, terse::ColorSetting},
     ignore::IgnoreStatus,
-    panic_handler::PanicExpectation,
+    panic::PanicExpectation,
     test::{Test, TestFnHandle, TestMeta},
 };
 

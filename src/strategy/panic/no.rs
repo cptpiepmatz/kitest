@@ -1,6 +1,6 @@
 use crate::{
     outcome::TestStatus,
-    panic_handler::TestPanicHandler,
+    panic::TestPanicHandler,
     test::{TestMeta, TestResult},
 };
 
