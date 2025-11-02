@@ -40,3 +40,12 @@ impl From<String> for IgnoreStatus {
 pub trait TestIgnore<Extra> {
     fn ignore(&self, meta: &TestMeta<Extra>) -> IgnoreStatus;
 }
+
+impl<Extra, F> TestIgnore<Extra> for F
+where
+    F: Fn(&TestMeta<Extra>) -> IgnoreStatus,
+{
+    fn ignore(&self, meta: &TestMeta<Extra>) -> IgnoreStatus {
+        self(meta)
+    }
+}

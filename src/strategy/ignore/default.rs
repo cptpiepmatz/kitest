@@ -24,11 +24,5 @@ impl<Extra> TestIgnore<Extra> for DefaultIgnore {
     }
 }
 
-impl<Extra, F> TestIgnore<Extra> for F
-where
-    F: Fn(&TestMeta<Extra>) -> IgnoreStatus,
-{
-    fn ignore(&self, meta: &TestMeta<Extra>) -> IgnoreStatus {
-        self(meta)
     }
 }
