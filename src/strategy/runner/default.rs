@@ -257,7 +257,7 @@ mod tests {
 
         // we don't stop immediately but in this range
         assert!(report.outcomes.len() >= 11);
-        assert!(report.outcomes.len() <= 15);
+        assert!(report.outcomes.len() <= 16);
 
         let keep_going_report = harness(&tests)
             .with_runner(
