@@ -1,4 +1,7 @@
-use std::{collections::{BTreeMap, HashMap}, hash::{BuildHasher, Hash}};
+use std::{
+    collections::{BTreeMap, HashMap},
+    hash::{BuildHasher, Hash},
+};
 
 use crate::test::Test;
 
