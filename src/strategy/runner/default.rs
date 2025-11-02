@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn stop_pushing_new_jobs_after_fail() {
-        const TEST_DURATION: Duration = Duration::from_millis(50);
+        const TEST_DURATION: Duration = Duration::from_millis(100);
 
         let tests: Vec<_> = (0..10)
             .map(|_| test! {func: || thread::sleep(TEST_DURATION)})
