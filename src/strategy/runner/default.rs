@@ -245,7 +245,9 @@ mod tests {
 
         let tests: Vec<_> = (0..10)
             .map(|_| test! {func: || thread::sleep(TEST_DURATION)})
-            .chain(iter::once(test! {func: || {thread::sleep(TEST_DURATION); Err(())}}))
+            .chain(iter::once(
+                test! {func: || {thread::sleep(TEST_DURATION); Err(())}},
+            ))
             .chain((0..10).map(|_| test! {func: || thread::sleep(TEST_DURATION)}))
             .collect();
 
