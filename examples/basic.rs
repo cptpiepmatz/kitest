@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
     io::{self, Stdout, Write},
+    process::Termination,
 };
 
 use kitest::{
@@ -70,12 +71,12 @@ impl<'t> TestFormatter<'t, ()> for BasicFormatter {
     type RunOutcomes = ();
 }
 
-fn main() {
+fn main() -> impl Termination {
     kitest::harness(TESTS)
         .with_filter(NoFilter)
         .with_runner(SimpleRunner::default())
         .with_ignore(NoIgnore)
         .with_panic_handler(NoPanicHandler)
         .with_formatter(BasicFormatter(io::stdout()))
-        .run();
+        .run()
 }

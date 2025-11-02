@@ -70,7 +70,7 @@ mod tests {
             test! {
                 name: "panic",
                 should_panic: true,
-                func: || assert!(false)
+                func: || if true { panic!() }
             },
             test! {
                 name: "panic_with_expectation",
@@ -80,7 +80,7 @@ mod tests {
             test! {
                 name: "did_not_panic",
                 should_panic: true,
-                func: || assert!(true)
+                func: || if false { panic!() }
             },
             test! {
                 name: "panic_mismatch",

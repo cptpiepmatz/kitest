@@ -2,6 +2,7 @@ use std::{
     borrow::Cow,
     fmt::Display,
     io::{self, Stdout, Write},
+    process::Termination,
 };
 
 use kitest::{
@@ -131,10 +132,10 @@ impl GroupedTestFormatter<'_, Flag, Flag> for FlagFormatter {
     type GroupedRunOutcomes = ();
 }
 
-fn main() {
+fn main() -> impl Termination {
     kitest::harness(TESTS)
         .with_grouper(|meta: &TestMeta<Flag>| meta.extra)
         .with_runner(SimpleRunner::default())
         .with_formatter(FlagFormatter(io::stdout()))
-        .run();
+        .run()
 }

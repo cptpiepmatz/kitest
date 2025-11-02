@@ -4,7 +4,7 @@
 #![allow(clippy::nonminimal_bool)]
 #![allow(clippy::unnecessary_literal_unwrap)]
 
-use std::{thread, time::Duration};
+use std::{process::Termination, thread, time::Duration};
 
 use kitest::{
     group::TestGroupBTreeMap,
@@ -213,18 +213,20 @@ fn then_some_test() {
 /// the harness below will:
 /// - ignore flaky tests in CI
 /// - group experimental tests separately
-fn main() {
+fn main() -> impl Termination {
     // could be set via some flag or env like CI=true
     let in_ci = true;
 
     kitest::harness(&TESTS)
-        .with_ignore(|meta: &TestMeta<Extra>| match (meta.extra.flaky, in_ci) {
-            (true, true) => IgnoreStatus::IgnoreWithReason("flaky in CI".into()),
-            _ => IgnoreStatus::Run,
-        })
+        .with_ignore(
+            move |meta: &TestMeta<Extra>| match (meta.extra.flaky, in_ci) {
+                (true, true) => IgnoreStatus::IgnoreWithReason("flaky in CI".into()),
+                _ => IgnoreStatus::Run,
+            },
+        )
         // group tests by the experimental flag so we can e.g. run them last
         .with_grouper(|meta: &TestMeta<Extra>| meta.extra.experimental)
         // use BTreeMap to get actual ordering
         .with_groups(TestGroupBTreeMap::default())
-        .run();
+        .run()
 }
