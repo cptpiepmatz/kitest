@@ -14,6 +14,19 @@ pub use report::*;
 mod whatever;
 pub use whatever::*;
 
+/// Prelude containing everything you need to build a [`Test`](test::Test).
+pub mod prelude {
+    #[doc(no_inline)]
+    pub use super::{
+        ignore::IgnoreStatus,
+        panic::PanicExpectation,
+        test::{Test, TestResult, TestFn, TestFnHandle, TestMeta},
+    };
+
+    #[doc(no_inline)]
+    pub use std::borrow::Cow;
+}
+
 #[cfg(any(test, doctest))]
 mod test_support;
 
