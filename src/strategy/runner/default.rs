@@ -11,6 +11,8 @@ use crate::{
     test::TestMeta,
 };
 
+// TODO: add early aborting and keep going flag
+
 #[derive(Debug)]
 pub struct DefaultRunner {
     threads: NonZeroUsize,
