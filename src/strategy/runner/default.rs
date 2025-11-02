@@ -241,10 +241,12 @@ mod tests {
 
     #[test]
     fn stop_pushing_new_jobs_after_fail() {
+        const TEST_DURATION: Duration = Duration::from_millis(50);
+
         let tests: Vec<_> = (0..10)
-            .map(|_| test! {})
-            .chain(iter::once(test! {func: || Err(())}))
-            .chain((0..10).map(|_| test! {}))
+            .map(|_| test! {func: || thread::sleep(TEST_DURATION)})
+            .chain(iter::once(test! {func: || {thread::sleep(TEST_DURATION); Err(())}}))
+            .chain((0..10).map(|_| test! {func: || thread::sleep(TEST_DURATION)}))
             .collect();
 
         let report = harness(&tests)
@@ -257,7 +259,7 @@ mod tests {
 
         // we don't stop immediately but in this range
         assert!(report.outcomes.len() >= 11);
-        assert!(report.outcomes.len() <= 16);
+        assert!(report.outcomes.len() <= 15);
 
         let keep_going_report = harness(&tests)
             .with_runner(

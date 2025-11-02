@@ -167,6 +167,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(ci, ignore = "ci too slow to reproduce this every time")]
     fn filter_exact_is_faster() {
         let tests: Vec<_> = (0..1000)
             .map(|idx| test! {name: format!("test_{idx}")})
@@ -190,7 +191,8 @@ mod tests {
             .run();
         assert_eq!(exact_report.outcomes.len(), 1);
 
-        assert!(exact_report.duration < not_exact_report.duration);
+        // we can't do multiply by 1.5
+        assert!(exact_report.duration * 3 < not_exact_report.duration * 2);
     }
 
     #[test]
