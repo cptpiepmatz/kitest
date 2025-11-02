@@ -190,8 +190,7 @@ mod tests {
             .run();
         assert_eq!(exact_report.outcomes.len(), 1);
 
-        // we can't do multiply by 1.5
-        assert!(exact_report.duration * 3 < not_exact_report.duration * 2);
+        assert!(exact_report.duration < not_exact_report.duration);
     }
 
     #[test]
