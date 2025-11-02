@@ -136,3 +136,78 @@ impl<Extra: Sync> TestRunner<Extra> for DefaultRunner {
         NonZeroUsize::new(cmp::min(self.threads.get(), test_count)).unwrap_or(NonZeroUsize::MIN)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{thread, time::Duration};
+
+    use super::*;
+    use crate::test_support::*;
+
+    #[test]
+    fn run_tests_in_parallel() {
+        let tests = &[
+            test! {name: "a", func: || thread::sleep(Duration::from_millis(100))},
+            test! {name: "b", func: || thread::sleep(Duration::from_millis(50))},
+            test! {name: "c", func: || thread::sleep(Duration::from_millis(200))},
+            test! {name: "d", func: || thread::sleep(Duration::from_millis(10))},
+        ];
+
+        let report = harness(tests).with_runner(DefaultRunner::default()).run();
+
+        let order = report
+            .outcomes
+            .iter()
+            .fold(String::new(), |s, (name, _)| s + name);
+        assert_eq!(order, "dbac");
+
+        assert!(report.duration < Duration::from_millis(300));
+    }
+
+    #[test]
+    fn thread_count_works() {
+        let tests: Vec<_> = (0..4)
+            .map(|idx| {
+                test! {
+                    name: format!("test_{idx}"),
+                    func: || thread::sleep(Duration::from_millis(100))
+                }
+            })
+            .collect();
+
+        const FOUR: NonZeroUsize = NonZeroUsize::new(4).unwrap();
+        let parallel = harness(&tests)
+            .with_runner(DefaultRunner::default().with_thread_count(FOUR))
+            .run();
+
+        const ONE: NonZeroUsize = NonZeroUsize::new(1).unwrap();
+        let serial = harness(&tests)
+            .with_runner(DefaultRunner::default().with_thread_count(ONE))
+            .run();
+
+        assert!(parallel.duration < Duration::from_millis(200));
+        assert!(parallel.duration < serial.duration);
+        assert!(serial.duration >= Duration::from_millis(400));
+    }
+
+    #[test]
+    fn expected_execution_time() {
+        const PADDING: Duration = Duration::from_millis(50);
+
+        let tests: Vec<_> = (0..50)
+            .map(|_| test! {func: || thread::sleep(Duration::from_millis(20))})
+            .collect();
+
+        let default = harness(&tests).with_runner(DefaultRunner::default()).run();
+        let expected_duration = Duration::from_millis(
+            ((50.0 / thread::available_parallelism().unwrap().get() as f64) * 20.0) as u64,
+        );
+        assert!(default.duration < expected_duration + PADDING);
+
+        const FIFTY: NonZeroUsize = NonZeroUsize::new(50).unwrap();
+        let max = harness(&tests)
+            .with_runner(DefaultRunner::default().with_thread_count(FIFTY))
+            .run();
+        assert!(max.duration < Duration::from_millis(20) + PADDING);
+    }
+}
