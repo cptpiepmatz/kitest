@@ -79,3 +79,15 @@ pub fn harness<'t>(
         formatter: NoFormatter,
     }
 }
+
+macro_rules! nonzero {
+    (0) => {
+        compile_error!("0 is zero")
+    };
+
+    ($value:literal) => {
+        std::convert::TryFrom::try_from($value).unwrap()
+    };
+}
+
+pub(crate) use nonzero;

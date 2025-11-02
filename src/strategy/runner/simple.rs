@@ -11,6 +11,12 @@ pub struct SimpleRunner {
     pub keep_going: bool,
 }
 
+impl SimpleRunner {
+    pub fn with_keep_going(self, keep_going: bool) -> Self {
+        Self { keep_going }
+    }
+}
+
 impl<Extra> TestRunner<Extra> for SimpleRunner {
     fn run<'t, 's, I, F>(
         &self,

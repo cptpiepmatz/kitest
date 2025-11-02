@@ -36,6 +36,12 @@ impl SmartRunner {
         self.default = self.default.with_thread_count(threads);
         self
     }
+
+    pub fn with_keep_going(mut self, keep_going: bool) -> Self {
+        self.simple = self.simple.with_keep_going(keep_going);
+        self.default = self.default.with_keep_going(keep_going);
+        self
+    }
 }
 
 enum SmartRunnerIterator<IS, ID> {
