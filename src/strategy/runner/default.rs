@@ -259,9 +259,13 @@ mod tests {
         assert!(report.outcomes.len() >= 11);
         assert!(report.outcomes.len() <= 15);
 
-        let keep_going_report = harness(&tests).with_runner(
-            DefaultRunner::new().with_keep_going(true).with_thread_count(nonzero!(4))
-        ).run();
+        let keep_going_report = harness(&tests)
+            .with_runner(
+                DefaultRunner::new()
+                    .with_keep_going(true)
+                    .with_thread_count(nonzero!(4)),
+            )
+            .run();
 
         assert_eq!(keep_going_report.outcomes.len(), 21);
     }
