@@ -4,7 +4,7 @@ use crate::{
     GroupedTestHarness, TestReport,
     filter::{FilteredTests, TestFilter},
     formatter::*,
-    group::{DefaultGroupRunner, SimpleGroupRunner, TestGroupHashMap, TestGrouper},
+    group::{DefaultGroupRunner, TestGroupHashMap, TestGrouper},
     harness::FmtErrors,
     ignore::{IgnoreStatus, TestIgnore},
     outcome::TestStatus,
