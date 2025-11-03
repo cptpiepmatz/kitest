@@ -1,9 +1,10 @@
-use std::{num::NonZeroUsize, thread::Scope, time::Instant};
+use std::{num::NonZeroUsize, ops::ControlFlow, thread::Scope, time::Instant};
 
 use crate::{
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
     runner::TestRunner,
     test::TestMeta,
+    util::IteratorExt,
 };
 
 #[derive(Debug, Default)]
@@ -44,15 +45,12 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
                     },
                 )
             })
-            .scan(true, |keep, (meta, outcome)| {
-                if !self.keep_going {
-                    if !*keep {
-                        return None;
-                    }
-                    *keep = !outcome.failed();
-                }
-                Some((meta, outcome))
-            })
+            .map_until_inclusive(
+                |(meta, outcome)| match (self.keep_going, outcome.failed()) {
+                    (false, true) => ControlFlow::Break((meta, outcome)),
+                    (true, _) | (false, false) => ControlFlow::Continue((meta, outcome)),
+                },
+            )
     }
 
     fn worker_count(&self, _: usize) -> NonZeroUsize {
