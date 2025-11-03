@@ -8,6 +8,8 @@ use crate::{
 };
 
 mod common;
+pub mod label;
+
 pub mod no;
 pub mod pretty;
 pub mod terse;

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, io::stdout, process::Termination};
+use std::{borrow::Cow, process::Termination};
 
 use kitest::{
     formatter::{pretty::PrettyFormatter, terse::ColorSetting},
@@ -51,9 +51,6 @@ const TESTS: &[Test] = &[
 
 fn main() -> impl Termination {
     kitest::harness(TESTS)
-        .with_formatter(PrettyFormatter {
-            target: stdout(),
-            color_settings: ColorSetting::Always,
-        })
+        .with_formatter(PrettyFormatter::default().with_color_settings(ColorSetting::Always))
         .run()
 }

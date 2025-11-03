@@ -15,6 +15,7 @@ use crate::{
 };
 
 #[derive(Debug)]
+#[must_use = "test harnesses are lazy, you have to call either `run` or `list` to do something"]
 pub struct GroupedTestHarness<
     't,
     Extra,

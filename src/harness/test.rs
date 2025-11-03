@@ -14,6 +14,7 @@ use crate::{
 };
 
 #[derive(Debug)]
+#[must_use = "test harnesses are lazy, you have to call either `run` or `list` to do something"]
 pub struct TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter> {
     pub(crate) tests: &'t [Test<Extra>],
     pub(crate) filter: Filter,

@@ -1,25 +1,73 @@
-use std::{fmt::Display, io, time::Duration};
+use std::{fmt::Display, io, marker::PhantomData, time::Duration};
 
-use crate::{formatter::*, outcome::TestStatus};
+use crate::{
+    formatter::{
+        label::{FromGroupCtx, FromGroupKey, GroupLabel},
+        *,
+    },
+    outcome::TestStatus,
+};
 
 pub use super::common::{ColorSetting, TestName, colors::*};
 
 #[derive(Debug)]
-pub struct PrettyFormatter<W: io::Write + io::IsTerminal> {
-    pub target: W,
-    pub color_settings: ColorSetting,
+pub struct PrettyFormatter<W: io::Write + io::IsTerminal, L> {
+    target: W,
+    color_settings: ColorSetting,
+    _label_marker: PhantomData<L>,
 }
 
-impl Default for PrettyFormatter<io::Stdout> {
-    fn default() -> Self {
+impl<W: io::Write + io::IsTerminal, L> PrettyFormatter<W, L> {
+    pub fn new() -> PrettyFormatter<io::Stdout, GroupLabel<FromGroupKey>> {
+        PrettyFormatter::default()
+    }
+
+    pub fn with_target<WithTarget: io::Write + io::IsTerminal>(
+        self,
+        target: WithTarget,
+    ) -> PrettyFormatter<WithTarget, L> {
+        PrettyFormatter {
+            target,
+            color_settings: self.color_settings,
+            _label_marker: PhantomData,
+        }
+    }
+
+    pub fn with_color_settings(self, color_settings: ColorSetting) -> Self {
         Self {
-            target: io::stdout(),
-            color_settings: Default::default(),
+            color_settings,
+            ..self
+        }
+    }
+
+    pub fn with_group_label_from_key(self) -> PrettyFormatter<W, GroupLabel<FromGroupKey>> {
+        PrettyFormatter {
+            target: self.target,
+            color_settings: self.color_settings,
+            _label_marker: PhantomData,
+        }
+    }
+
+    pub fn with_group_label_from_ctx(self) -> PrettyFormatter<W, GroupLabel<FromGroupCtx>> {
+        PrettyFormatter {
+            target: self.target,
+            color_settings: self.color_settings,
+            _label_marker: PhantomData,
         }
     }
 }
 
-impl<W: io::Write + io::IsTerminal> PrettyFormatter<W> {
+impl Default for PrettyFormatter<io::Stdout, GroupLabel<FromGroupKey>> {
+    fn default() -> Self {
+        Self {
+            target: io::stdout(),
+            color_settings: Default::default(),
+            _label_marker: PhantomData,
+        }
+    }
+}
+
+impl<W: io::Write + io::IsTerminal, L> PrettyFormatter<W, L> {
     pub fn use_color(&self) -> bool {
         match self.color_settings {
             ColorSetting::Automatic => self.target.is_terminal(),
@@ -41,6 +89,12 @@ impl From<FmtRunStart> for PrettyTestCount {
 impl From<FmtEndListing> for PrettyTestCount {
     fn from(value: FmtEndListing) -> Self {
         PrettyTestCount(value.active + value.ignored)
+    }
+}
+
+impl From<FmtGroupedRunStart> for PrettyTestCount {
+    fn from(value: FmtGroupedRunStart) -> Self {
+        PrettyTestCount(value.tests)
     }
 }
 
@@ -95,8 +149,8 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes {
     }
 }
 
-impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send> TestFormatter<'t, Extra>
-    for PrettyFormatter<W>
+impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send, L: Send> TestFormatter<'t, Extra>
+    for PrettyFormatter<W, L>
 {
     type Error = io::Error;
 
@@ -162,26 +216,86 @@ impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send> TestFormatter<'t, Extr
     type TestStart = ();
 }
 
-pub struct PrettyGroupStart {
+#[derive(Debug, PartialEq, Eq)]
+pub struct PrettyGroupStart<L> {
     pub tests: usize,
     pub name: String,
+    pub _label_marker: PhantomData<L>,
 }
 
-impl<'g, GroupKey: Display, GroupCtx> From<FmtGroupStart<'g, GroupKey, GroupCtx>>
-    for PrettyGroupStart
+impl<'g, GroupKey, GroupCtx, L> From<FmtGroupStart<'g, GroupKey, GroupCtx>> for PrettyGroupStart<L>
+where
+    for<'b> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>> + Display,
 {
     fn from(value: FmtGroupStart<'g, GroupKey, GroupCtx>) -> Self {
+        let label = L::from(&value);
+        let label = label.to_string();
         Self {
+            name: label,
             tests: value.tests,
-            name: value.key.to_string(),
+            _label_marker: PhantomData,
         }
     }
 }
 
-impl<'t, Extra: 't, GroupKey: Display + 't, GroupCtx: 't, W: io::Write + io::IsTerminal + Send>
-    GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx> for PrettyFormatter<W>
+#[derive(Debug, PartialEq, Eq)]
+pub struct PrettyGroupedRunOutcomes {
+    pub groups: usize,
+    pub passed: usize,
+    pub failed: usize,
+    pub ignored: usize,
+    pub filtered_out: usize,
+    pub duration: Duration,
+}
+
+impl<'t, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> for PrettyGroupedRunOutcomes {
+    fn from(value: FmtGroupedRunOutcomes<'t, 'o, GroupKey>) -> Self {
+        fn count_outcomes<'t, 'o, GroupKey, P>(
+            value: &FmtGroupedRunOutcomes<'t, 'o, GroupKey>,
+            predicate: P,
+        ) -> usize
+        where
+            P: Fn(&TestOutcome) -> bool,
+        {
+            value
+                .outcomes
+                .iter()
+                .map(|(_, outcomes)| {
+                    outcomes
+                        .iter()
+                        .filter(|(_, outcome)| predicate(outcome))
+                        .count()
+                })
+                .sum()
+        }
+
+        Self {
+            groups: value.outcomes.len(),
+            passed: count_outcomes(&value, TestOutcome::passed),
+            failed: count_outcomes(&value, TestOutcome::failed),
+            ignored: count_outcomes(&value, TestOutcome::ignored),
+            filtered_out: 0, // TODO: get proper value here
+            duration: value.duration,
+        }
+    }
+}
+
+impl<'t, Extra, GroupKey, GroupCtx, W, L> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
+    for PrettyFormatter<W, L>
+where
+    Extra: 't,
+    GroupKey: 't,
+    GroupCtx: 't,
+    W: io::Write + io::IsTerminal + Send,
+    L: Send + Display,
+    for<'b, 'g> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>>,
 {
-    type GroupStart = PrettyGroupStart;
+    type GroupedRunStart = PrettyTestCount;
+    fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
+        <PrettyFormatter<_, _> as TestFormatter<'_, Extra>>::fmt_run_start(self, data)
+    }
+
+    type GroupStart = PrettyGroupStart<L>;
     fn fmt_group_start(&mut self, data: Self::GroupStart) -> Result<(), Self::Error> {
         writeln!(self.target)?;
         writeln!(
@@ -191,13 +305,32 @@ impl<'t, Extra: 't, GroupKey: Display + 't, GroupCtx: 't, W: io::Write + io::IsT
         )
     }
 
-    type GroupedRunStart = ();
+    type GroupedRunOutcomes = PrettyGroupedRunOutcomes;
+    fn fmt_grouped_run_outcomes(
+        &mut self,
+        PrettyGroupedRunOutcomes {
+            groups,
+            passed,
+            failed,
+            ignored,
+            filtered_out,
+            duration,
+        }: Self::GroupedRunOutcomes,
+    ) -> Result<(), Self::Error> {
+        writeln!(self.target)?;
+        writeln!(
+            self.target,
+            "test result: ok. {passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; across {groups} groups finished in {:.2}s",
+            duration.as_secs_f64()
+        )?;
+        writeln!(self.target)
+    }
+
     type GroupOutcomes = ();
-    type GroupedRunOutcomes = ();
 }
 
-impl<'t, Extra: 't, W: io::Write + io::IsTerminal> TestListFormatter<'t, Extra>
-    for PrettyFormatter<W>
+impl<'t, Extra: 't, W: io::Write + io::IsTerminal, L> TestListFormatter<'t, Extra>
+    for PrettyFormatter<W, L>
 {
     type Error = io::Error;
 
