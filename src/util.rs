@@ -1,6 +1,6 @@
 use std::{iter::FusedIterator, ops::ControlFlow};
 
-trait IteratorExt: Iterator {
+pub trait IteratorExt: Iterator {
     #[must_use = "iterators are lazy and do nothing unless consumed"]
     fn map_until_inclusive<B, F>(self, f: F) -> impl FusedIterator<Item = B>
     where
@@ -30,5 +30,36 @@ where
             }
         })
         .fuse()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn continue_all_items() {
+        let input = [1, 2, 3];
+        let out: Vec<_> = input
+            .into_iter()
+            .map_until_inclusive(|x| ControlFlow::Continue(x * 2))
+            .collect();
+        assert_eq!(out, vec![2, 4, 6]);
+    }
+
+    #[test]
+    fn break_is_inclusive() {
+        let input = [1, 2, 3, 4, 5];
+        let out: Vec<_> = input
+            .into_iter()
+            .map_until_inclusive(|x| {
+                if x == 3 {
+                    ControlFlow::Break(x * 10)
+                } else {
+                    ControlFlow::Continue(x * 10)
+                }
+            })
+            .collect();
+        assert_eq!(out, vec![10, 20, 30]); // includes the break value, then stops
     }
 }
