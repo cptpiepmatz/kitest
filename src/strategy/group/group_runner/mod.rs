@@ -5,9 +5,6 @@ use crate::outcome::TestOutcome;
 mod simple;
 pub use simple::*;
 
-mod default;
-pub use default::*;
-
 pub type TestGroupOutcomes<'t> = Vec<(&'t str, TestOutcome)>;
 
 pub trait TestGroupRunner<'t, Extra, GroupKey, GroupCtx> {

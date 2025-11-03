@@ -3,7 +3,19 @@ use std::ops::ControlFlow;
 use crate::group::{TestGroupOutcomes, TestGroupRunner};
 
 #[derive(Debug, Default)]
-pub struct SimpleGroupRunner;
+pub struct SimpleGroupRunner {
+    keep_going: bool,
+}
+
+impl SimpleGroupRunner {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_keep_going(self, keep_going: bool) -> Self {
+        Self { keep_going }
+    }
+}
 
 impl<'t, Extra, GroupKey, GroupCtx> TestGroupRunner<'t, Extra, GroupKey, GroupCtx>
     for SimpleGroupRunner
@@ -17,6 +29,11 @@ impl<'t, Extra, GroupKey, GroupCtx> TestGroupRunner<'t, Extra, GroupKey, GroupCt
     where
         F: FnOnce() -> TestGroupOutcomes<'t>,
     {
-        ControlFlow::Continue(f())
+        let outcomes = f();
+        let any_bad = outcomes.iter().any(|(_, outcome)| outcome.is_bad());
+        match (self.keep_going, any_bad) {
+            (false, true) => ControlFlow::Break(outcomes),
+            (true, _) | (false, false) => ControlFlow::Continue(outcomes),
+        }
     }
 }
