@@ -11,6 +11,7 @@ use crate::{
     panic::TestPanicHandler,
     runner::TestRunner,
     test::Test,
+    util::IteratorExt,
 };
 
 #[derive(Debug)]
@@ -123,13 +124,10 @@ impl<
             let panic_handler = Arc::new(self.panic_handler);
             let runner = Arc::new(self.runner);
 
-            let group_runs = self.groups.into_groups().scan(
-                ControlFlow::Continue(()),
-                |control_flow, (key, tests)| {
-                    if *control_flow == ControlFlow::Break(()) {
-                        return None;
-                    }
-
+            let group_runs = self
+                .groups
+                .into_groups()
+                .map_until_inclusive(|(key, tests)| {
                     let now = Instant::now();
 
                     let ignore = Arc::clone(&ignore);
@@ -204,17 +202,15 @@ impl<
                         ctx,
                     );
 
-                    let outcomes = match outcomes {
-                        ControlFlow::Continue(outcomes) => outcomes,
-                        ControlFlow::Break(outcomes) => {
-                            *control_flow = ControlFlow::Break(());
-                            outcomes
+                    match outcomes {
+                        ControlFlow::Continue(out) => {
+                            ControlFlow::Continue((out, now.elapsed(), key, ctx))
                         }
-                    };
-
-                    Some((outcomes, now.elapsed(), key, ctx))
-                },
-            );
+                        ControlFlow::Break(out) => {
+                            ControlFlow::Break((out, now.elapsed(), key, ctx))
+                        }
+                    }
+                });
 
             let grouped_outcomes = group_runs
                 .inspect(|(outcomes, duration, key, ctx)| {
