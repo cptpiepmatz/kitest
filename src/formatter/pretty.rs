@@ -1,4 +1,4 @@
-use std::{io, time::Duration};
+use std::{fmt::Display, io, time::Duration};
 
 use crate::{formatter::*, outcome::TestStatus};
 
@@ -162,11 +162,36 @@ impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send> TestFormatter<'t, Extr
     type TestStart = ();
 }
 
-impl<'t, Extra: 't, GroupKey: 't, GroupCtx: 't, W: io::Write + io::IsTerminal + Send>
+pub struct PrettyGroupStart {
+    pub tests: usize,
+    pub name: String,
+}
+
+impl<'g, GroupKey: Display, GroupCtx> From<FmtGroupStart<'g, GroupKey, GroupCtx>>
+    for PrettyGroupStart
+{
+    fn from(value: FmtGroupStart<'g, GroupKey, GroupCtx>) -> Self {
+        Self {
+            tests: value.tests,
+            name: value.key.to_string(),
+        }
+    }
+}
+
+impl<'t, Extra: 't, GroupKey: Display + 't, GroupCtx: 't, W: io::Write + io::IsTerminal + Send>
     GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx> for PrettyFormatter<W>
 {
+    type GroupStart = PrettyGroupStart;
+    fn fmt_group_start(&mut self, data: Self::GroupStart) -> Result<(), Self::Error> {
+        writeln!(self.target)?;
+        writeln!(
+            self.target,
+            "group {}, running {} tests",
+            data.name, data.tests
+        )
+    }
+
     type GroupedRunStart = ();
-    type GroupStart = ();
     type GroupOutcomes = ();
     type GroupedRunOutcomes = ();
 }
