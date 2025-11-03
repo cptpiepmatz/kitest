@@ -29,28 +29,24 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
         F: (Fn() -> TestStatus) + Send + 's,
         Extra: 't,
     {
-        tests
-            .map(|(test, meta)| {
-                let now = Instant::now();
-                let status = test();
-                let duration = now.elapsed();
-                (
-                    meta,
-                    TestOutcome {
-                        status,
-                        duration,
-                        stdout: Vec::new(),
-                        stderr: Vec::new(),
-                        attachments: TestOutcomeAttachments::default(),
-                    },
-                )
-            })
-            .map_until_inclusive(
-                |(meta, outcome)| match (self.keep_going, outcome.failed()) {
-                    (false, true) => ControlFlow::Break((meta, outcome)),
-                    (true, _) | (false, false) => ControlFlow::Continue((meta, outcome)),
-                },
-            )
+        tests.map_until_inclusive(|(test, meta)| {
+            let now = Instant::now();
+            let status = test();
+            let duration = now.elapsed();
+
+            let outcome = TestOutcome {
+                status,
+                duration,
+                stdout: Vec::new(),
+                stderr: Vec::new(),
+                attachments: TestOutcomeAttachments::default(),
+            };
+
+            match (self.keep_going, outcome.failed()) {
+                (false, true) => ControlFlow::Break((meta, outcome)),
+                (true, _) | (false, false) => ControlFlow::Continue((meta, outcome)),
+            }
+        })
     }
 
     fn worker_count(&self, _: usize) -> NonZeroUsize {
