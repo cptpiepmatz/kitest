@@ -27,6 +27,8 @@ pub mod prelude {
     pub use std::borrow::Cow;
 }
 
+mod util;
+
 #[cfg(any(test, doctest))]
 mod test_support;
 
