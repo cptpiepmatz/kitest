@@ -18,6 +18,16 @@ pub struct TestOutcome {
 }
 
 impl TestOutcome {
+    pub fn is_good(&self) -> bool {
+        self.status.is_good()
+    }
+
+    pub fn is_bad(&self) -> bool {
+        self.status.is_bad()
+    }
+}
+
+impl TestOutcome {
     pub fn passed(&self) -> bool {
         self.status.passed()
     }
@@ -43,6 +53,19 @@ pub enum TestStatus {
     Ignored { reason: Option<Cow<'static, str>> },
     Failed(TestFailure),
     Other(BoxedWhatever),
+}
+
+impl TestStatus {
+    pub fn is_good(&self) -> bool {
+        matches!(
+            self,
+            TestStatus::Passed | TestStatus::Ignored { .. } | TestStatus::Other(_)
+        )
+    }
+
+    pub fn is_bad(&self) -> bool {
+        matches!(self, TestStatus::Failed(_) | TestStatus::TimedOut)
+    }
 }
 
 impl TestStatus {

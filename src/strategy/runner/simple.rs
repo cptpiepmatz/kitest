@@ -42,7 +42,7 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
                 attachments: TestOutcomeAttachments::default(),
             };
 
-            match (self.keep_going, outcome.failed()) {
+            match (self.keep_going, outcome.is_bad()) {
                 (false, true) => ControlFlow::Break((meta, outcome)),
                 (true, _) | (false, false) => ControlFlow::Continue((meta, outcome)),
             }

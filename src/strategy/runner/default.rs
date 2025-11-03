@@ -129,7 +129,7 @@ where
             && !self.terminate
             && let Some((_, outcome)) = out.as_ref()
         {
-            self.terminate = outcome.failed();
+            self.terminate = outcome.is_bad();
         }
         let next_job = match self.terminate {
             false => self.source.next(),
