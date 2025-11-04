@@ -298,10 +298,14 @@ where
     type GroupStart = PrettyGroupStart<L>;
     fn fmt_group_start(&mut self, data: Self::GroupStart) -> Result<(), Self::Error> {
         writeln!(self.target)?;
+        let group_name = match data.name.is_empty() {
+            true => "default",
+            false => data.name.as_str(),
+        };
         writeln!(
             self.target,
-            "group {}, running {} tests",
-            data.name, data.tests
+            "group {group_name}, running {} tests",
+            data.tests
         )
     }
 
