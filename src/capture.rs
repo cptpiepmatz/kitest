@@ -1,4 +1,9 @@
-use std::{cell::RefCell, mem};
+use std::{
+    cell::RefCell,
+    io::Write,
+    mem,
+    panic::{self, PanicHookInfo},
+};
 
 #[derive(Debug, Default)]
 pub struct TestOutputCapture {
@@ -20,6 +25,44 @@ impl TestOutputCapture {
         let stdout = mem::take(&mut self.stdout);
         let stderr = mem::take(&mut self.stderr);
         Self { stdout, stderr }
+    }
+}
+
+pub struct CapturePanicHookGuard(
+    Option<Box<dyn Fn(&PanicHookInfo<'_>) + Sync + Send + 'static>>,
+);
+
+impl CapturePanicHookGuard {
+    pub fn install() -> Self {
+        let old_hook = panic::take_hook();
+
+        panic::set_hook(Box::new(|panic_hook_info| {
+            if let Some(s) = panic_hook_info.payload().downcast_ref::<&str>() {
+                TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+                    capture
+                        .stderr
+                        .write(s.as_bytes())
+                        .expect("infallible for Vec<u8>")
+                });
+            } else if let Some(s) = panic_hook_info.payload().downcast_ref::<String>() {
+                TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+                    capture
+                        .stderr
+                        .write(s.as_bytes())
+                        .expect("infallible for Vec<u8>")
+                });
+            }
+        }));
+
+        Self(Some(old_hook))
+    }
+}
+
+impl Drop for CapturePanicHookGuard {
+    fn drop(&mut self) {
+        if let Some(old_hook) = self.0.take() {
+            panic::set_hook(old_hook);
+        }
     }
 }
 
@@ -93,4 +136,3 @@ macro_rules! dbg {
         ($($crate::dbg!($val)),+,)
     };
 }
-

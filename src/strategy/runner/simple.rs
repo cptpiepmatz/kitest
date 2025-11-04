@@ -1,7 +1,7 @@
 use std::{num::NonZeroUsize, ops::ControlFlow, thread::Scope, time::Instant};
 
 use crate::{
-    capture::{TEST_OUTPUT_CAPTURE, TestOutputCapture},
+    capture::{TEST_OUTPUT_CAPTURE, TestOutputCapture, CapturePanicHookGuard},
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
     runner::TestRunner,
     test::TestMeta,
@@ -30,6 +30,7 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
         F: (Fn() -> TestStatus) + Send + 's,
         Extra: 't,
     {
+        let _panic_hook = CapturePanicHookGuard::install();
         tests.map_until_inclusive(|(test, meta)| {
             let now = Instant::now();
             let status = test();

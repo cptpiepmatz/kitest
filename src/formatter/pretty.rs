@@ -324,7 +324,7 @@ where
         writeln!(self.target)?;
         writeln!(
             self.target,
-            "test result: ok. {passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; across {groups} groups finished in {:.2}s",
+            "test result: ok. {passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; across {groups} groups, finished in {:.2}s",
             duration.as_secs_f64()
         )?;
         writeln!(self.target)

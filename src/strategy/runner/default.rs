@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    capture::{TEST_OUTPUT_CAPTURE, TestOutputCapture},
+    capture::{TEST_OUTPUT_CAPTURE, TestOutputCapture, CapturePanicHookGuard},
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
     runner::TestRunner,
     test::TestMeta,
@@ -57,6 +57,7 @@ where
     wait_job: crossbeam_channel::Receiver<(&'t TestMeta<Extra>, TestOutcome)>,
     _scope: &'s Scope<'s, 't>,
     _workers: Vec<ScopedJoinHandle<'s, ()>>,
+    _panic_hook: CapturePanicHookGuard,
     keep_going: bool,
     terminate: bool,
 }
@@ -112,6 +113,7 @@ where
             wait_job: orx,
             _scope: scope,
             _workers: workers,
+            _panic_hook: CapturePanicHookGuard::install(),
             keep_going,
             terminate: false,
         }
