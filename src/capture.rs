@@ -68,3 +68,29 @@ macro_rules! eprintln {
         });
     }};
 }
+
+#[macro_export]
+macro_rules! dbg {
+    () => {
+        $crate::eprintln!("[{}:{}:{}]", ::std::file!(), ::std::line!(), ::std::column!())
+    };
+    ($val:expr $(,)?) => {
+        match $val {
+            tmp => {
+                $crate::eprintln!(
+                    "[{}:{}:{}] {} = {:#?}",
+                    ::std::file!(),
+                    ::std::line!(),
+                    ::std::column!(),
+                    ::std::stringify!($val),
+                    &&tmp as &dyn ::std::fmt::Debug,
+                );
+                tmp
+            }
+        }
+    };
+    ($($val:expr),+ $(,)?) => {
+        ($($crate::dbg!($val)),+,)
+    };
+}
+
