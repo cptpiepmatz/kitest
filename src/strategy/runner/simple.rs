@@ -1,6 +1,7 @@
 use std::{num::NonZeroUsize, ops::ControlFlow, thread::Scope, time::Instant};
 
 use crate::{
+    capture::{TEST_OUTPUT_CAPTURE, TestOutputCapture},
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
     runner::TestRunner,
     test::TestMeta,
@@ -33,12 +34,14 @@ impl<Extra> TestRunner<Extra> for SimpleRunner {
             let now = Instant::now();
             let status = test();
             let duration = now.elapsed();
+            let TestOutputCapture { stdout, stderr } =
+                TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| capture.take());
 
             let outcome = TestOutcome {
                 status,
                 duration,
-                stdout: Vec::new(),
-                stderr: Vec::new(),
+                stdout,
+                stderr,
                 attachments: TestOutcomeAttachments::default(),
             };
 

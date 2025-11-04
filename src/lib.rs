@@ -1,3 +1,4 @@
+pub mod capture;
 pub mod formatter;
 pub mod outcome;
 pub mod test;

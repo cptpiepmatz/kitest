@@ -6,6 +6,7 @@ use std::{
 };
 
 use crate::{
+    capture::{TEST_OUTPUT_CAPTURE, TestOutputCapture},
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
     runner::TestRunner,
     test::TestMeta,
@@ -84,13 +85,15 @@ where
                         let now = Instant::now();
                         let status = f();
                         let duration = now.elapsed();
+                        let TestOutputCapture { stdout, stderr } =
+                            TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| capture.take());
                         let send_outcome_res = otx.send((
                             meta,
                             TestOutcome {
                                 status,
                                 duration,
-                                stdout: Vec::new(),
-                                stderr: Vec::new(),
+                                stdout,
+                                stderr,
                                 attachments: TestOutcomeAttachments::default(),
                             },
                         ));
