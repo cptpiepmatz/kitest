@@ -28,9 +28,8 @@ impl TestOutputCapture {
     }
 }
 
-pub struct CapturePanicHookGuard(
-    Option<Box<dyn Fn(&PanicHookInfo<'_>) + Sync + Send + 'static>>,
-);
+type PanicHook = Box<dyn Fn(&PanicHookInfo<'_>) + Sync + Send + 'static>;
+pub struct CapturePanicHookGuard(Option<PanicHook>);
 
 impl CapturePanicHookGuard {
     pub fn install() -> Self {

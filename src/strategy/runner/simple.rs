@@ -1,7 +1,7 @@
 use std::{num::NonZeroUsize, ops::ControlFlow, thread::Scope, time::Instant};
 
 use crate::{
-    capture::{TEST_OUTPUT_CAPTURE, TestOutputCapture, CapturePanicHookGuard},
+    capture::{CapturePanicHookGuard, TEST_OUTPUT_CAPTURE, TestOutputCapture},
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
     runner::TestRunner,
     test::TestMeta,
