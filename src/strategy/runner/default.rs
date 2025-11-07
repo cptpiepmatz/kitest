@@ -17,14 +17,12 @@ use crate::{
 #[derive(Debug)]
 pub struct DefaultRunner {
     threads: NonZeroUsize,
-    keep_going: bool,
 }
 
 impl Default for DefaultRunner {
     fn default() -> Self {
         Self {
             threads: std::thread::available_parallelism().unwrap_or(NonZeroUsize::MIN),
-            keep_going: false,
         }
     }
 }
@@ -35,14 +33,7 @@ impl DefaultRunner {
     }
 
     pub fn with_thread_count(self, count: NonZeroUsize) -> Self {
-        Self {
-            threads: count,
-            ..self
-        }
-    }
-
-    pub fn with_keep_going(self, keep_going: bool) -> Self {
-        Self { keep_going, ..self }
+        Self { threads: count }
     }
 }
 
@@ -58,8 +49,6 @@ where
     _scope: &'s Scope<'s, 't>,
     _workers: Vec<ScopedJoinHandle<'s, ()>>,
     _panic_hook: CapturePanicHookGuard,
-    keep_going: bool,
-    terminate: bool,
 }
 
 impl<'t, 's, I, F, Extra: Sync> DefaultRunnerIterator<'t, 's, I, F, Extra>
@@ -68,12 +57,7 @@ where
     F: (Fn() -> TestStatus) + Send + 's,
     Extra: 't,
 {
-    fn new(
-        worker_count: NonZeroUsize,
-        mut iter: I,
-        scope: &'s Scope<'s, 't>,
-        keep_going: bool,
-    ) -> Self {
+    fn new(worker_count: NonZeroUsize, mut iter: I, scope: &'s Scope<'s, 't>) -> Self {
         let (itx, irx) = crossbeam_channel::bounded(worker_count.into());
         let (otx, orx) = crossbeam_channel::bounded(1);
         let workers = (0..worker_count.get())
@@ -114,8 +98,6 @@ where
             _scope: scope,
             _workers: workers,
             _panic_hook: CapturePanicHookGuard::install(),
-            keep_going,
-            terminate: false,
         }
     }
 }
@@ -130,16 +112,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let out = self.wait_job.recv().ok();
-        if !self.keep_going
-            && !self.terminate
-            && let Some((_, outcome)) = out.as_ref()
-        {
-            self.terminate = outcome.is_bad();
-        }
-        let next_job = match self.terminate {
-            false => self.source.next(),
-            true => None,
-        };
+        let next_job = self.source.next();
         if let Err(crossbeam_channel::SendError(Some((_, meta)))) = self.push_job.send(next_job) {
             // At the end we'll only send `None` values to signal workers to stop.
             // If sending `None` fails, that's fine — it just means all workers have exited.
@@ -163,7 +136,7 @@ impl<Extra: Sync> TestRunner<Extra> for DefaultRunner {
         Extra: 't,
     {
         let worker_count = <DefaultRunner as TestRunner<Extra>>::worker_count(self, tests.len());
-        DefaultRunnerIterator::new(worker_count, tests, scope, self.keep_going)
+        DefaultRunnerIterator::new(worker_count, tests, scope)
     }
 
     fn worker_count(&self, test_count: usize) -> NonZeroUsize {
@@ -173,7 +146,7 @@ impl<Extra: Sync> TestRunner<Extra> for DefaultRunner {
 
 #[cfg(test)]
 mod tests {
-    use std::{iter, thread, time::Duration};
+    use std::{thread, time::Duration};
 
     use super::*;
     use crate::test_support::*;
@@ -242,40 +215,5 @@ mod tests {
             .with_runner(DefaultRunner::default().with_thread_count(nonzero!(50)))
             .run();
         assert!(max.duration < Duration::from_millis(20) + PADDING);
-    }
-
-    #[test]
-    fn stop_pushing_new_jobs_after_fail() {
-        const TEST_DURATION: Duration = Duration::from_millis(100);
-
-        let tests: Vec<_> = (0..10)
-            .map(|_| test! {func: || thread::sleep(TEST_DURATION)})
-            .chain(iter::once(
-                test! {func: || {thread::sleep(TEST_DURATION); Err(())}},
-            ))
-            .chain((0..10).map(|_| test! {func: || thread::sleep(TEST_DURATION)}))
-            .collect();
-
-        let report = harness(&tests)
-            .with_runner(
-                DefaultRunner::new()
-                    .with_keep_going(false)
-                    .with_thread_count(nonzero!(4)),
-            )
-            .run();
-
-        // we don't stop immediately but in this range
-        assert!(report.outcomes.len() >= 11);
-        assert!(report.outcomes.len() <= 15);
-
-        let keep_going_report = harness(&tests)
-            .with_runner(
-                DefaultRunner::new()
-                    .with_keep_going(true)
-                    .with_thread_count(nonzero!(4)),
-            )
-            .run();
-
-        assert_eq!(keep_going_report.outcomes.len(), 21);
     }
 }

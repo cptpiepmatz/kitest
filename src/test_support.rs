@@ -75,7 +75,7 @@ pub fn harness<'t>(
         filter: NoFilter,
         ignore: NoIgnore,
         panic_handler: NoPanicHandler,
-        runner: SimpleRunner::default(),
+        runner: SimpleRunner,
         formatter: NoFormatter,
     }
 }

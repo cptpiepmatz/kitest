@@ -309,7 +309,7 @@ impl<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
             grouper,
             groups: TestGroupHashMap::default(),
             ignore: self.ignore,
-            group_runner: SimpleGroupRunner::default(),
+            group_runner: SimpleGroupRunner,
             panic_handler: self.panic_handler,
             runner: self.runner,
             formatter: self.formatter,

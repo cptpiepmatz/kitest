@@ -17,7 +17,7 @@ impl Default for SmartRunner {
     fn default() -> Self {
         Self {
             threshold: 4,
-            simple: SimpleRunner::default(),
+            simple: SimpleRunner,
             default: DefaultRunner::default(),
         }
     }
@@ -34,12 +34,6 @@ impl SmartRunner {
 
     pub fn with_threads(mut self, threads: NonZeroUsize) -> Self {
         self.default = self.default.with_thread_count(threads);
-        self
-    }
-
-    pub fn with_keep_going(mut self, keep_going: bool) -> Self {
-        self.simple = self.simple.with_keep_going(keep_going);
-        self.default = self.default.with_keep_going(keep_going);
         self
     }
 }

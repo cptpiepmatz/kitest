@@ -74,7 +74,7 @@ impl<'t> TestFormatter<'t, ()> for BasicFormatter {
 fn main() -> impl Termination {
     kitest::harness(TESTS)
         .with_filter(NoFilter)
-        .with_runner(SimpleRunner::default())
+        .with_runner(SimpleRunner)
         .with_ignore(NoIgnore)
         .with_panic_handler(NoPanicHandler)
         .with_formatter(BasicFormatter(io::stdout()))
