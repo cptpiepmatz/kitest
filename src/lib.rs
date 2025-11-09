@@ -36,3 +36,8 @@ mod test_support;
 /// Custom highlighted code?
 #[doc = include_str!("../doc/html/regular.ansi.html")]
 pub const WOW: &str = "WOW";
+
+#[test]
+fn some_test() -> Result<(), Box<dyn std::error::Error>> {
+    Err("lol".into())
+}

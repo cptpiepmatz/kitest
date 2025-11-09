@@ -2,9 +2,8 @@
 
 - [x] `--include-ignored`: Run ignored and not ignored tests
 - [x] `--ignored`: Run only ignored tests
-- [ ] `--exclude-should-panic`: Excludes tests marked as should_panic
 - [x] `--list`: List all tests and benchmarks
-- [ ] `--logfile PATH`: Write logs to the specified file (deprecated)
+- [x] `--logfile PATH`: Write logs to the specified file (deprecated)
 - [ ] `--no-capture`: Don't capture stdout/stderr of each task, allow printing directly
 - [x] `--test-threads n_threads`: Number of threads used for running tests in parallel
 - [x] `--skip FILTER`: Skip tests whose names contain FILTER (can be used multiple times)
@@ -23,6 +22,7 @@
 > [!NOTE]
 > If not otherwise required, these will not be implemented in some way.
 - `--force-run-in-process`: Forces tests to run in-process when panic=abort
+- `--exclude-should-panic`: Excludes tests marked as should_panic
 - `--test`: Run tests and not benchmarks
 - `--bench`: Run benchmarks instead of tests
 - `--help`: Display this message

@@ -5,7 +5,7 @@ use crate::{
         label::{FromGroupCtx, FromGroupKey, GroupLabel},
         *,
     },
-    outcome::TestStatus,
+    outcome::{TestFailure, TestStatus},
 };
 
 pub use super::common::{ColorSetting, TestName, colors::*};
@@ -161,7 +161,11 @@ impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send, L: Send> TestFormatter
 
     type TestOutcome = PrettyTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
-        write!(self.target, "test {} ... ", data.name)?;
+        write!(self.target, "test {}", data.name)?;
+        if let TestStatus::Failed(TestFailure::DidNotPanic { expected: None }) = data.status {
+            write!(self.target, " - should panic")?;
+        }
+        write!(self.target, " ... ")?;
         match (data.status, self.use_color()) {
             (TestStatus::Passed, true) => write!(self.target, "{GREEN}ok{RESET}")?,
             (TestStatus::Passed, false) => write!(self.target, "ok")?,
