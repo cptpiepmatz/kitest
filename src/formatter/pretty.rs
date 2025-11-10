@@ -115,16 +115,25 @@ impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for PrettyTestOutcome<'t
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct PrettyRunOutcomes {
+#[derive(Debug)]
+pub struct PrettyRunOutcomes<'t> {
     pub passed: usize,
     pub failed: usize,
     pub ignored: usize,
     pub filtered_out: usize,
     pub duration: Duration,
+    pub failures: Vec<PrettyFailure<'t>>,
 }
 
-impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes {
+#[derive(Debug)]
+pub struct PrettyFailure<'t> {
+    pub name: &'t str,
+    pub failure: TestFailure,
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+
+impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes<'t> {
     fn from(value: FmtRunOutcomes<'t, 'o>) -> Self {
         Self {
             passed: value
@@ -147,6 +156,22 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes {
                 .count(),
             filtered_out: value.filtered_out,
             duration: value.duration,
+            failures: value
+                .outcomes
+                .iter()
+                .filter_map(|(name, outcome)| {
+                    let TestStatus::Failed(failure) = &outcome.status else {
+                        return None;
+                    };
+
+                    Some(PrettyFailure {
+                        name,
+                        failure: failure.clone(),
+                        stdout: outcome.stdout.clone(),
+                        stderr: outcome.stderr.clone(),
+                    })
+                })
+                .collect(),
         }
     }
 }
@@ -200,7 +225,7 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
         writeln!(self.target)
     }
 
-    type RunOutcomes = PrettyRunOutcomes;
+    type RunOutcomes = PrettyRunOutcomes<'t>;
     fn fmt_run_outcomes(
         &mut self,
         PrettyRunOutcomes {
@@ -209,13 +234,37 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
             ignored,
             filtered_out,
             duration,
+            failures,
         }: Self::RunOutcomes,
     ) -> Result<(), Self::Error> {
-        // TODO: measured, maybe
+        if !failures.is_empty() {
+            writeln!(self.target)?;
+            writeln!(self.target, "failures:")?;
+            writeln!(self.target)?;
+            for failure in failures.iter() {
+                writeln!(self.target, "---- {} stdout ----", failure.name)?;
+                match &failure.failure {
+                    TestFailure::Error(err) => writeln!(self.target, "Error: {}", err)?,
+                    _ => todo!(),
+                }
+                writeln!(self.target)?;
+            }
+            writeln!(self.target)?;
+            writeln!(self.target, "failures:")?;
+            for failure in failures.iter() {
+                writeln!(self.target, "    {}", failure.name)?;
+            }
+        }
+
         writeln!(self.target)?;
+        write!(self.target, "test result: ")?;
+        match failed {
+            0 => write!(self.target, "ok. ")?,
+            _ => write!(self.target, "FAILED. ")?,
+        }
         writeln!(
             self.target,
-            "test result: ok. {passed} passed; {failed} failed; {ignored} ignored; 0 measured; {filtered_out} filtered out; finished in {:.2}s",
+            "{passed} passed; {failed} failed; {ignored} ignored; 0 measured; {filtered_out} filtered out; finished in {:.2}s",
             duration.as_secs_f64()
         )?;
         writeln!(self.target)
@@ -332,9 +381,14 @@ where
         }: Self::GroupedRunOutcomes,
     ) -> Result<(), Self::Error> {
         writeln!(self.target)?;
+        write!(self.target, "test result: ")?;
+        match failed {
+            0 => write!(self.target, "ok. ")?,
+            _ => write!(self.target, "FAILED. ")?,
+        }
         writeln!(
             self.target,
-            "test result: ok. {passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; across {groups} groups, finished in {:.2}s",
+            "{passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; across {groups} groups, finished in {:.2}s",
             duration.as_secs_f64()
         )?;
         writeln!(self.target)

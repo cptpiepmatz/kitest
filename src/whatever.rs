@@ -1,4 +1,7 @@
-use std::{any::Any, fmt::{self, Debug, Display, Formatter}};
+use std::{
+    any::Any,
+    fmt::{self, Debug, Display, Formatter},
+};
 
 pub struct Whatever(Box<dyn WhateverImpl>);
 
@@ -16,7 +19,9 @@ where
     }
 
     fn eq_whatever(&self, other: &Whatever) -> bool {
-        let Some(other) = other.downcast_ref() else { return false };
+        let Some(other) = other.downcast_ref() else {
+            return false;
+        };
         self.eq(other)
     }
 }
@@ -51,7 +56,7 @@ impl Whatever {
     pub fn from<T: Debug + Display + Clone + Eq + Send + Sync + 'static>(value: T) -> Whatever {
         Self(Box::new(value))
     }
-    
+
     pub fn downcast<T: Send + Sync + 'static>(self) -> Result<Box<T>, Box<dyn Any + Send + Sync>> {
         (self.0 as Box<dyn Any + Send + Sync>).downcast::<T>()
     }
