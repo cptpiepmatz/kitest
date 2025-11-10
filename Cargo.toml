@@ -17,3 +17,4 @@ members = ["examples/macros/support", "doc"]
 [dev-dependencies]
 linkme = "0.3.35"
 macros-support = { path = "./examples/macros/support" }
+pretty_assertions = "1.4.1"

@@ -13,6 +13,9 @@ use kitest::formatter::common::color::SupportsColor;
 mod lib;
 mod snapshots;
 
+#[macro_use]
+extern crate pretty_assertions;
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum Error {
