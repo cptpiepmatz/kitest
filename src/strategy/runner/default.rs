@@ -173,6 +173,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(all(ci, target_os = "macos"), ignore = "too slow on macos")]
     fn thread_count_works() {
         let tests: Vec<_> = (0..4)
             .map(|idx| {
