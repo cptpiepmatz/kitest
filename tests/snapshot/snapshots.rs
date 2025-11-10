@@ -1,5 +1,3 @@
-use kitest::formatter::pretty::PrettyFormatter;
-
 use crate::lib::snapshot;
 
 snapshot!(single_ok: [one_test]);

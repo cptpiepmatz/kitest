@@ -11,7 +11,7 @@ use std::{
 use kitest::formatter::common::color::SupportsColor;
 
 mod lib;
-mod tests;
+mod snapshots;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -58,7 +58,7 @@ impl Buffer {
 
 // rustc --test tests/snapshot.rs --cfg=snapshot --out-dir=target/snapshot
 fn build_cargo_test(name: &str) -> io::Result<String> {
-    let file = format!("tests/snapshot/tests/{name}.rs");
+    let file = format!("tests/snapshot/snapshots/{name}.rs");
     let args = [
         &file,
         "--test",

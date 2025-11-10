@@ -23,7 +23,11 @@ macro_rules! snapshot {
 
             let actual = crate::Buffer::default();
             let report = kitest::harness(&tests)
-                .with_formatter(PrettyFormatter::default().with_target(actual.clone()))
+                .with_formatter(
+                    kitest::formatter::pretty::PrettyFormatter::default()
+                        .with_target(actual.clone())
+                    )
+                .with_runner(kitest::runner::SimpleRunner)
                 .run();
 
             let actual = actual.try_to_string().unwrap();
