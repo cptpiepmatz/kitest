@@ -194,8 +194,8 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
             (TestStatus::TimedOut, false) => write!(self.target, "timed out")?,
             (TestStatus::Failed(_test_failure), true) => write!(self.target, "{RED}FAILED{RESET}")?,
             (TestStatus::Failed(_test_failure), false) => write!(self.target, "FAILED")?,
-            (TestStatus::Other(_), true) => write!(self.target, "{RED}error{RESET}")?,
-            (TestStatus::Other(_), false) => write!(self.target, "error")?,
+            (TestStatus::Other(_), true) => write!(self.target, "{CYAN}other{RESET}")?,
+            (TestStatus::Other(_), false) => write!(self.target, "other")?,
         };
         writeln!(self.target)
     }
