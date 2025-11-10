@@ -167,35 +167,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(ci, ignore = "ci too slow to reproduce this every time")]
-    #[ignore]
-    fn filter_exact_is_faster() {
-        let tests: Vec<_> = (0..1000)
-            .map(|idx| test! {name: format!("test_{idx}")})
-            .collect();
-
-        let not_exact_report = harness(&tests)
-            .with_filter(
-                DefaultFilter::default()
-                    .with_filter(["test_500"])
-                    .with_exact(false),
-            )
-            .run();
-        assert_eq!(not_exact_report.outcomes.len(), 1);
-
-        let exact_report = harness(&tests)
-            .with_filter(
-                DefaultFilter::default()
-                    .with_filter(["test_500"])
-                    .with_exact(true),
-            )
-            .run();
-        assert_eq!(exact_report.outcomes.len(), 1);
-
-        assert!(exact_report.duration < not_exact_report.duration);
-    }
-
-    #[test]
     fn skipping_tests_works() {
         let tests = &[
             test! {name: "cool_test"},
