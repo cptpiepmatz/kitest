@@ -1,5 +1,5 @@
 use std::{
-    io, process::{Command, ExitStatus}, string::FromUtf8Error, sync::{Arc, Mutex}
+    io, path::Path, process::{Command, ExitCode, ExitStatus}, string::FromUtf8Error, sync::{Arc, Mutex}
 };
 
 use kitest::{
@@ -8,6 +8,14 @@ use kitest::{
     panic::PanicExpectation,
     test::{Test, TestFnHandle, TestMeta},
 };
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum Error {
+    Io(io::Error),
+    Poison,
+    FromUtf8(FromUtf8Error),
+}
 
 #[derive(Debug, Default, Clone)]
 struct Buffer(Arc<Mutex<Vec<u8>>>);
@@ -36,18 +44,11 @@ impl SupportsColor for Buffer {
     }
 }
 
-#[derive(Debug)]
-#[allow(dead_code)]
-enum BufferToStringError {
-    Poison,
-    FromUtf8(FromUtf8Error),
-}
-
 impl Buffer {
-    fn try_to_string(&self) -> Result<String, BufferToStringError> {
-        let guard = self.0.lock().map_err(|_| BufferToStringError::Poison)?;
+    fn try_to_string(&self) -> Result<String, Error> {
+        let guard = self.0.lock().map_err(|_| Error::Poison)?;
         let string =
-            String::from_utf8(guard.to_vec()).map_err(|err| BufferToStringError::FromUtf8(err))?;
+            String::from_utf8(guard.to_vec()).map_err(Error::FromUtf8)?;
         Ok(string)
     }
 }
@@ -68,11 +69,26 @@ fn build_cargo_test(name: &str) -> io::Result<String> {
     Ok(file_name.trim().to_string())
 }
 
+struct RustDocTestReport {
+    stdout: String,
+    exit_code: ExitCode,
+}
+
+fn run_rust_doc_test(path: impl AsRef<Path>) -> Result<RustDocTestReport, Error> {
+    let output = Command::new(path.as_ref()).arg("--test-threads=1").output().map_err(Error::Io)?;
+    let stdout = String::from_utf8(output.stdout).map_err(Error::FromUtf8)?;
+    let exit_code = match output.status.success() {
+        true => ExitCode::SUCCESS,
+        false => ExitCode::FAILURE,
+    };
+    Ok(RustDocTestReport { stdout, exit_code })
+}
+
 mod all_ok;
 #[test]
 fn all_ok() {
     let file_name = build_cargo_test("all_ok").unwrap();
-    let expected = Command::new(format!("target/snapshot/{file_name}")).output().unwrap();
+    let expected = Command::new(format!("target/snapshot/{file_name}")).arg("--test-threads=1").output().unwrap();
     assert!(expected.status.success());
     let expected = String::from_utf8(expected.stdout).unwrap();
 
