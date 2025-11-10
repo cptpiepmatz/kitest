@@ -158,7 +158,10 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
 
     type RunStart = PrettyTestCount;
     fn fmt_run_start(&mut self, data: Self::RunStart) -> Result<(), Self::Error> {
-        writeln!(self.target, "\nrunning {} tests", data.0)
+        match data.0 {
+            1 => writeln!(self.target, "\nrunning 1 test"),
+            count => writeln!(self.target, "\nrunning {count} test"),
+        }
     }
 
     type TestOutcome = PrettyTestOutcome<'t>;
@@ -208,10 +211,11 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
             duration,
         }: Self::RunOutcomes,
     ) -> Result<(), Self::Error> {
+        // TODO: measured, maybe
         writeln!(self.target)?;
         writeln!(
             self.target,
-            "test result: ok. {passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; finished in {:.2}s",
+            "test result: ok. {passed} passed; {failed} failed; {ignored} ignored; 0 measured; {filtered_out} filtered out; finished in {:.2}s",
             duration.as_secs_f64()
         )?;
         writeln!(self.target)
