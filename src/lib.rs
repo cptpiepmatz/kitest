@@ -36,4 +36,3 @@ mod test_support;
 /// Custom highlighted code?
 #[doc = include_str!("../doc/html/regular.ansi.html")]
 pub const WOW: &str = "WOW";
-

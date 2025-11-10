@@ -1,7 +1,7 @@
 use crate::formatter::FmtListTest;
 
-pub mod label;
 pub mod color;
+pub mod label;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TestName<'t>(pub &'t str);

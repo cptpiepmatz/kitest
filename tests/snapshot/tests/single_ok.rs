@@ -1,2 +1,2 @@
 #[cfg_attr(snapshot, test)]
-pub fn ok_1() {}
+pub fn one_test() {}

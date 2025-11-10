@@ -160,7 +160,7 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
     fn fmt_run_start(&mut self, data: Self::RunStart) -> Result<(), Self::Error> {
         match data.0 {
             1 => writeln!(self.target, "\nrunning 1 test"),
-            count => writeln!(self.target, "\nrunning {count} test"),
+            count => writeln!(self.target, "\nrunning {count} tests"),
         }
     }
 

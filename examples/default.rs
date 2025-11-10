@@ -1,7 +1,7 @@
 use std::{borrow::Cow, process::Termination};
 
 use kitest::{
-    formatter::{pretty::PrettyFormatter, terse::ColorSetting},
+    formatter::{common::color::ColorSetting, pretty::PrettyFormatter},
     ignore::IgnoreStatus,
     panic::PanicExpectation,
     test::{Test, TestFnHandle, TestMeta},
