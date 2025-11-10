@@ -5,7 +5,7 @@ use std::io;
 use crate::{
     filter::DefaultFilter,
     formatter::{
-        label::{FromGroupKey, GroupLabel},
+        common::label::{FromGroupKey, GroupLabel},
         pretty::PrettyFormatter,
     },
     ignore::DefaultIgnore,

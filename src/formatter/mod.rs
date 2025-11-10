@@ -7,8 +7,7 @@ use crate::{
     test::{Test, TestMeta},
 };
 
-mod common;
-pub mod label;
+pub mod common;
 
 pub mod no;
 pub mod pretty;

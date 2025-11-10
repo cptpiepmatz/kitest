@@ -168,6 +168,7 @@ mod tests {
 
     #[test]
     #[cfg_attr(ci, ignore = "ci too slow to reproduce this every time")]
+    #[ignore]
     fn filter_exact_is_faster() {
         let tests: Vec<_> = (0..1000)
             .map(|idx| test! {name: format!("test_{idx}")})

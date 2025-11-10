@@ -2,27 +2,29 @@ use std::{fmt::Display, io, marker::PhantomData, time::Duration};
 
 use crate::{
     formatter::{
-        label::{FromGroupCtx, FromGroupKey, GroupLabel},
+        common::{
+            TestName,
+            color::{ColorSetting, SupportsColor, colors::*},
+            label::{FromGroupCtx, FromGroupKey, GroupLabel},
+        },
         *,
     },
     outcome::{TestFailure, TestStatus},
 };
 
-pub use super::common::{ColorSetting, TestName, colors::*};
-
 #[derive(Debug)]
-pub struct PrettyFormatter<W: io::Write + io::IsTerminal, L> {
+pub struct PrettyFormatter<W: io::Write + SupportsColor, L> {
     target: W,
     color_settings: ColorSetting,
     _label_marker: PhantomData<L>,
 }
 
-impl<W: io::Write + io::IsTerminal, L> PrettyFormatter<W, L> {
+impl<W: io::Write + SupportsColor, L> PrettyFormatter<W, L> {
     pub fn new() -> PrettyFormatter<io::Stdout, GroupLabel<FromGroupKey>> {
         PrettyFormatter::default()
     }
 
-    pub fn with_target<WithTarget: io::Write + io::IsTerminal>(
+    pub fn with_target<WithTarget: io::Write + SupportsColor>(
         self,
         target: WithTarget,
     ) -> PrettyFormatter<WithTarget, L> {
@@ -67,10 +69,10 @@ impl Default for PrettyFormatter<io::Stdout, GroupLabel<FromGroupKey>> {
     }
 }
 
-impl<W: io::Write + io::IsTerminal, L> PrettyFormatter<W, L> {
+impl<W: io::Write + SupportsColor, L> PrettyFormatter<W, L> {
     pub fn use_color(&self) -> bool {
         match self.color_settings {
-            ColorSetting::Automatic => self.target.is_terminal(),
+            ColorSetting::Automatic => self.target.supports_color(),
             ColorSetting::Always => true,
             ColorSetting::Never => false,
         }
@@ -149,7 +151,7 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes {
     }
 }
 
-impl<'t, Extra: 't, W: io::Write + io::IsTerminal + Send, L: Send> TestFormatter<'t, Extra>
+impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<'t, Extra>
     for PrettyFormatter<W, L>
 {
     type Error = io::Error;
@@ -290,7 +292,7 @@ where
     Extra: 't,
     GroupKey: 't,
     GroupCtx: 't,
-    W: io::Write + io::IsTerminal + Send,
+    W: io::Write + SupportsColor + Send,
     L: Send + Display,
     for<'b, 'g> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>>,
 {

@@ -1,4 +1,4 @@
-use crate::formatter::FmtListTest;
+use std::io;
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 pub enum ColorSetting {
@@ -15,11 +15,12 @@ pub(crate) mod colors {
     pub const YELLOW: &str = "\x1b[33m";
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct TestName<'t>(pub &'t str);
+pub trait SupportsColor {
+    fn supports_color(&self) -> bool;
+}
 
-impl<'t, Extra> From<FmtListTest<'t, Extra>> for TestName<'t> {
-    fn from(value: FmtListTest<'t, Extra>) -> Self {
-        Self(value.meta.name.as_ref())
+impl<T: io::IsTerminal> SupportsColor for T {
+    fn supports_color(&self) -> bool {
+        self.is_terminal()
     }
 }

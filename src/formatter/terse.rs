@@ -1,8 +1,6 @@
 pub use std::io;
 
-use crate::formatter::*;
-
-pub use super::common::{ColorSetting, TestName};
+use crate::formatter::{common::{TestName, color::{ColorSetting}}, *};
 
 #[derive(Debug)]
 pub struct TerseFormatter<W: io::Write> {
