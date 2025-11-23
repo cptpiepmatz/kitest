@@ -13,11 +13,11 @@ use crate::{
 pub struct DefaultPanicHandler;
 
 impl DefaultPanicHandler {
-    pub fn downcast_panic_err(err: Box<dyn Any + Send + 'static>) -> String {
+    pub fn payload_as_string(err: Box<dyn Any + Send + 'static>) -> String {
         err.downcast::<&'static str>()
             .map(|s| s.to_string())
             .or_else(|err| err.downcast::<String>().map(|s| *s))
-            .unwrap_or_else(|_| String::from("non-string panic payload"))
+            .unwrap_or_else(|_| String::from("Box<dyn Any>"))
     }
 }
 
@@ -37,11 +37,11 @@ impl<Extra> TestPanicHandler<Extra> for DefaultPanicHandler {
                 }
             }
             (Err(err), PanicExpectation::ShouldNotPanic) => {
-                TestFailure::Panicked(Self::downcast_panic_err(err))
+                TestFailure::Panicked(Self::payload_as_string(err))
             }
             (Err(_), PanicExpectation::ShouldPanic) => return TestStatus::Passed,
             (Err(err), PanicExpectation::ShouldPanicWithExpected(expected)) => {
-                let msg = Self::downcast_panic_err(err);
+                let msg = Self::payload_as_string(err);
                 match msg.contains(expected.as_ref()) {
                     true => return TestStatus::Passed,
                     false => TestFailure::PanicMismatch {

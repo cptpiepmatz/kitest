@@ -245,6 +245,7 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
                 writeln!(self.target, "---- {} stdout ----", failure.name)?;
                 match &failure.failure {
                     TestFailure::Error(err) => writeln!(self.target, "Error: {}", err)?,
+                    TestFailure::Panicked(msg) => writeln!(self.target, "{msg}")?,
                     _ => todo!(),
                 }
                 writeln!(self.target)?;

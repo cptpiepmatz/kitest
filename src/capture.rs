@@ -1,4 +1,5 @@
 use std::{
+    any::Any,
     cell::RefCell,
     io::Write,
     mem,
@@ -27,6 +28,16 @@ impl TestOutputCapture {
         Self { stdout, stderr }
     }
 }
+
+fn payload_as_str(payload: &dyn Any) -> &str {
+    payload
+        .downcast_ref::<&str>()
+        .map(|s| *s)
+        .or_else(|| payload.downcast_ref::<String>().map(|s| s.as_str()))
+        .unwrap_or("Box<dyn Any>")
+}
+
+pub fn default_panic_hook(hook_info: &PanicHookInfo<'_>) {}
 
 type PanicHook = Box<dyn Fn(&PanicHookInfo<'_>) + Sync + Send + 'static>;
 pub struct CapturePanicHookGuard(Option<PanicHook>);
