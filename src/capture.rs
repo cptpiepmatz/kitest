@@ -1,10 +1,16 @@
 use std::{
     any::Any,
+    backtrace::Backtrace,
     cell::RefCell,
     fmt::Debug,
-    io::Write,
+    io::{self, Write},
     mem,
-    panic::{self, PanicHookInfo, set_hook},
+    panic::{self, PanicHookInfo},
+    sync::{
+        LazyLock,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread,
 };
 
 #[derive(Debug, Default)]
@@ -46,22 +52,41 @@ fn payload_as_str(payload: &dyn Any) -> &str {
         .unwrap_or("Box<dyn Any>")
 }
 
+static FIRST_PANIC: AtomicBool = AtomicBool::new(true);
+static DISABLED_BACKTRACE: LazyLock<String> =
+    LazyLock::new(|| format!("{}", Backtrace::disabled()));
+
 fn default_panic_hook(panic_hook_info: &PanicHookInfo<'_>) {
-    if let Some(s) = panic_hook_info.payload().downcast_ref::<&str>() {
-        TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+    // for reference: https://github.com/rust-lang/rust/blob/dfe1b8c97bcde283102f706d5dcdc3649e5e12e3/library/std/src/panicking.rs#L240
+
+    TEST_OUTPUT_CAPTURE
+        .with_borrow_mut(|capture| {
+            let thread = thread::current();
+            let name = thread.name().unwrap_or("<unnamed>");
+            let tid = thread.id();
+
             capture
                 .stderr
-                .write(s.as_bytes())
-                .expect("infallible for Vec<u8>")
-        });
-    } else if let Some(s) = panic_hook_info.payload().downcast_ref::<String>() {
-        TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
-            capture
-                .stderr
-                .write(s.as_bytes())
-                .expect("infallible for Vec<u8>")
-        });
-    }
+                .write_fmt(format_args!("\nthread '{name}' ({tid:?}) panicked"))?;
+
+            if let Some(location) = panic_hook_info.location() {
+                capture.stderr.write_fmt(format_args!(" at {location}"))?;
+            }
+
+            let payload = payload_as_str(panic_hook_info.payload());
+            capture.stderr.write_fmt(format_args!(":\n{payload}\n"))?;
+
+            let backtrace = Backtrace::capture();
+            let backtrace = format!("{backtrace}");
+            match backtrace.as_str() == DISABLED_BACKTRACE.as_str() {
+            true => capture.stderr.write_all(backtrace.as_bytes()),
+            false if FIRST_PANIC.swap(false, Ordering::Relaxed) => capture.stderr.write_all(
+                b"note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+            ),
+            false => Ok(())
+        }
+        })
+        .expect("infallible for Vec<u8>");
 }
 
 #[derive(Debug, Default)]
