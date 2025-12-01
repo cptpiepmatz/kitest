@@ -1,12 +1,16 @@
 use std::{
     cmp,
+    fmt::Debug,
     num::NonZeroUsize,
     thread::{Scope, ScopedJoinHandle},
     time::Instant,
 };
 
 use crate::{
-    capture::{CapturePanicHookGuard, TEST_OUTPUT_CAPTURE, TestOutputCapture},
+    capture::{
+        self, CapturePanicHookGuard, DefaultPanicHookProvider, PanicHook, PanicHookProvider,
+        TEST_OUTPUT_CAPTURE, TestOutputCapture,
+    },
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
     runner::TestRunner,
     test::TestMeta,
@@ -15,25 +19,40 @@ use crate::{
 // TODO: add early aborting and keep going flag
 
 #[derive(Debug)]
-pub struct DefaultRunner {
+pub struct DefaultRunner<PanicHookProvider> {
     threads: NonZeroUsize,
+    panic_hook_provider: PanicHookProvider,
 }
 
-impl Default for DefaultRunner {
+impl Default for DefaultRunner<DefaultPanicHookProvider> {
     fn default() -> Self {
         Self {
             threads: std::thread::available_parallelism().unwrap_or(NonZeroUsize::MIN),
+            panic_hook_provider: DefaultPanicHookProvider,
         }
     }
 }
 
-impl DefaultRunner {
-    pub fn new() -> Self {
-        Self::default()
+impl<PanicHookProvider> DefaultRunner<PanicHookProvider> {
+    pub fn new() -> DefaultRunner<DefaultPanicHookProvider> {
+        DefaultRunner::default()
     }
 
     pub fn with_thread_count(self, count: NonZeroUsize) -> Self {
-        Self { threads: count }
+        Self {
+            threads: count,
+            ..self
+        }
+    }
+
+    pub fn with_panic_hook_provider<WithPanicHookProvider>(
+        self,
+        panic_hook_provider: WithPanicHookProvider,
+    ) -> DefaultRunner<WithPanicHookProvider> {
+        DefaultRunner {
+            threads: self.threads,
+            panic_hook_provider,
+        }
     }
 }
 
@@ -57,7 +76,12 @@ where
     F: (Fn() -> TestStatus) + Send + 's,
     Extra: 't,
 {
-    fn new(worker_count: NonZeroUsize, mut iter: I, scope: &'s Scope<'s, 't>) -> Self {
+    fn new(
+        worker_count: NonZeroUsize,
+        mut iter: I,
+        scope: &'s Scope<'s, 't>,
+        panic_hook: PanicHook,
+    ) -> Self {
         let (itx, irx) = crossbeam_channel::bounded(worker_count.into());
         let (otx, orx) = crossbeam_channel::bounded(1);
         let workers = (0..worker_count.get())
@@ -97,7 +121,7 @@ where
             wait_job: orx,
             _scope: scope,
             _workers: workers,
-            _panic_hook: CapturePanicHookGuard::install(),
+            _panic_hook: CapturePanicHookGuard::install(panic_hook),
         }
     }
 }
@@ -124,7 +148,10 @@ where
     }
 }
 
-impl<Extra: Sync> TestRunner<Extra> for DefaultRunner {
+impl<P, Extra: Sync> TestRunner<Extra> for DefaultRunner<P>
+where
+    P: PanicHookProvider,
+{
     fn run<'t, 's, I, F>(
         &self,
         tests: I,
@@ -135,8 +162,13 @@ impl<Extra: Sync> TestRunner<Extra> for DefaultRunner {
         F: (Fn() -> TestStatus) + Send + 's,
         Extra: 't,
     {
-        let worker_count = <DefaultRunner as TestRunner<Extra>>::worker_count(self, tests.len());
-        DefaultRunnerIterator::new(worker_count, tests, scope)
+        let worker_count = <DefaultRunner<_> as TestRunner<Extra>>::worker_count(self, tests.len());
+        DefaultRunnerIterator::new(
+            worker_count,
+            tests,
+            scope,
+            self.panic_hook_provider.provide(),
+        )
     }
 
     fn worker_count(&self, test_count: usize) -> NonZeroUsize {

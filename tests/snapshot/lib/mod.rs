@@ -27,7 +27,7 @@ macro_rules! snapshot {
                     kitest::formatter::pretty::PrettyFormatter::default()
                         .with_target(actual.clone())
                     )
-                .with_runner(kitest::runner::SimpleRunner)
+                .with_runner(kitest::runner::SimpleRunner::default())
                 .run();
 
             let actual = actual.try_to_string().unwrap();

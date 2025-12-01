@@ -1,31 +1,32 @@
 use std::{num::NonZeroUsize, thread::Scope};
 
 use crate::{
+    capture::{DefaultPanicHookProvider, PanicHookProvider},
     outcome::{TestOutcome, TestStatus},
     runner::{DefaultRunner, SimpleRunner, TestRunner},
     test::TestMeta,
 };
 
 #[derive(Debug)]
-pub struct SmartRunner {
+pub struct SmartRunner<PanicHookProvider> {
     threshold: usize,
-    simple: SimpleRunner,
-    default: DefaultRunner,
+    simple: SimpleRunner<PanicHookProvider>,
+    default: DefaultRunner<PanicHookProvider>,
 }
 
-impl Default for SmartRunner {
+impl Default for SmartRunner<DefaultPanicHookProvider> {
     fn default() -> Self {
         Self {
             threshold: 4,
-            simple: SimpleRunner,
+            simple: SimpleRunner::default(),
             default: DefaultRunner::default(),
         }
     }
 }
 
-impl SmartRunner {
-    pub fn new() -> Self {
-        Self::default()
+impl<P> SmartRunner<P> {
+    pub fn new() -> SmartRunner<DefaultPanicHookProvider> {
+        SmartRunner::default()
     }
 
     pub fn with_threshold(self, threshold: usize) -> Self {
@@ -35,6 +36,17 @@ impl SmartRunner {
     pub fn with_threads(mut self, threads: NonZeroUsize) -> Self {
         self.default = self.default.with_thread_count(threads);
         self
+    }
+
+    pub fn with_panic_hook_provider<WithPanicHookProvider: Clone>(
+        self,
+        panic_hook_provider: WithPanicHookProvider,
+    ) -> SmartRunner<WithPanicHookProvider> {
+        SmartRunner {
+            threshold: self.threshold,
+            simple: self.simple.with_panic_hook_provider(panic_hook_provider.clone()),
+            default: self.default.with_panic_hook_provider(panic_hook_provider),
+        }
     }
 }
 
@@ -59,7 +71,7 @@ where
     }
 }
 
-impl<Extra: Sync> TestRunner<Extra> for SmartRunner {
+impl<P: PanicHookProvider, Extra: Sync> TestRunner<Extra> for SmartRunner<P> {
     fn run<'t, 's, I, F>(
         &self,
         tests: I,
@@ -71,12 +83,12 @@ impl<Extra: Sync> TestRunner<Extra> for SmartRunner {
         Extra: 't,
     {
         match tests.len() <= self.threshold {
-            true => SmartRunnerIterator::Simple(<SimpleRunner as TestRunner<Extra>>::run(
+            true => SmartRunnerIterator::Simple(<SimpleRunner<_> as TestRunner<Extra>>::run(
                 &self.simple,
                 tests,
                 scope,
             )),
-            false => SmartRunnerIterator::Default(<DefaultRunner as TestRunner<Extra>>::run(
+            false => SmartRunnerIterator::Default(<DefaultRunner<_> as TestRunner<Extra>>::run(
                 &self.default,
                 tests,
                 scope,
@@ -86,8 +98,8 @@ impl<Extra: Sync> TestRunner<Extra> for SmartRunner {
 
     fn worker_count(&self, test_count: usize) -> NonZeroUsize {
         match test_count <= self.threshold {
-            true => <SimpleRunner as TestRunner<Extra>>::worker_count(&self.simple, test_count),
-            false => <DefaultRunner as TestRunner<Extra>>::worker_count(&self.default, test_count),
+            true => <SimpleRunner<_> as TestRunner<Extra>>::worker_count(&self.simple, test_count),
+            false => <DefaultRunner<_> as TestRunner<Extra>>::worker_count(&self.default, test_count),
         }
     }
 }

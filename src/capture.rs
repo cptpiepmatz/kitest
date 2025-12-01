@@ -1,9 +1,10 @@
 use std::{
     any::Any,
     cell::RefCell,
+    fmt::Debug,
     io::Write,
     mem,
-    panic::{self, PanicHookInfo},
+    panic::{self, PanicHookInfo, set_hook},
 };
 
 #[derive(Debug, Default)]
@@ -29,6 +30,14 @@ impl TestOutputCapture {
     }
 }
 
+// TODO: move this into another module?
+
+pub type PanicHook = Box<dyn Fn(&PanicHookInfo<'_>) + Sync + Send + 'static>;
+
+pub trait PanicHookProvider: Debug {
+    fn provide(&self) -> PanicHook;
+}
+
 fn payload_as_str(payload: &dyn Any) -> &str {
     payload
         .downcast_ref::<&str>()
@@ -37,33 +46,39 @@ fn payload_as_str(payload: &dyn Any) -> &str {
         .unwrap_or("Box<dyn Any>")
 }
 
-pub fn default_panic_hook(hook_info: &PanicHookInfo<'_>) {}
+fn default_panic_hook(panic_hook_info: &PanicHookInfo<'_>) {
+    if let Some(s) = panic_hook_info.payload().downcast_ref::<&str>() {
+        TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+            capture
+                .stderr
+                .write(s.as_bytes())
+                .expect("infallible for Vec<u8>")
+        });
+    } else if let Some(s) = panic_hook_info.payload().downcast_ref::<String>() {
+        TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+            capture
+                .stderr
+                .write(s.as_bytes())
+                .expect("infallible for Vec<u8>")
+        });
+    }
+}
 
-type PanicHook = Box<dyn Fn(&PanicHookInfo<'_>) + Sync + Send + 'static>;
+#[derive(Debug, Default)]
+pub struct DefaultPanicHookProvider;
+
+impl PanicHookProvider for DefaultPanicHookProvider {
+    fn provide(&self) -> PanicHook {
+        Box::new(default_panic_hook)
+    }
+}
+
 pub struct CapturePanicHookGuard(Option<PanicHook>);
 
 impl CapturePanicHookGuard {
-    pub fn install() -> Self {
+    pub fn install(panic_hook: PanicHook) -> Self {
         let old_hook = panic::take_hook();
-
-        panic::set_hook(Box::new(|panic_hook_info| {
-            if let Some(s) = panic_hook_info.payload().downcast_ref::<&str>() {
-                TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
-                    capture
-                        .stderr
-                        .write(s.as_bytes())
-                        .expect("infallible for Vec<u8>")
-                });
-            } else if let Some(s) = panic_hook_info.payload().downcast_ref::<String>() {
-                TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
-                    capture
-                        .stderr
-                        .write(s.as_bytes())
-                        .expect("infallible for Vec<u8>")
-                });
-            }
-        }));
-
+        panic::set_hook(panic_hook);
         Self(Some(old_hook))
     }
 }

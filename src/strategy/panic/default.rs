@@ -91,7 +91,7 @@ mod tests {
 
         let report = harness(tests)
             .with_panic_handler(DefaultPanicHandler)
-            .with_runner(SimpleRunner)
+            .with_runner(SimpleRunner::default())
             .run();
         let outcomes = report.outcomes;
 

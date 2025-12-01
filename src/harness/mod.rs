@@ -3,15 +3,10 @@
 use std::io;
 
 use crate::{
-    filter::DefaultFilter,
-    formatter::{
+    capture::DefaultPanicHookProvider, filter::DefaultFilter, formatter::{
         common::label::{FromGroupKey, GroupLabel},
         pretty::PrettyFormatter,
-    },
-    ignore::DefaultIgnore,
-    panic::DefaultPanicHandler,
-    runner::DefaultRunner,
-    test::Test,
+    }, ignore::DefaultIgnore, panic::DefaultPanicHandler, runner::DefaultRunner, test::Test
 };
 
 mod test;
@@ -28,7 +23,7 @@ pub fn harness<'t, Extra>(
     DefaultFilter,
     DefaultIgnore,
     DefaultPanicHandler,
-    DefaultRunner,
+    DefaultRunner<DefaultPanicHookProvider>,
     PrettyFormatter<io::Stdout, GroupLabel<FromGroupKey>>,
 > {
     TestHarness {

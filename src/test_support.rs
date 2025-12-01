@@ -1,13 +1,7 @@
 use std::{borrow::Cow, panic::RefUnwindSafe};
 
 use crate::{
-    TestHarness,
-    filter::NoFilter,
-    formatter::no::NoFormatter,
-    ignore::{IgnoreStatus, NoIgnore},
-    panic::{NoPanicHandler, PanicExpectation},
-    runner::SimpleRunner,
-    test::{Test, TestFn, TestFnHandle, TestMeta},
+    TestHarness, capture::DefaultPanicHookProvider, filter::NoFilter, formatter::no::NoFormatter, ignore::{IgnoreStatus, NoIgnore}, panic::{NoPanicHandler, PanicExpectation}, runner::SimpleRunner, test::{Test, TestFn, TestFnHandle, TestMeta}
 };
 
 pub struct BuildTest<Extra> {
@@ -69,13 +63,13 @@ pub(crate) use test;
 
 pub fn harness<'t>(
     tests: &'t [Test],
-) -> TestHarness<'t, (), NoFilter, NoIgnore, NoPanicHandler, SimpleRunner, NoFormatter> {
+) -> TestHarness<'t, (), NoFilter, NoIgnore, NoPanicHandler, SimpleRunner<DefaultPanicHookProvider>, NoFormatter> {
     TestHarness {
         tests,
         filter: NoFilter,
         ignore: NoIgnore,
         panic_handler: NoPanicHandler,
-        runner: SimpleRunner,
+        runner: SimpleRunner::default(),
         formatter: NoFormatter,
     }
 }
