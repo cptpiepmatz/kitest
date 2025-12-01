@@ -14,7 +14,7 @@ static PATH_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?P<path>tests[^\n:]+\.rs):(?P<line>\d+):(?P<col>\d+)").unwrap()
 });
 
-pub fn sanitize_panic_output<'s>(input: &'s str) -> String {
+pub fn sanitize_panic_output(input: &str) -> String {
     // 1. Normalize thread name + id
     let tmp = THREAD_RE.replace_all(input, "thread '<thread>'");
 
