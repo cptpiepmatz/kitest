@@ -14,6 +14,11 @@ static PATH_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?P<path>tests[^\n:]+\.rs):(?P<line>\d+):(?P<col>\d+)").unwrap()
 });
 
+static TEST_RESULT_RE: LazyLock<Regex> = LazyLock::new(|| {
+    // Matches: finished in 0.00s or finished in 12.34s etc.
+    Regex::new(r"finished in [0-9]+\.[0-9]+s").unwrap()
+});
+
 pub fn sanitize_panic_output(input: &str) -> String {
     // 1. Normalize thread name + id
     let tmp = THREAD_RE.replace_all(input, "thread '<thread>'");
@@ -24,6 +29,9 @@ pub fn sanitize_panic_output(input: &str) -> String {
         path = path.replace('\\', "/");
         format!("{}:{}:{}", path, &caps["line"], &caps["col"])
     });
+
+    // 3. Normalize execution time
+    let tmp = TEST_RESULT_RE.replace_all(&tmp, "finished in <time>");
 
     tmp.to_string()
 }
