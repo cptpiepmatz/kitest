@@ -212,7 +212,7 @@ fn default_panic_hook(panic_hook_info: &PanicHookInfo<'_>) {
 
             let backtrace = Backtrace::capture();
             let backtrace = format!("{backtrace}");
-            match dbg!(backtrace.as_str()) == dbg!(DISABLED_BACKTRACE.as_str()) {
+            match backtrace.as_str() == DISABLED_BACKTRACE.as_str() {
                 false => stderr.write_all(backtrace.as_bytes()),
                 true if FIRST_PANIC.swap(false, Ordering::Relaxed) => stderr.write_all(
                     b"note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
