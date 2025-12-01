@@ -8,8 +8,8 @@ use std::{
 
 use crate::{
     capture::{
-        self, CapturePanicHookGuard, DefaultPanicHookProvider, PanicHook, PanicHookProvider,
-        TEST_OUTPUT_CAPTURE, TestOutputCapture,
+        CapturePanicHookGuard, DefaultPanicHookProvider, OutputCapture, PanicHook,
+        PanicHookProvider, TEST_OUTPUT_CAPTURE,
     },
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
     runner::TestRunner,
@@ -94,15 +94,13 @@ where
                         let now = Instant::now();
                         let status = f();
                         let duration = now.elapsed();
-                        let TestOutputCapture { stdout, stderr } =
-                            TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| capture.take());
+                        let output = TEST_OUTPUT_CAPTURE.with_borrow_mut(OutputCapture::take);
                         let send_outcome_res = otx.send((
                             meta,
                             TestOutcome {
                                 status,
                                 duration,
-                                stdout,
-                                stderr,
+                                output,
                                 attachments: TestOutcomeAttachments::default(),
                             },
                         ));

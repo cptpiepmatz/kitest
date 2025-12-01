@@ -5,15 +5,14 @@ use std::{
     time::Duration,
 };
 
-use crate::{Whatever, test::TestResult};
+use crate::{Whatever, capture::OutputCapture, test::TestResult};
 
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct TestOutcome {
     pub status: TestStatus,
     pub duration: Duration,
-    pub stdout: Vec<u8>,
-    pub stderr: Vec<u8>,
+    pub output: OutputCapture,
     pub attachments: TestOutcomeAttachments,
 }
 

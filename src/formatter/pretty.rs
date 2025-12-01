@@ -1,6 +1,7 @@
 use std::{fmt::Display, io, marker::PhantomData, time::Duration};
 
 use crate::{
+    capture::OutputCapture,
     formatter::{
         common::{
             TestName,
@@ -129,8 +130,7 @@ pub struct PrettyRunOutcomes<'t> {
 pub struct PrettyFailure<'t> {
     pub name: &'t str,
     pub failure: TestFailure,
-    pub stdout: Vec<u8>,
-    pub stderr: Vec<u8>,
+    pub output: OutputCapture,
 }
 
 impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes<'t> {
@@ -167,8 +167,7 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes<'t> {
                     Some(PrettyFailure {
                         name,
                         failure: failure.clone(),
-                        stdout: outcome.stdout.clone(),
-                        stderr: outcome.stderr.clone(),
+                        output: outcome.output.clone(),
                     })
                 })
                 .collect(),
@@ -245,7 +244,7 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
                 writeln!(self.target, "---- {} stdout ----", failure.name)?;
                 match &failure.failure {
                     TestFailure::Error(err) => writeln!(self.target, "Error: {}", err)?,
-                    TestFailure::Panicked(msg) => writeln!(self.target, "{msg}")?,
+                    TestFailure::Panicked(_) => self.target.write_all(failure.output.raw())?,
                     _ => todo!(),
                 }
                 writeln!(self.target)?;

@@ -1,9 +1,9 @@
-use std::{num::NonZeroUsize, thread::Scope, time::Instant};
+use std::{num::NonZeroUsize, rc::Rc, thread::Scope, time::Instant};
 
 use crate::{
     capture::{
-        CapturePanicHookGuard, DefaultPanicHookProvider, PanicHookProvider, TEST_OUTPUT_CAPTURE,
-        TestOutputCapture,
+        CapturePanicHookGuard, DefaultPanicHookProvider, OutputCapture, PanicHookProvider,
+        TEST_OUTPUT_CAPTURE,
     },
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
     runner::TestRunner,
@@ -52,19 +52,20 @@ where
         F: (Fn() -> TestStatus) + Send + 's,
         Extra: 't,
     {
-        let _panic_hook = CapturePanicHookGuard::install(self.panic_hook_provider.provide());
-        tests.map(|(test, meta)| {
+        let panic_hook = CapturePanicHookGuard::install(self.panic_hook_provider.provide());
+        tests.map(move |(test, meta)| {
+            // keep a ref in here so that the panic_hook only gets dropped after this iterator is done
+            let _panic_hook = &panic_hook;
+
             let now = Instant::now();
             let status = test();
             let duration = now.elapsed();
-            let TestOutputCapture { stdout, stderr } =
-                TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| capture.take());
+            let output = TEST_OUTPUT_CAPTURE.with_borrow_mut(OutputCapture::take);
 
             let outcome = TestOutcome {
                 status,
                 duration,
-                stdout,
-                stderr,
+                output,
                 attachments: TestOutcomeAttachments::default(),
             };
 
