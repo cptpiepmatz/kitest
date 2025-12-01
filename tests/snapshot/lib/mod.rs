@@ -1,5 +1,8 @@
 pub mod test;
 
+mod sanitize;
+pub use sanitize::*;
+
 macro_rules! snapshot {
     ($mod_name:ident: [
         $($test_name:ident $(: {
@@ -32,7 +35,10 @@ macro_rules! snapshot {
 
             let actual = actual.try_to_string().unwrap();
             assert_eq!(expected.exit_code, report.exit_code());
-            assert_eq!(expected.stdout, actual);
+            assert_eq!(
+                $crate::lib::sanitize_panic_output(&expected.stdout),
+                $crate::lib::sanitize_panic_output(&actual)
+            );
         }
     }
 }

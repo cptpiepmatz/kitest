@@ -2,7 +2,7 @@ use std::{
     any::Any,
     backtrace::Backtrace,
     cell::RefCell,
-    fmt::Debug,
+    fmt::{self, Debug, Display},
     io::{self, Write},
     mem,
     panic::{self, PanicHookInfo},
@@ -10,7 +10,7 @@ use std::{
         LazyLock,
         atomic::{AtomicBool, Ordering},
     },
-    thread,
+    thread::{self, ThreadId},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -159,6 +159,33 @@ fn payload_as_str(payload: &dyn Any) -> &str {
         .unwrap_or("Box<dyn Any>")
 }
 
+#[derive(Debug)]
+struct ThreadIdFmt(ThreadId);
+
+impl ThreadIdFmt {
+    fn slice_id(&self) -> impl Display {
+        let displayed = format!("{:?}", self.0);
+        let slice = &displayed["ThreadId(".len()..];
+        let slice = &slice[..slice.len() - 1];
+        slice.to_string()
+    }
+}
+
+impl Display for ThreadIdFmt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.slice_id().fmt(f)
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn assert_thread_id_format() {
+    let thread = thread::current();
+    let tid = thread.id();
+    let tid_fmt = ThreadIdFmt(tid);
+    assert_eq!(format!("{tid:?}"), format!("ThreadId({tid_fmt})"));
+}
+
 static FIRST_PANIC: AtomicBool = AtomicBool::new(true);
 static DISABLED_BACKTRACE: LazyLock<String> =
     LazyLock::new(|| format!("{}", Backtrace::disabled()));
@@ -170,11 +197,11 @@ fn default_panic_hook(panic_hook_info: &PanicHookInfo<'_>) {
         .with_borrow_mut(|capture| {
             let thread = thread::current();
             let name = thread.name().unwrap_or("<unnamed>");
-            let tid = thread.id();
+            let tid = ThreadIdFmt(thread.id());
 
             let mut stderr = capture.stderr();
 
-            stderr.write_fmt(format_args!("\nthread '{name}' ({tid:?}) panicked"))?;
+            stderr.write_fmt(format_args!("\nthread '{name}' ({tid}) panicked"))?;
 
             if let Some(location) = panic_hook_info.location() {
                 stderr.write_fmt(format_args!(" at {location}"))?;
@@ -185,13 +212,13 @@ fn default_panic_hook(panic_hook_info: &PanicHookInfo<'_>) {
 
             let backtrace = Backtrace::capture();
             let backtrace = format!("{backtrace}");
-            match backtrace.as_str() == DISABLED_BACKTRACE.as_str() {
-            true => stderr.write_all(backtrace.as_bytes()),
-            false if FIRST_PANIC.swap(false, Ordering::Relaxed) => stderr.write_all(
-                b"note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
-            ),
-            false => Ok(())
-        }
+            match dbg!(backtrace.as_str()) == dbg!(DISABLED_BACKTRACE.as_str()) {
+                false => stderr.write_all(backtrace.as_bytes()),
+                true if FIRST_PANIC.swap(false, Ordering::Relaxed) => stderr.write_all(
+                    b"note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"
+                ),
+                true => Ok(())
+            }
         })
         .expect("infallible for Vec<u8>");
 }

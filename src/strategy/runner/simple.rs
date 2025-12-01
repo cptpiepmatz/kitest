@@ -1,4 +1,4 @@
-use std::{num::NonZeroUsize, rc::Rc, thread::Scope, time::Instant};
+use std::{num::NonZeroUsize, thread::Scope, time::Instant};
 
 use crate::{
     capture::{

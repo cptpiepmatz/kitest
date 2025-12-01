@@ -89,27 +89,30 @@ where
                 let irx = irx.clone();
                 let otx = otx.clone();
                 itx.send(iter.next()).expect("open space in channel");
-                thread::Builder::new().name(format!("kitest-worker-{idx}")).spawn_scoped(scope, move || {
-                    while let Ok(Some((f, meta))) = irx.recv() {
-                        let now = Instant::now();
-                        let status = f();
-                        let duration = now.elapsed();
-                        let output = TEST_OUTPUT_CAPTURE.with_borrow_mut(OutputCapture::take);
-                        let send_outcome_res = otx.send((
-                            meta,
-                            TestOutcome {
-                                status,
-                                duration,
-                                output,
-                                attachments: TestOutcomeAttachments::default(),
-                            },
-                        ));
-                        if send_outcome_res.is_err() {
-                            // If receiver dropped, the work is irrelevant anymore, drop silently.
-                            return;
+                thread::Builder::new()
+                    .name(format!("kitest-worker-{idx}"))
+                    .spawn_scoped(scope, move || {
+                        while let Ok(Some((f, meta))) = irx.recv() {
+                            let now = Instant::now();
+                            let status = f();
+                            let duration = now.elapsed();
+                            let output = TEST_OUTPUT_CAPTURE.with_borrow_mut(OutputCapture::take);
+                            let send_outcome_res = otx.send((
+                                meta,
+                                TestOutcome {
+                                    status,
+                                    duration,
+                                    output,
+                                    attachments: TestOutcomeAttachments::default(),
+                                },
+                            ));
+                            if send_outcome_res.is_err() {
+                                // If receiver dropped, the work is irrelevant anymore, drop silently.
+                                return;
+                            }
                         }
-                    }
-                }).expect("name has no null byte")
+                    })
+                    .expect("name has no null byte")
             })
             .collect();
 
