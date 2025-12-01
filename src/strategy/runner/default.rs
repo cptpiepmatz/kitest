@@ -2,7 +2,7 @@ use std::{
     cmp,
     fmt::Debug,
     num::NonZeroUsize,
-    thread::{Scope, ScopedJoinHandle},
+    thread::{self, Scope, ScopedJoinHandle},
     time::Instant,
 };
 
@@ -85,11 +85,11 @@ where
         let (itx, irx) = crossbeam_channel::bounded(worker_count.into());
         let (otx, orx) = crossbeam_channel::bounded(1);
         let workers = (0..worker_count.get())
-            .map(|_| {
+            .map(|idx| {
                 let irx = irx.clone();
                 let otx = otx.clone();
                 itx.send(iter.next()).expect("open space in channel");
-                scope.spawn(move || {
+                thread::Builder::new().name(format!("kitest-worker-{idx}")).spawn_scoped(scope, move || {
                     while let Ok(Some((f, meta))) = irx.recv() {
                         let now = Instant::now();
                         let status = f();
@@ -109,7 +109,7 @@ where
                             return;
                         }
                     }
-                })
+                }).expect("name has no null byte")
             })
             .collect();
 
