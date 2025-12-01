@@ -44,7 +44,9 @@ impl<P> SmartRunner<P> {
     ) -> SmartRunner<WithPanicHookProvider> {
         SmartRunner {
             threshold: self.threshold,
-            simple: self.simple.with_panic_hook_provider(panic_hook_provider.clone()),
+            simple: self
+                .simple
+                .with_panic_hook_provider(panic_hook_provider.clone()),
             default: self.default.with_panic_hook_provider(panic_hook_provider),
         }
     }
@@ -99,7 +101,9 @@ impl<P: PanicHookProvider, Extra: Sync> TestRunner<Extra> for SmartRunner<P> {
     fn worker_count(&self, test_count: usize) -> NonZeroUsize {
         match test_count <= self.threshold {
             true => <SimpleRunner<_> as TestRunner<Extra>>::worker_count(&self.simple, test_count),
-            false => <DefaultRunner<_> as TestRunner<Extra>>::worker_count(&self.default, test_count),
+            false => {
+                <DefaultRunner<_> as TestRunner<Extra>>::worker_count(&self.default, test_count)
+            }
         }
     }
 }

@@ -3,10 +3,16 @@
 use std::io;
 
 use crate::{
-    capture::DefaultPanicHookProvider, filter::DefaultFilter, formatter::{
+    capture::DefaultPanicHookProvider,
+    filter::DefaultFilter,
+    formatter::{
         common::label::{FromGroupKey, GroupLabel},
         pretty::PrettyFormatter,
-    }, ignore::DefaultIgnore, panic::DefaultPanicHandler, runner::DefaultRunner, test::Test
+    },
+    ignore::DefaultIgnore,
+    panic::DefaultPanicHandler,
+    runner::DefaultRunner,
+    test::Test,
 };
 
 mod test;
