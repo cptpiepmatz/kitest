@@ -187,6 +187,11 @@ fn assert_thread_id_format() {
 }
 
 static FIRST_PANIC: AtomicBool = AtomicBool::new(true);
+#[doc(hidden)]
+pub fn reset_first_panic() {
+    FIRST_PANIC.store(true, Ordering::Relaxed);
+}
+
 static DISABLED_BACKTRACE: LazyLock<String> =
     LazyLock::new(|| format!("{}", Backtrace::disabled()));
 

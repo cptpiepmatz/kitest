@@ -25,6 +25,7 @@ macro_rules! snapshot {
             )*];
 
             let actual = crate::Buffer::default();
+            kitest::capture::reset_first_panic();
             let report = kitest::harness(&tests)
                 .with_formatter(
                     kitest::formatter::pretty::PrettyFormatter::default()
