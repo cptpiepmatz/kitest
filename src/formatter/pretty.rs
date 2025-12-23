@@ -309,8 +309,8 @@ pub struct PrettyGroupedRunOutcomes {
 
 impl<'t, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> for PrettyGroupedRunOutcomes {
     fn from(value: FmtGroupedRunOutcomes<'t, 'o, GroupKey>) -> Self {
-        fn count_outcomes<'t, 'o, GroupKey, P>(
-            value: &FmtGroupedRunOutcomes<'t, 'o, GroupKey>,
+        fn count_outcomes<GroupKey, P>(
+            value: &FmtGroupedRunOutcomes<'_, '_, GroupKey>,
             predicate: P,
         ) -> usize
         where

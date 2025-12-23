@@ -68,10 +68,10 @@ macro_rules! test {
 
 pub(crate) use test;
 
-pub fn harness<'t>(
-    tests: &'t [Test],
+pub fn harness(
+    tests: &[Test],
 ) -> TestHarness<
-    't,
+    '_,
     (),
     NoFilter,
     NoIgnore,
