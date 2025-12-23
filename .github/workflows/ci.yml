@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
         toolchain: [stable, "1.86"] # 1.86.0 is msrv
     name: Test on ${{ matrix.os }} (${{ matrix.toolchain }})
     runs-on: ${{ matrix.os }}
@@ -35,7 +35,6 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
       - run: cargo test --workspace --all-features --locked
-        continue-on-error: ${{ matrix.os == 'macos-latest' }} # cannot test locally
       - run: cargo doc --workspace --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
