@@ -191,6 +191,7 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
     type TestOutcome = PrettyTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
         write!(self.target, "test {}", data.name)?;
+        // FIXME: mention here if panic was expected, even on passed test
         if let TestStatus::Failed(TestFailure::DidNotPanic { expected: None }) = data.status {
             write!(self.target, " - should panic")?;
         }
@@ -245,6 +246,7 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
                 match &failure.failure {
                     TestFailure::Error(err) => writeln!(self.target, "Error: {}", err)?,
                     TestFailure::Panicked(_) => self.target.write_all(failure.output.raw())?,
+                    TestFailure::DidNotPanic { expected } => writeln!(self.target, "")?,
                     _ => todo!(),
                 }
                 writeln!(self.target)?;
