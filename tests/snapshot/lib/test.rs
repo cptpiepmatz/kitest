@@ -7,6 +7,7 @@ pub struct BuildTest<Extra> {
     pub name: Cow<'static, str>,
     pub ignore: IgnoreStatus,
     pub should_panic: PanicExpectation,
+    pub origin: Option<TestOrigin>,
     pub extra: Extra,
 }
 
@@ -17,6 +18,7 @@ impl Default for BuildTest<()> {
             name: Default::default(),
             ignore: Default::default(),
             should_panic: Default::default(),
+            origin: Default::default(),
             extra: Default::default(),
         }
     }
@@ -30,6 +32,7 @@ impl<Extra> From<BuildTest<Extra>> for Test<Extra> {
                 name: value.name,
                 ignore: value.ignore,
                 should_panic: value.should_panic,
+                origin: value.origin,
                 extra: value.extra,
             },
         )
@@ -53,6 +56,7 @@ macro_rules! test {
             $($field: From::from($value),)*
             ..($crate::lib::test::BuildTest {
                 name: concat!(module_path!(), "::", file!(), ":", line!(), ":", column!()).into(),
+                origin: kitest::origin!(),
                 ..Default::default()
             })
         })

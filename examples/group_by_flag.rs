@@ -1,11 +1,6 @@
 use std::{borrow::Cow, fmt::Display, process::Termination};
 
-use kitest::{
-    ignore::IgnoreStatus,
-    panic::PanicExpectation,
-    runner::SimpleRunner,
-    test::{Test, TestFnHandle, TestMeta},
-};
+use kitest::{prelude::*, runner::SimpleRunner};
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 enum Flag {
@@ -29,6 +24,7 @@ const TESTS: &[Test<Flag>] = &[
             name: Cow::Borrowed("a"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: Flag::A,
         },
     ),
@@ -38,6 +34,7 @@ const TESTS: &[Test<Flag>] = &[
             name: Cow::Borrowed("b"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: Flag::B,
         },
     ),
@@ -47,6 +44,7 @@ const TESTS: &[Test<Flag>] = &[
             name: Cow::Borrowed("c"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: Flag::A,
         },
     ),
@@ -56,6 +54,7 @@ const TESTS: &[Test<Flag>] = &[
             name: Cow::Borrowed("d"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: Flag::A,
         },
     ),
@@ -65,6 +64,7 @@ const TESTS: &[Test<Flag>] = &[
             name: Cow::Borrowed("e"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: Flag::B,
         },
     ),

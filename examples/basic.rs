@@ -4,14 +4,7 @@ use std::{
     process::Termination,
 };
 
-use kitest::{
-    filter::NoFilter,
-    formatter::{FmtTestOutcome, TestFormatter},
-    ignore::{IgnoreStatus, NoIgnore},
-    panic::{NoPanicHandler, PanicExpectation},
-    runner::SimpleRunner,
-    test::{Test, TestFnHandle, TestMeta},
-};
+use kitest::{filter::NoFilter, formatter::{FmtTestOutcome, TestFormatter}, ignore::NoIgnore, panic::NoPanicHandler, prelude::*, runner::SimpleRunner};
 
 fn test_a() {}
 
@@ -24,6 +17,7 @@ const TESTS: &[Test] = &[
             name: Cow::Borrowed("test_a"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: (),
         },
     ),
@@ -33,6 +27,7 @@ const TESTS: &[Test] = &[
             name: Cow::Borrowed("test_b"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: (),
         },
     ),

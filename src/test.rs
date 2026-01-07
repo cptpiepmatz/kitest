@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Debug, ops::Deref, panic::RefUnwindSafe};
 
-use crate::{ignore::IgnoreStatus, panic::PanicExpectation};
+use crate::{Whatever, ignore::IgnoreStatus, panic::PanicExpectation};
 
 #[derive(Debug, Default)]
 #[non_exhaustive]
@@ -32,7 +32,29 @@ pub struct TestMeta<Extra = ()> {
     pub name: Cow<'static, str>,
     pub ignore: IgnoreStatus,
     pub should_panic: PanicExpectation,
+    pub origin: Option<TestOrigin>,
     pub extra: Extra,
+}
+
+#[derive(Debug, Clone)]
+pub enum TestOrigin {
+    TextFile {
+        file: Cow<'static, str>,
+        line: u32,
+        column: u32,
+    },
+    Custom(Whatever),
+}
+
+#[macro_export]
+macro_rules! origin {
+    () => {
+        ::std::option::Option::Some($crate::test::TestOrigin::TextFile {
+            file: ::std::borrow::Cow::Borrowed(::std::file!()),
+            line: ::std::line!(),
+            column: ::std::column!(),
+        })
+    };
 }
 
 #[non_exhaustive]

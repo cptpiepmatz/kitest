@@ -1,11 +1,6 @@
 use std::borrow::Cow;
 
-use kitest::{
-    filter::NoFilter,
-    ignore::{IgnoreStatus, TestIgnore},
-    panic::PanicExpectation,
-    test::{Test, TestFnHandle, TestMeta},
-};
+use kitest::{filter::NoFilter, ignore::TestIgnore, prelude::*};
 
 enum Speed {
     Fast,
@@ -23,6 +18,7 @@ const TESTS: &[Test<Speed>] = &[
             name: Cow::Borrowed("test_fast_ok"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: Speed::Fast,
         },
     ),
@@ -32,6 +28,7 @@ const TESTS: &[Test<Speed>] = &[
             name: Cow::Borrowed("test_fast_fail"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: Speed::Fast,
         },
     ),
@@ -41,6 +38,7 @@ const TESTS: &[Test<Speed>] = &[
             name: Cow::Borrowed("test_slow_expensive"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: Speed::Slow,
         },
     ),

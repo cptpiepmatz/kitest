@@ -21,7 +21,8 @@ pub mod prelude {
     pub use super::{
         ignore::IgnoreStatus,
         panic::PanicExpectation,
-        test::{Test, TestFn, TestFnHandle, TestMeta, TestResult},
+        test::{Test, TestFn, TestFnHandle, TestMeta, TestResult, TestOrigin},
+        origin,
     };
 
     #[doc(no_inline)]

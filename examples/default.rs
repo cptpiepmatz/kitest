@@ -1,11 +1,6 @@
 use std::{borrow::Cow, process::Termination};
 
-use kitest::{
-    formatter::{common::color::ColorSetting, pretty::PrettyFormatter},
-    ignore::IgnoreStatus,
-    panic::PanicExpectation,
-    test::{Test, TestFnHandle, TestMeta},
-};
+use kitest::{formatter::{common::color::ColorSetting, pretty::PrettyFormatter}, prelude::*};
 
 fn test_a() {
     std::thread::sleep(std::time::Duration::from_millis(300));
@@ -26,6 +21,7 @@ const TESTS: &[Test] = &[
             name: Cow::Borrowed("test_a"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: (),
         },
     ),
@@ -35,6 +31,7 @@ const TESTS: &[Test] = &[
             name: Cow::Borrowed("test_b"),
             ignore: IgnoreStatus::IgnoreWithReason(Cow::Borrowed("we don't need this")),
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: (),
         },
     ),
@@ -44,6 +41,7 @@ const TESTS: &[Test] = &[
             name: Cow::Borrowed("test_c"),
             ignore: IgnoreStatus::Run,
             should_panic: PanicExpectation::ShouldNotPanic,
+            origin: origin!(),
             extra: (),
         },
     ),

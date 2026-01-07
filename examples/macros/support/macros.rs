@@ -31,6 +31,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     name: std::borrow::Cow::Borrowed(#func_name_str),
                     ignore: kitest::ignore::IgnoreStatus::Run,
                     should_panic: kitest::panic::PanicExpectation::ShouldNotPanic,
+                    origin: kitest::origin!(),
                     extra: crate::Extra {
                         experimental: #experimental,
                         flaky: #flaky,
