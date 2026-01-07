@@ -10,7 +10,7 @@ use crate::{
         },
         *,
     },
-    outcome::{TestFailure, TestStatus},
+    outcome::{TestFailure, TestStatus}, panic::PanicExpectation,
 };
 
 #[derive(Debug)]
@@ -105,6 +105,7 @@ impl From<FmtGroupedRunStart> for PrettyTestCount {
 pub struct PrettyTestOutcome<'t> {
     pub name: &'t str,
     pub status: TestStatus,
+    pub should_panic: PanicExpectation,
 }
 
 impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for PrettyTestOutcome<'t> {
@@ -112,6 +113,7 @@ impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for PrettyTestOutcome<'t
         Self {
             name: value.meta.name.as_ref(),
             status: value.outcome.status.clone(),
+            should_panic: value.meta.should_panic.clone(),
         }
     }
 }
@@ -191,7 +193,7 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
     type TestOutcome = PrettyTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
         write!(self.target, "test {}", data.name)?;
-        if let TestStatus::Failed(TestFailure::DidNotPanic { expected: None }) = data.status {
+        if let PanicExpectation::ShouldPanic = data.should_panic {
             write!(self.target, " - should panic")?;
         }
         write!(self.target, " ... ")?;
@@ -245,6 +247,7 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
                 match &failure.failure {
                     TestFailure::Error(err) => writeln!(self.target, "Error: {}", err)?,
                     TestFailure::Panicked(_) => self.target.write_all(failure.output.raw())?,
+                    TestFailure::DidNotPanic { expected: None } => writeln!(self.target, "something")?,
                     _ => todo!(),
                 }
                 writeln!(self.target)?;
