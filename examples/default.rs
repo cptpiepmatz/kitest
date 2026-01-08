@@ -1,6 +1,9 @@
 use std::{borrow::Cow, process::Termination};
 
-use kitest::{formatter::{common::color::ColorSetting, pretty::PrettyFormatter}, prelude::*};
+use kitest::{
+    formatter::{common::color::ColorSetting, pretty::PrettyFormatter},
+    prelude::*,
+};
 
 fn test_a() {
     std::thread::sleep(std::time::Duration::from_millis(300));

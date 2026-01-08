@@ -1,6 +1,7 @@
 use std::{
     any::Any,
-    fmt::{self, Debug, Display, Formatter}, panic::RefUnwindSafe,
+    fmt::{self, Debug, Display, Formatter},
+    panic::RefUnwindSafe,
 };
 
 pub struct Whatever(Box<dyn WhateverImpl>);
@@ -53,7 +54,9 @@ impl PartialEq for Whatever {
 impl Eq for Whatever {}
 
 impl Whatever {
-    pub fn from<T: Debug + Display + Clone + Eq  + RefUnwindSafe+ Send + Sync + 'static>(value: T) -> Whatever {
+    pub fn from<T: Debug + Display + Clone + Eq + RefUnwindSafe + Send + Sync + 'static>(
+        value: T,
+    ) -> Whatever {
         Self(Box::new(value))
     }
 

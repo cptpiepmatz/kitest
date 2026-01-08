@@ -10,7 +10,8 @@ use crate::{
         },
         *,
     },
-    outcome::{TestFailure, TestStatus}, panic::PanicExpectation,
+    outcome::{TestFailure, TestStatus},
+    panic::PanicExpectation,
 };
 
 #[derive(Debug)]
@@ -45,7 +46,9 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
         }
     }
 
-    pub fn with_group_label_from_key(self) -> PrettyFormatter<'t, W, GroupLabel<FromGroupKey>, Extra> {
+    pub fn with_group_label_from_key(
+        self,
+    ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupKey>, Extra> {
         PrettyFormatter {
             target: self.target,
             color_settings: self.color_settings,
@@ -54,7 +57,9 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
         }
     }
 
-    pub fn with_group_label_from_ctx(self) -> PrettyFormatter<'t, W, GroupLabel<FromGroupCtx>, Extra> {
+    pub fn with_group_label_from_ctx(
+        self,
+    ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupCtx>, Extra> {
         PrettyFormatter {
             target: self.target,
             color_settings: self.color_settings,
@@ -92,7 +97,7 @@ pub struct PrettyRunInit<'t, Extra> {
 
 impl<'t, Extra> From<FmtRunInit<'t, Extra>> for PrettyRunInit<'t, Extra> {
     fn from(value: FmtRunInit<'t, Extra>) -> Self {
-        Self {tests: value.tests}
+        Self { tests: value.tests }
     }
 }
 
@@ -270,10 +275,15 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
                     TestFailure::Error(err) => writeln!(self.target, "Error: {}", err)?,
                     TestFailure::Panicked(_) => self.target.write_all(failure.output.raw())?,
                     TestFailure::DidNotPanic { expected: None } => {
-                        if let Some(meta) = self.tests.get(failure.name) && let Some(origin) = &meta.origin {
-                            write!(self.target, "note: test did not panic as expected at {origin}")?;
+                        if let Some(meta) = self.tests.get(failure.name)
+                            && let Some(origin) = &meta.origin
+                        {
+                            write!(
+                                self.target,
+                                "note: test did not panic as expected at {origin}"
+                            )?;
                         }
-                    },
+                    }
                     _ => todo!(),
                 }
                 writeln!(self.target)?;
@@ -367,8 +377,8 @@ impl<'t, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> for PrettyG
     }
 }
 
-impl<'t, Extra: 't + Sync, GroupKey, GroupCtx, W, L> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
-    for PrettyFormatter<'t, W, L, Extra>
+impl<'t, Extra: 't + Sync, GroupKey, GroupCtx, W, L>
+    GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx> for PrettyFormatter<'t, W, L, Extra>
 where
     Extra: 't,
     GroupKey: 't,

@@ -4,7 +4,14 @@ use std::{
     process::Termination,
 };
 
-use kitest::{filter::NoFilter, formatter::{FmtTestOutcome, TestFormatter}, ignore::NoIgnore, panic::NoPanicHandler, prelude::*, runner::SimpleRunner};
+use kitest::{
+    filter::NoFilter,
+    formatter::{FmtTestOutcome, TestFormatter},
+    ignore::NoIgnore,
+    panic::NoPanicHandler,
+    prelude::*,
+    runner::SimpleRunner,
+};
 
 fn test_a() {}
 

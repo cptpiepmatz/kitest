@@ -1,6 +1,10 @@
+use std::borrow::Cow;
+
 pub mod test;
 
 mod sanitize;
+
+use kitest::test::TestOrigin;
 pub use sanitize::*;
 
 macro_rules! snapshot {
@@ -45,3 +49,11 @@ macro_rules! snapshot {
 }
 
 pub(crate) use snapshot;
+
+pub fn text_file(file: impl Into<Cow<'static, str>>, line: u32, column: u32) -> TestOrigin {
+    TestOrigin::TextFile {
+        file: file.into(),
+        line,
+        column,
+    }
+}

@@ -1,4 +1,9 @@
-use std::{borrow::Cow, fmt::{Debug, Display}, ops::Deref, panic::RefUnwindSafe};
+use std::{
+    borrow::Cow,
+    fmt::{Debug, Display},
+    ops::Deref,
+    panic::RefUnwindSafe,
+};
 
 use crate::{Whatever, ignore::IgnoreStatus, panic::PanicExpectation};
 
