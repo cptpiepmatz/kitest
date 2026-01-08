@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        toolchain: [stable, "1.86"] # 1.86.0 is msrv
+        toolchain: [stable, "1.88"] # 1.88.0 is msrv
     name: Test on ${{ matrix.os }} (${{ matrix.toolchain }})
     runs-on: ${{ matrix.os }}
     steps:
