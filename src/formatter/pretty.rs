@@ -220,12 +220,7 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
     type TestOutcome = PrettyTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
         write!(self.target, "test {}", data.name)?;
-<<<<<<< HEAD
         if let PanicExpectation::ShouldPanic = data.should_panic {
-=======
-        // FIXME: mention here if panic was expected, even on passed test
-        if let TestStatus::Failed(TestFailure::DidNotPanic { expected: None }) = data.status {
->>>>>>> af922eeeb70e85c4f565e8ae593bc2eac1946cb4
             write!(self.target, " - should panic")?;
         }
         write!(self.target, " ... ")?;

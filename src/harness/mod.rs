@@ -21,10 +21,10 @@ pub use test::TestHarness;
 mod grouped_test;
 pub use grouped_test::GroupedTestHarness;
 
-pub fn harness<Extra>(
-    tests: &[Test<Extra>],
+pub fn harness<'t, Extra>(
+    tests: &'t [Test<Extra>],
 ) -> TestHarness<
-    '_,
+    't,
     Extra,
     DefaultFilter,
     DefaultIgnore,
