@@ -232,13 +232,13 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
                     reason: Some(reason),
                 },
                 true,
-            ) => write!(self.target, "{YELLOW}ignored, {}{RESET}", reason)?,
+            ) => write!(self.target, "{YELLOW}ignored, {reason}{RESET}")?,
             (
                 TestStatus::Ignored {
                     reason: Some(reason),
                 },
                 false,
-            ) => write!(self.target, "ignored, {}", reason)?,
+            ) => write!(self.target, "ignored, {reason}")?,
             (TestStatus::Ignored { reason: None }, true) => {
                 write!(self.target, "{YELLOW}ignored{RESET}")?
             }
@@ -272,7 +272,7 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
             for failure in failures.iter() {
                 writeln!(self.target, "---- {} stdout ----", failure.name)?;
                 match &failure.failure {
-                    TestFailure::Error(err) => writeln!(self.target, "Error: {}", err)?,
+                    TestFailure::Error(err) => writeln!(self.target, "Error: {err}")?,
                     TestFailure::Panicked(_) => self.target.write_all(failure.output.raw())?,
                     TestFailure::DidNotPanic { expected: None } => {
                         if let Some(meta) = self.tests.get(failure.name)
