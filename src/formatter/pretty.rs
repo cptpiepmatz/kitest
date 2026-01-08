@@ -1,4 +1,4 @@
-use std::{fmt::Display, io, marker::PhantomData, time::Duration};
+use std::{collections::HashMap, fmt::Display, io, marker::PhantomData, time::Duration};
 
 use crate::{
     capture::OutputCapture,
@@ -14,25 +14,27 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct PrettyFormatter<W: io::Write + SupportsColor, L> {
+pub struct PrettyFormatter<'t, W: io::Write + SupportsColor, L, Extra> {
     target: W,
     color_settings: ColorSetting,
     _label_marker: PhantomData<L>,
+    tests: HashMap<&'t str, &'t Test<Extra>>,
 }
 
-impl<W: io::Write + SupportsColor, L> PrettyFormatter<W, L> {
-    pub fn new() -> PrettyFormatter<io::Stdout, GroupLabel<FromGroupKey>> {
+impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra> {
+    pub fn new() -> PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroupKey>, Extra> {
         PrettyFormatter::default()
     }
 
     pub fn with_target<WithTarget: io::Write + SupportsColor>(
         self,
         target: WithTarget,
-    ) -> PrettyFormatter<WithTarget, L> {
+    ) -> PrettyFormatter<'t, WithTarget, L, Extra> {
         PrettyFormatter {
             target,
             color_settings: self.color_settings,
             _label_marker: PhantomData,
+            tests: Default::default(),
         }
     }
 
@@ -43,40 +45,54 @@ impl<W: io::Write + SupportsColor, L> PrettyFormatter<W, L> {
         }
     }
 
-    pub fn with_group_label_from_key(self) -> PrettyFormatter<W, GroupLabel<FromGroupKey>> {
+    pub fn with_group_label_from_key(self) -> PrettyFormatter<'t, W, GroupLabel<FromGroupKey>, Extra> {
         PrettyFormatter {
             target: self.target,
             color_settings: self.color_settings,
             _label_marker: PhantomData,
+            tests: Default::default(),
         }
     }
 
-    pub fn with_group_label_from_ctx(self) -> PrettyFormatter<W, GroupLabel<FromGroupCtx>> {
+    pub fn with_group_label_from_ctx(self) -> PrettyFormatter<'t, W, GroupLabel<FromGroupCtx>, Extra> {
         PrettyFormatter {
             target: self.target,
             color_settings: self.color_settings,
             _label_marker: PhantomData,
+            tests: Default::default(),
         }
     }
 }
 
-impl Default for PrettyFormatter<io::Stdout, GroupLabel<FromGroupKey>> {
+impl<'t, Extra> Default for PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroupKey>, Extra> {
     fn default() -> Self {
         Self {
             target: io::stdout(),
             color_settings: Default::default(),
             _label_marker: PhantomData,
+            tests: Default::default(),
         }
     }
 }
 
-impl<W: io::Write + SupportsColor, L> PrettyFormatter<W, L> {
+impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra> {
     pub fn use_color(&self) -> bool {
         match self.color_settings {
             ColorSetting::Automatic => self.target.supports_color(),
             ColorSetting::Always => true,
             ColorSetting::Never => false,
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PrettyRunInit<'t, Extra> {
+    pub tests: &'t [Test<Extra>],
+}
+
+impl<'t, Extra> From<FmtRunInit<'t, Extra>> for PrettyRunInit<'t, Extra> {
+    fn from(value: FmtRunInit<'t, Extra>) -> Self {
+        Self {tests: value.tests}
     }
 }
 
@@ -177,10 +193,16 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for PrettyRunOutcomes<'t> {
     }
 }
 
-impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<'t, Extra>
-    for PrettyFormatter<W, L>
+impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<'t, Extra>
+    for PrettyFormatter<'t, W, L, Extra>
 {
     type Error = io::Error;
+
+    type RunInit = PrettyRunInit<'t, Extra>;
+    fn fmt_run_init(&mut self, data: Self::RunInit) -> Result<(), Self::Error> {
+        self.tests = HashMap::from_iter(data.tests.iter().map(|test| (test.name.as_ref(), test)));
+        Ok(())
+    }
 
     type RunStart = PrettyTestCount;
     fn fmt_run_start(&mut self, data: Self::RunStart) -> Result<(), Self::Error> {
@@ -247,7 +269,11 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
                 match &failure.failure {
                     TestFailure::Error(err) => writeln!(self.target, "Error: {}", err)?,
                     TestFailure::Panicked(_) => self.target.write_all(failure.output.raw())?,
-                    TestFailure::DidNotPanic { expected: None } => writeln!(self.target, "something")?,
+                    TestFailure::DidNotPanic { expected: None } => {
+                        if let Some(meta) = self.tests.get(failure.name) && let Some(origin) = &meta.origin {
+                            write!(self.target, "note: test did not panic as expected at {origin}")?;
+                        }
+                    },
                     _ => todo!(),
                 }
                 writeln!(self.target)?;
@@ -273,7 +299,6 @@ impl<'t, Extra: 't, W: io::Write + SupportsColor + Send, L: Send> TestFormatter<
         writeln!(self.target)
     }
 
-    type RunInit = ();
     type TestIgnored = ();
     type TestStart = ();
 }
@@ -342,8 +367,8 @@ impl<'t, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> for PrettyG
     }
 }
 
-impl<'t, Extra, GroupKey, GroupCtx, W, L> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
-    for PrettyFormatter<W, L>
+impl<'t, Extra: 't + Sync, GroupKey, GroupCtx, W, L> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
+    for PrettyFormatter<'t, W, L, Extra>
 where
     Extra: 't,
     GroupKey: 't,
@@ -354,7 +379,7 @@ where
 {
     type GroupedRunStart = PrettyTestCount;
     fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
-        <PrettyFormatter<_, _> as TestFormatter<'_, Extra>>::fmt_run_start(self, data)
+        <PrettyFormatter<'_, _, _, _> as TestFormatter<'_, Extra>>::fmt_run_start(self, data)
     }
 
     type GroupStart = PrettyGroupStart<L>;
@@ -401,7 +426,7 @@ where
 }
 
 impl<'t, Extra: 't, W: io::Write + io::IsTerminal, L> TestListFormatter<'t, Extra>
-    for PrettyFormatter<W, L>
+    for PrettyFormatter<'t, W, L, Extra>
 {
     type Error = io::Error;
 

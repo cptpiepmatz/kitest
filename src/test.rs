@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Debug, ops::Deref, panic::RefUnwindSafe};
+use std::{borrow::Cow, fmt::{Debug, Display}, ops::Deref, panic::RefUnwindSafe};
 
 use crate::{Whatever, ignore::IgnoreStatus, panic::PanicExpectation};
 
@@ -36,6 +36,7 @@ pub struct TestMeta<Extra = ()> {
     pub extra: Extra,
 }
 
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum TestOrigin {
     TextFile {
@@ -44,6 +45,15 @@ pub enum TestOrigin {
         column: u32,
     },
     Custom(Whatever),
+}
+
+impl Display for TestOrigin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TestOrigin::TextFile { file, line, column } => write!(f, "{file}:{line}:{column}"),
+            TestOrigin::Custom(whatever) => Display::fmt(whatever, f),
+        }
+    }
 }
 
 #[macro_export]

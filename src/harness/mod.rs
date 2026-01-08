@@ -30,7 +30,7 @@ pub fn harness<'t, Extra>(
     DefaultIgnore,
     DefaultPanicHandler,
     DefaultRunner<DefaultPanicHookProvider>,
-    PrettyFormatter<io::Stdout, GroupLabel<FromGroupKey>>,
+    PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroupKey>, Extra>,
 > {
     TestHarness {
         tests,
