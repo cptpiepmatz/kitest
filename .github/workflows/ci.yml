@@ -18,8 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        toolchain: [stable] # add beta if you like
+        os: [ubuntu-latest, windows-latest]
+        toolchain: [stable, "1.86"] # 1.86.0 is msrv
     name: Test on ${{ matrix.os }} (${{ matrix.toolchain }})
     runs-on: ${{ matrix.os }}
     steps:

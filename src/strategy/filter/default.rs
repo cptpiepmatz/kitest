@@ -64,7 +64,7 @@ impl<'t, Extra> Iterator for DefaultFilterIterator<'t, Extra> {
     }
 }
 
-impl<'t, Extra> ExactSizeIterator for DefaultFilterIterator<'t, Extra> {}
+impl<Extra> ExactSizeIterator for DefaultFilterIterator<'_, Extra> {}
 
 impl<Extra> TestFilter<Extra> for DefaultFilter {
     fn filter<'t>(

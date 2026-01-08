@@ -132,7 +132,7 @@ pub struct OutputWrite<'c, Target> {
     marker: Target,
 }
 
-impl<'c, Target: Into<OutputTarget> + Copy> io::Write for OutputWrite<'c, Target> {
+impl<Target: Into<OutputTarget> + Copy> io::Write for OutputWrite<'_, Target> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.capture.push_event(buf, self.marker.into());
         Ok(buf.len())
