@@ -220,7 +220,9 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
     type TestOutcome = PrettyTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
         write!(self.target, "test {}", data.name)?;
-        if let PanicExpectation::ShouldPanic = data.should_panic {
+        if let PanicExpectation::ShouldPanic | PanicExpectation::ShouldPanicWithExpected(..) =
+            data.should_panic
+        {
             write!(self.target, " - should panic")?;
         }
         write!(self.target, " ... ")?;
@@ -274,7 +276,7 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
                 match &failure.failure {
                     TestFailure::Error(err) => writeln!(self.target, "Error: {err}")?,
                     TestFailure::Panicked(_) => self.target.write_all(failure.output.raw())?,
-                    TestFailure::DidNotPanic { expected: None } => {
+                    TestFailure::DidNotPanic { .. } => {
                         if let Some(meta) = self.tests.get(failure.name)
                             && let Some(origin) = &meta.origin
                         {
@@ -284,7 +286,12 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
                             )?;
                         }
                     }
-                    _ => todo!(),
+                    TestFailure::PanicMismatch {
+                        got: _,
+                        expected: _,
+                    } => {
+                        self.target.write_all(failure.output.raw())?;
+                    }
                 }
                 writeln!(self.target)?;
             }

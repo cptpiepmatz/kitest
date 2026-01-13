@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::path::Path;
 
 pub mod test;
 
@@ -50,10 +50,10 @@ macro_rules! snapshot {
 
 pub(crate) use snapshot;
 
-pub fn text_file(file: impl Into<Cow<'static, str>>, line: u32, column: u32) -> TestOrigin {
+pub fn snapshot_file(file: impl AsRef<Path>, line: u32) -> TestOrigin {
     TestOrigin::TextFile {
-        file: file.into(),
+        file: format!("tests/snapshot/snapshots/{}", file.as_ref().display()).into(),
         line,
-        column,
+        column: 8,
     }
 }
