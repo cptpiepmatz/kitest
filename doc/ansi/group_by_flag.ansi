@@ -1,0 +1,12 @@
+running 5 tests
+
+group b, running 2 tests
+test b ... [32mok[39m
+test e ... [32mok
+[39m
+group a, running 3 tests
+test a ... [32mok[39m
+test c ... [32mok[39m
+test d ... [32mok
+[39m
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 filtered out; across 2 groups, finished in 0.00s
