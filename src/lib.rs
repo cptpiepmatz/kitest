@@ -1,3 +1,5 @@
+#![doc(html_logo_url = "https://raw.githubusercontent.com/cptpiepmatz/kitest/main/logo/logo.svg")]
+
 pub mod capture;
 pub mod formatter;
 pub mod outcome;
