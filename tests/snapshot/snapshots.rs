@@ -18,19 +18,19 @@ snapshot!(expected_panic: [
     },
     panic_from_assert: {
         should_panic: "did panic",
-        origin: snapshot_file("expected_panic.rs", 29)
+        origin: snapshot_file("expected_panic.rs", 30)
     },
     panic_with_matching_message: {
         should_panic: "did panic",
-        origin: snapshot_file("expected_panic.rs", 37)
+        origin: snapshot_file("expected_panic.rs", 38)
     },
     panic_with_partial_message_match: {
         should_panic: "panic",
-        origin: snapshot_file("expected_panic.rs", 45)
+        origin: snapshot_file("expected_panic.rs", 46)
     },
     panic_with_wrong_message: {
         should_panic: "other",
-        origin: snapshot_file("expected_panic.rs", 53)
+        origin: snapshot_file("expected_panic.rs", 54)
     },
 ]);
 snapshot!(single_error: [fail]);

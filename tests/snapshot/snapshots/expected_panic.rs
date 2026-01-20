@@ -26,6 +26,7 @@ pub fn panic_any() {
 
 #[cfg_attr(snapshot, test)]
 #[should_panic(expected = "did panic")]
+#[allow(clippy::assertions_on_constants)]
 pub fn panic_from_assert() {
     if true {
         assert!(false, "did panic");
