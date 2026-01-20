@@ -6,6 +6,12 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct NoFilter;
 
+impl NoFilter {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl<Extra: Sync> TestFilter<Extra> for NoFilter {
     fn filter<'t>(
         &self,

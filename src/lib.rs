@@ -155,6 +155,46 @@
 //! choice.
 //! Once grouping is enabled, all test execution happens through groups, which makes it
 //! possible to share setup and teardown logic and control execution flow at the group level.
+//!
+//! ## Example
+//!
+//! This example shows how to build a custom test harness for your use case.
+//!
+//! First, Cargo needs to be told not to use the built in test harness.
+//! For unit tests, this can be done like this:
+//!
+#![doc = include_str!("../doc/html/lib.ansi.html")]
+//!
+//! And for integration tests like this:
+//!
+#![doc = include_str!("../doc/html/test.ansi.html")]
+//!
+//! By setting `harness` to `false`, we tell Cargo to skip the built in harness.
+//! Instead, it expects a custom `main` function that runs the tests.
+//!
+//! ```
+//! use std::process::Termination;
+//! use kitest::prelude::*;
+//! #
+//! # type MyFilter = kitest::filter::NoFilter;
+//! # type MyRunner = kitest::runner::SimpleRunner<kitest::capture::DefaultPanicHookProvider>;
+//!
+//! fn main() -> impl Termination {
+//!     // However you collect your tests. This can be static or data driven.
+//!     # let collect_tests = || Vec::<Test>::new();
+//!     let tests = collect_tests();
+//!
+//!     // At this point, you could parse command line arguments and
+//!     // construct different harnesses depending on them.
+//!     // The harness also supports a list mode via `list`.
+//!
+//!     kitest::harness(&tests)
+//!         .with_filter(MyFilter::new())
+//!         .with_runner(MyRunner::new())
+//!         .run()
+//!         .report()
+//! }
+//! ```
 
 pub mod capture;
 pub mod formatter;

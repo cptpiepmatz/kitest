@@ -1,0 +1,4 @@
+[[[33mtest[39m]][31m
+name[39m = [32m"tests"[31m
+path[39m = [32m"tests/main.rs"[31m
+harness[39m = [33mfalse[0m
