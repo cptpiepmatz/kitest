@@ -288,9 +288,16 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
                     }
                     TestFailure::PanicMismatch {
                         got: _,
-                        expected: _,
+                        expected: None,
+                    } => unreachable!("mismatch not possible without expectation"),
+                    TestFailure::PanicMismatch {
+                        got,
+                        expected: Some(expected),
                     } => {
                         self.target.write_all(failure.output.raw())?;
+                        writeln!(self.target, "note: panic did not contain expected string")?;
+                        writeln!(self.target, "      panic message: {got:?}")?;
+                        write!(self.target, " expected substring: {expected:?}")?;
                     }
                 }
                 writeln!(self.target)?;
