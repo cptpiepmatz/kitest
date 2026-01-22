@@ -8,7 +8,7 @@ pub struct NoFilter;
 
 impl NoFilter {
     pub fn new() -> Self {
-        Self::default()
+        Self
     }
 }
 

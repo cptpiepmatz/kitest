@@ -28,21 +28,21 @@ use crate::{Whatever, ignore::IgnoreStatus, panic::PanicExpectation};
 ///
 /// ## Use case specific metadata with `Extra`
 ///
-/// The `Extra` type parameter is user defined metadata attached to the test. 
-/// Nearly everything in Kitest is generic over `Extra`, so strategies can use this data without 
+/// The `Extra` type parameter is user defined metadata attached to the test.
+/// Nearly everything in Kitest is generic over `Extra`, so strategies can use this data without
 /// runtime casts.
 ///
-/// All default strategies work with any `Extra` type. 
-/// Custom strategies may choose to require a specific `Extra` type, for example a flag enum or a 
+/// All default strategies work with any `Extra` type.
+/// Custom strategies may choose to require a specific `Extra` type, for example a flag enum or a
 /// struct with tags.
 ///
-/// If no custom metadata is needed, `Extra` can be `()`. 
+/// If no custom metadata is needed, `Extra` can be `()`.
 /// Kitest treats this as the "no extra data" case, which keeps types easy to write.
 ///
 /// ## Const friendly
 ///
-/// A `Test` can be created at compile time. 
-/// This makes it possible to define tests as `const` values and collect them at build time, 
+/// A `Test` can be created at compile time.
+/// This makes it possible to define tests as `const` values and collect them at build time,
 /// instead of running collection code when the test binary starts.
 #[derive(Debug, Default)]
 #[non_exhaustive]
@@ -73,14 +73,14 @@ impl<Extra> Deref for Test<Extra> {
 ///
 /// [`TestMeta`] contains information about a test without any execution context.
 /// Some strategies intentionally only see metadata, so they can make decisions
-/// (filtering, ignoring, grouping, formatting) without any risk of accidentally executing a test 
+/// (filtering, ignoring, grouping, formatting) without any risk of accidentally executing a test
 /// at the wrong place.
 ///
-/// All fields are designed to be constructible in `const` contexts. 
-/// This allows building tests at compile time. 
+/// All fields are designed to be constructible in `const` contexts.
+/// This allows building tests at compile time.
 /// Types like [`Cow<'static, str>`] are used for this reason.
 ///
-/// The generic `Extra` parameter stores user provided metadata used to annotate tests for a 
+/// The generic `Extra` parameter stores user provided metadata used to annotate tests for a
 /// specific use case.
 #[derive(Debug, Clone, Default)]
 pub struct TestMeta<Extra = ()> {
@@ -95,14 +95,14 @@ pub struct TestMeta<Extra = ()> {
 
     /// Whether the test should be ignored and optionally why.
     ///
-    /// This is comparable to Rust's `#[ignore]` attribute. 
-    /// A [`TestIgnore`](super::strategy::ignore::TestIgnore) strategy usually takes this into 
+    /// This is comparable to Rust's `#[ignore]` attribute.
+    /// A [`TestIgnore`](super::strategy::ignore::TestIgnore) strategy usually takes this into
     /// account when deciding if a test should run.
     pub ignore: IgnoreStatus,
 
     /// Whether the test is expected to panic.
     ///
-    /// This is comparable to Rust's `#[should_panic]` attribute. 
+    /// This is comparable to Rust's `#[should_panic]` attribute.
     /// A [`TestPanicHandler`](super::strategy::panic::TestPanicHandler)
     /// can use this field to decide whether a panic is expected and whether an observed
     /// panic should fail the test.
@@ -124,8 +124,8 @@ pub struct TestMeta<Extra = ()> {
 
 /// Describes where a test comes from.
 ///
-/// A [`TestOrigin`] is optional metadata that can be attached to [`TestMeta`]. 
-/// It is meant to help users find the source of a test, for example a file on disk, a generated 
+/// A [`TestOrigin`] is optional metadata that can be attached to [`TestMeta`].
+/// It is meant to help users find the source of a test, for example a file on disk, a generated
 /// fixture, or some external system.
 ///
 /// Kitest's built in formatters treat the origin as display text and simply call
@@ -151,15 +151,15 @@ pub enum TestOrigin {
 
     /// A custom origin value.
     ///
-    /// This can be whatever fits your use case. 
-    /// Keep in mind that built in formatting will display it in places where a `TextFile` origin 
+    /// This can be whatever fits your use case.
+    /// Keep in mind that built in formatting will display it in places where a `TextFile` origin
     /// might also appear.
     ///
     /// If you need richer output, custom formatters may choose to use their own origin type
     /// and format it differently.
     ///
-    /// This variant stores a [`Whatever`]. 
-    /// `Whatever` can be downcast, so if the producer of the origin and a formatter agree on the 
+    /// This variant stores a [`Whatever`].
+    /// `Whatever` can be downcast, so if the producer of the origin and a formatter agree on the
     /// underlying type, the formatter may be able to recover the original value.
     Custom(Whatever),
 }
@@ -216,23 +216,23 @@ pub enum TestFnHandle {
     /// test generation (for example, implementing your own `#[test]` style macro).
     ///
     /// A macro can generate a small wrapper function that calls the actual test body and
-    /// converts its return value into a [`TestResult`]. 
+    /// converts its return value into a [`TestResult`].
     /// The wrapper can then be stored as a function pointer in this variant.
     Ptr(fn() -> TestResult),
 
     /// An owned, boxed test function.
     ///
     /// This variant is useful when tests are constructed at runtime and need to be stored
-    /// somewhere. 
-    /// Boxing a closure makes it easy to capture state and keep the handle independent of where it 
+    /// somewhere.
+    /// Boxing a closure makes it easy to capture state and keep the handle independent of where it
     /// was created.
     Owned(Box<dyn TestFn + Send + Sync + RefUnwindSafe>),
 
     /// A static reference to a test function object.
     ///
-    /// This is similar to [`Owned`](TestFnHandle::Owned), but instead of owning a boxed closure, 
-    /// it stores a reference to a function object with `'static` lifetime. 
-    /// This is useful when the closure is stored in a static value or otherwise lives for the 
+    /// This is similar to [`Owned`](TestFnHandle::Owned), but instead of owning a boxed closure,
+    /// it stores a reference to a function object with `'static` lifetime.
+    /// This is useful when the closure is stored in a static value or otherwise lives for the
     /// entire program.
     Static(&'static (dyn TestFn + Send + Sync + RefUnwindSafe)),
 }
@@ -269,7 +269,7 @@ impl TestFnHandle {
 
     /// Construct a [`TestFnHandle`] from a boxed test function object.
     ///
-    /// This creates an [`Owned`](TestFnHandle::Owned) variant from a boxed closure or function 
+    /// This creates an [`Owned`](TestFnHandle::Owned) variant from a boxed closure or function
     /// object.
     /// It is the usual choice when tests are built at runtime and need to capture data.
     ///
@@ -284,8 +284,8 @@ impl TestFnHandle {
 
     /// Construct a [`TestFnHandle`] from a static test function object.
     ///
-    /// This creates a [`Static`](TestFnHandle::Static) variant from a reference with `'static` 
-    /// lifetime. 
+    /// This creates a [`Static`](TestFnHandle::Static) variant from a reference with `'static`
+    /// lifetime.
     /// The constructor is `const`, so it can be used in compile time test definitions.
     ///
     /// This is useful when a closure or function object is stored in a static
@@ -312,12 +312,12 @@ impl TestFnHandle {
 /// [`TestFn`] is a small trait used by [`TestFnHandle`] to execute tests behind a trait object.
 /// It represents "something that can be called and produces a [`TestResult`]".
 ///
-/// In theory, this could be modeled directly with Rust's built in [`Fn`] traits. 
-/// At the time of writing, implementing `Fn` for arbitrary user types is not available on stable 
+/// In theory, this could be modeled directly with Rust's built in [`Fn`] traits.
+/// At the time of writing, implementing `Fn` for arbitrary user types is not available on stable
 /// Rust, so Kitest uses this dedicated trait instead.
 ///
 /// Kitest provides a blanket implementation for any function or closure that returns something
-/// convertible into a [`TestResult`]. 
+/// convertible into a [`TestResult`].
 /// This includes:
 ///
 /// - `()`
@@ -342,12 +342,12 @@ where
 
 /// The result type returned by a test function.
 ///
-/// [`TestResult`] is what a [`TestFnHandle`] produces when a test is executed. 
-/// It is a small, opinionated result type: a test either succeeds or fails, and failures carry an 
+/// [`TestResult`] is what a [`TestFnHandle`] produces when a test is executed.
+/// It is a small, opinionated result type: a test either succeeds or fails, and failures carry an
 /// error message.
 ///
 /// A successful test does not produce any value. A failing test carries a `String` that
-/// describes what went wrong. 
+/// describes what went wrong.
 /// This keeps the common success path cheap.
 ///
 /// `TestResult` is designed to be easy to return from typical test functions:
@@ -357,12 +357,12 @@ where
 ///   using its `Debug` output and used as the failure message.
 ///
 /// While `TestResult` is most often produced by regular Rust test functions, it does not have to
-/// come from one. 
-/// A data driven test runner can also construct a `TestResult` directly, for example when 
+/// come from one.
+/// A data driven test runner can also construct a `TestResult` directly, for example when
 /// validating fixtures and producing its own error messages.
 ///
-/// Note: failures store a `String` instead of a borrowed string. 
-/// The expectation is that `Ok` is the hot path, and allocating error strings only happens on 
+/// Note: failures store a `String` instead of a borrowed string.
+/// The expectation is that `Ok` is the hot path, and allocating error strings only happens on
 /// failure.
 #[derive(Debug)]
 pub struct TestResult(pub Result<(), String>);
