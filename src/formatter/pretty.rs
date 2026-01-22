@@ -382,9 +382,9 @@ impl<'t, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> for PrettyG
 
         Self {
             groups: value.outcomes.len(),
-            passed: count_outcomes(&value, TestOutcome::passed),
-            failed: count_outcomes(&value, TestOutcome::failed),
-            ignored: count_outcomes(&value, TestOutcome::ignored),
+            passed: count_outcomes(&value, |outcome| outcome.passed()),
+            failed: count_outcomes(&value, |outcome| outcome.failed()),
+            ignored: count_outcomes(&value, |outcome| outcome.ignored()),
             filtered_out: 0, // TODO: get proper value here
             duration: value.duration,
         }
