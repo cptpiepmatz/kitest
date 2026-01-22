@@ -89,7 +89,7 @@ pub struct TestMeta<Extra = ()> {
     /// This does not have to be globally unique, but it should be unique enough to
     /// make test output readable and to avoid confusion in formatters.
     ///
-    /// The built in Rust harness typically uses the module path style for names,
+    /// The built-in Rust harness typically uses the module path style for names,
     /// but Kitest does not require that.
     pub name: Cow<'static, str>,
 
@@ -128,7 +128,7 @@ pub struct TestMeta<Extra = ()> {
 /// It is meant to help users find the source of a test, for example a file on disk, a generated
 /// fixture, or some external system.
 ///
-/// Kitest's built in formatters treat the origin as display text and simply call
+/// Kitest's built-in formatters treat the origin as display text and simply call
 /// [`Display`] on it when they want to refer to a test source.
 ///
 /// The [`origin!`](crate::origin) macro produces `Some(TestOrigin::TextFile { .. })` at the call
@@ -152,7 +152,7 @@ pub enum TestOrigin {
     /// A custom origin value.
     ///
     /// This can be whatever fits your use case.
-    /// Keep in mind that built in formatting will display it in places where a `TextFile` origin
+    /// Keep in mind that built-in formatting will display it in places where a `TextFile` origin
     /// might also appear.
     ///
     /// If you need richer output, custom formatters may choose to use their own origin type
@@ -312,7 +312,7 @@ impl TestFnHandle {
 /// [`TestFn`] is a small trait used by [`TestFnHandle`] to execute tests behind a trait object.
 /// It represents "something that can be called and produces a [`TestResult`]".
 ///
-/// In theory, this could be modeled directly with Rust's built in [`Fn`] traits.
+/// In theory, this could be modeled directly with Rust's built-in [`Fn`] traits.
 /// At the time of writing, implementing `Fn` for arbitrary user types is not available on stable
 /// Rust, so Kitest uses this dedicated trait instead.
 ///

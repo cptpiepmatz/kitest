@@ -62,7 +62,7 @@
 //!
 //! You may not need Kitest if:
 //!
-//! - The built in test harness already does everything you need
+//! - The built-in test harness already does everything you need
 //! - You only need per test setup and teardown, then `rstest` should be enough
 //! - Your test setup heavily diverges from the typical behavior of `cargo test`
 //!
@@ -160,7 +160,7 @@
 //!
 //! This example shows how to build a custom test harness for your use case.
 //!
-//! First, Cargo needs to be told not to use the built in test harness.
+//! First, Cargo needs to be told not to use the built-in test harness.
 //! For unit tests, this can be done like this:
 //!
 #![doc = include_str!("../doc/html/lib.ansi.html")]
@@ -169,7 +169,7 @@
 //!
 #![doc = include_str!("../doc/html/test.ansi.html")]
 //!
-//! By setting `harness` to `false`, we tell Cargo to skip the built in harness.
+//! By setting `harness` to `false`, we tell Cargo to skip the built-in harness.
 //! Instead, it expects a custom `main` function that runs the tests.
 //!
 //! ```
