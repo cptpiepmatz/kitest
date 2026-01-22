@@ -14,6 +14,34 @@ use crate::{
     util::IteratorExt,
 };
 
+/// A test harness that executes tests in groups.
+///
+/// A [`GroupedTestHarness`] is created by promoting a [`TestHarness`](super::TestHarness) via
+/// [`TestHarness::with_grouper`](super::TestHarness::with_grouper).
+/// The promoted harness keeps the same overall execution model, but adds an explicit grouping
+/// step before running tests.
+///
+/// Groups are executed in a similar way to how `TestHarness` executes individual tests:
+/// tests are filtered and ignored the same way, each test is executed through the same panic
+/// handling and runner logic, and the formatter receives the same test level events.
+/// The main difference is that execution is structured around groups, and group level events are
+/// emitted as well.
+///
+/// ## Grouping
+///
+/// In addition to `Extra` and the usual strategies, a grouped harness is generic over:
+///
+/// - `GroupKey`: a key used to assign tests to groups. This is expected to be fairly cheap, since
+///   it is used as the identifier for grouping and reporting.
+/// - `GroupCtx`: optional per-group context. This may be heavier and is often not required to be
+///   [`Clone`].
+///
+/// Groups make it possible to run tests with shared resources and shared setup and teardown.
+/// This is useful when tests depend on expensive or stateful resources that would be hard to manage
+/// with unordered test execution.
+///
+/// Like [`TestHarness`](super::TestHarness), this harness is lazy.
+/// Call [`run`](Self::run) to execute tests or [`list`](Self::list) to list them.
 #[derive(Debug)]
 #[must_use = "test harnesses are lazy, you have to call either `run` or `list` to do something"]
 pub struct GroupedTestHarness<
@@ -72,6 +100,22 @@ impl<
         Formatter,
     >
 {
+    /// Execute the grouped test harness and produce a [`GroupedTestReport`].
+    ///
+    /// This runs the grouped test pipeline:
+    /// - filters tests
+    /// - assigns tests to groups via the configured grouper
+    /// - executes groups via the group runner
+    /// - executes tests inside each group through the runner
+    /// - captures output and panics per test
+    /// - forwards group and test events to the grouped formatter
+    ///
+    /// The harness is consumed by this call.
+    /// After running, the result is returned as a [`GroupedTestReport`], which can be converted
+    /// into an exit status.
+    ///
+    /// Formatting errors are collected and included in the report instead of
+    /// aborting the run early.
     pub fn run(mut self) -> GroupedTestReport<'t, GroupKey, Formatter::Error> {
         let now = Instant::now();
 
@@ -282,6 +326,18 @@ impl<
         Formatter,
     >
 {
+    /// List groups and tests without executing them.
+    ///
+    /// This runs the grouped harness in listing mode.
+    /// Tests are filtered and grouped the same way as during a normal run, but test functions are
+    /// never executed.
+    ///
+    /// The formatter is notified of listing events and may print a grouped overview
+    /// similar to `cargo test -- --list`, but with group structure.
+    ///
+    /// The harness is consumed by this call.
+    ///
+    /// Formatting errors are returned instead of stopping early.
     pub fn list(mut self) -> Vec<(FormatError, Formatter::Error)> {
         let mut formatter = self.formatter;
         let mut fmt_errors = Vec::new();
@@ -391,6 +447,10 @@ impl<
         Formatter,
     >
 {
+    /// Replace the filter strategy.
+    ///
+    /// The filter strategy decides which tests participate at all. Filtering happens
+    /// before grouping and before ignoring.
     pub fn with_filter<WithFilter: TestFilter<Extra>>(
         self,
         filter: WithFilter,
@@ -423,6 +483,10 @@ impl<
         }
     }
 
+    /// Replace the group storage strategy.
+    ///
+    /// This controls how groups are stored while building them.
+    /// Different implementations can be used to control ordering or to use specialized storage.
     pub fn with_groups<WithGroups: TestGroups<'t, Extra, GroupKey>>(
         self,
         groups: WithGroups,
@@ -455,6 +519,10 @@ impl<
         }
     }
 
+    /// Replace the ignore strategy.
+    ///
+    /// The ignore strategy decides whether a test inside a group is executed or reported
+    /// as ignored, optionally with a reason.
     pub fn with_ignore<WithIgnore: TestIgnore<Extra>>(
         self,
         ignore: WithIgnore,
@@ -487,6 +555,11 @@ impl<
         }
     }
 
+    /// Replace the group runner strategy.
+    ///
+    /// The group runner decides how groups are executed and can control the flow between
+    /// groups.
+    /// For example, it may stop early once a group fails.
     pub fn with_group_runner<WithGroupRunner: TestGroupRunner<'t, Extra, GroupKey, GroupCtx>>(
         self,
         group_runner: WithGroupRunner,
@@ -519,6 +592,10 @@ impl<
         }
     }
 
+    /// Replace the panic handler.
+    ///
+    /// The panic handler is responsible for executing the test function and converting
+    /// panics into a [`TestStatus`], taking metadata such as `should_panic` into account.
     pub fn with_panic_handler<WithPanicHandler: TestPanicHandler<Extra>>(
         self,
         panic_handler: WithPanicHandler,
@@ -551,6 +628,10 @@ impl<
         }
     }
 
+    /// Replace the test runner.
+    ///
+    /// The runner controls how tests inside a group are scheduled and executed, for example
+    /// sequentially or in parallel.
     pub fn with_runner<WithRunner: TestRunner<Extra>>(
         self,
         runner: WithRunner,
@@ -583,6 +664,10 @@ impl<
         }
     }
 
+    /// Replace the grouped formatter.
+    ///
+    /// The formatter receives structured group and test events and is responsible for
+    /// producing output.
     pub fn with_formatter<WithFormatter>(
         self,
         formatter: WithFormatter,

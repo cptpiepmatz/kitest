@@ -13,6 +13,42 @@ use crate::{
     test::Test,
 };
 
+/// A configurable test harness.
+///
+/// [`TestHarness`] is the main operator of Kitest.
+/// It holds the full test list and all strategies that define how a test run behaves:
+/// [filtering](Self::with_filter), [ignoring](Self::with_ignore),
+/// [panic handling](Self::with_panic_handler), [running](Self::with_runner), and
+/// [formatting](Self::with_formatter).
+///
+/// A harness is lazy.
+/// Constructing it does not do anything by itself.
+/// To actually do work, call either [`run`](Self::run) to execute tests or
+/// [`list`](Self::list) to list tests.
+///
+/// ## Configuration
+///
+/// A harness is configured by chaining `with_*` methods.
+/// Each `with_*` call replaces exactly one strategy and returns a new `TestHarness` with an
+/// updated generic type. This keeps the configuration type safe and avoids runtime indirection.
+///
+/// To enable grouping, call [`with_grouper`](Self::with_grouper).
+/// This promotes the harness into a [`GroupedTestHarness`].
+/// From that point on, tests are executed through groups and group specific strategies can be
+/// configured.
+///
+/// ## Generics and type inference
+///
+/// The type of a fully configured harness can look intimidating in rustdoc because it carries
+/// a generic parameter for each strategy.
+/// In normal usage you rarely have to write these types explicitly.
+/// Type inference will figure them out from the strategies you keep or replace.
+///
+/// ## Lifetimes
+///
+/// The lifetime parameter `'t` is the lifetime of the test slice stored in the harness.
+/// All strategies are allowed to borrow from the tests through `'t`, which avoids unnecessary
+/// allocations and copying.
 #[derive(Debug)]
 #[must_use = "test harnesses are lazy, you have to call either `run` or `list` to do something"]
 pub struct TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter> {
@@ -34,6 +70,20 @@ impl<
     Formatter: TestFormatter<'t, Extra> + 't,
 > TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
 {
+    /// Execute the test harness and produce a [`TestReport`].
+    ///
+    /// This runs the full test pipeline:
+    /// - filters tests
+    /// - applies ignore rules
+    /// - executes tests through the runner
+    /// - captures output and panics
+    /// - forwards events to the formatter
+    ///
+    /// The harness is consumed by this call. After running, the result is returned
+    /// as a [`TestReport`], which can be converted into an exit status.
+    ///
+    /// Formatting errors are collected and included in the report instead of
+    /// aborting the run early.
     pub fn run(self) -> TestReport<'t, Formatter::Error> {
         let now = Instant::now();
 
@@ -160,6 +210,15 @@ impl<
     Formatter: TestListFormatter<'t, Extra>,
 > TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
 {
+    /// List tests without executing them.
+    ///
+    /// This runs the harness in listing mode. Tests are filtered and ignored in the
+    /// same way as during a normal run, but test functions are never executed.
+    ///
+    /// The formatter is notified of listing events and may print a test overview
+    /// similar to `cargo test -- --list`.
+    ///
+    /// The harness is consumed by this call.
     pub fn list(
         self,
     ) -> impl IntoIterator<IntoIter = impl ExactSizeIterator<Item = (FormatError, Formatter::Error)>>
@@ -214,6 +273,13 @@ impl<
 impl<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
     TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
 {
+    /// Replace the ignore strategy.
+    ///
+    /// The ignore strategy decides whether a test is executed or reported as ignored,
+    /// optionally with a reason.
+    ///
+    /// This does not remove tests from the harness. Ignored tests are still visible
+    /// to formatters and listing mode.
     pub fn with_ignore<WithIgnore: TestIgnore<Extra>>(
         self,
         ignore: WithIgnore,
@@ -228,6 +294,12 @@ impl<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
         }
     }
 
+    /// Replace the filter strategy.
+    ///
+    /// The filter strategy decides which tests participate in the run at all.
+    /// Filtered tests are removed before execution and are not passed to the runner.
+    ///
+    /// Filtering happens before ignoring.
     pub fn with_filter<WithFilter: TestFilter<Extra>>(
         self,
         filter: WithFilter,
@@ -242,6 +314,11 @@ impl<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
         }
     }
 
+    /// Replace the panic handler.
+    ///
+    /// The panic handler is responsible for executing the test function and
+    /// converting panics into a [`TestStatus`], taking metadata such as
+    /// `should_panic` into account.
     pub fn with_panic_handler<WithPanicHandler: TestPanicHandler<Extra>>(
         self,
         panic_handler: WithPanicHandler,
@@ -256,6 +333,13 @@ impl<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
         }
     }
 
+    /// Replace the test runner.
+    ///
+    /// The runner controls how tests are scheduled and executed, for example
+    /// sequentially or in parallel.
+    ///
+    /// Runners receive prepared test closures and are responsible for driving
+    /// execution and returning outcomes.
     pub fn with_runner<WithRunner: TestRunner<Extra>>(
         self,
         runner: WithRunner,
@@ -270,6 +354,12 @@ impl<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
         }
     }
 
+    /// Replace the formatter.
+    ///
+    /// The formatter receives structured events describing the test run and is
+    /// responsible for producing output.
+    ///
+    /// This includes progress reporting, test results, and final summaries.
     pub fn with_formatter<WithFormatter>(
         self,
         formatter: WithFormatter,
@@ -284,6 +374,14 @@ impl<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
         }
     }
 
+    /// Enable grouping and promote this harness into a [`GroupedTestHarness`].
+    ///
+    /// Calling this method switches the execution model from individual tests to
+    /// test groups. Tests are assigned to groups using the provided [`TestGrouper`],
+    /// and all execution happens through those groups.
+    ///
+    /// This is a type level transition. Once grouping is enabled, group specific
+    /// strategies such as group runners and grouped formatters become available.
     pub fn with_grouper<WithGrouper: TestGrouper<Extra, GroupKey, GroupCtx>, GroupKey, GroupCtx>(
         self,
         grouper: WithGrouper,
