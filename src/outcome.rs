@@ -10,9 +10,6 @@
 //!
 //! - [`TestStatus::Other`] allows custom statuses when the built in variants are not enough
 //! - [`TestOutcomeAttachments`] allows attaching additional typed data to an outcome
-//!
-//! The types in this module are marked `#[non_exhaustive]` where appropriate, so we can
-//! extend them over time without breaking downstream code.
 
 use std::{
     any::{Any, TypeId},
