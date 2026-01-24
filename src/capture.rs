@@ -1,3 +1,23 @@
+//! Output capture.
+//!
+//! This module provides a best effort way to capture stdout and stderr like output during test
+//! execution.
+//!
+//! On stable Rust, rerouting the real process stdio streams is not generally available.
+//! Because of that, Kitest cannot reliably intercept output written through `std::println!` and
+//! friends.
+//!
+//! Instead, this module provides:
+//! - an [`OutputCapture`] type that stores output events and their target (stdout or stderr)
+//! - writers that behave like `stdout` and `stderr` but write into the capture
+//! - macros ([`print!`], [`println!`], [`eprint!`], [`eprintln!`], [`dbg!`]) that mirror the
+//!   standard ones but route into Kitest's capture
+//!
+//! This is only a best effort approach.
+//! Output written to the real stdout or stderr will still go to the terminal.
+//! In practice, tests should not rely on captured output unless they opt into these capture aware
+//! macros or otherwise write through the capture API.
+
 use std::{
     any::Any,
     backtrace::Backtrace,
