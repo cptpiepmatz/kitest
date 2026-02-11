@@ -7,6 +7,17 @@ use crate::{
     test::TestMeta,
 };
 
+/// A [`TestRunner`] that picks between [`SimpleRunner`] and [`DefaultRunner`].
+///
+/// If the number of tests is at or below `threshold`, this runner uses
+/// [`SimpleRunner`] (single threaded, in order).
+/// Otherwise it uses [`DefaultRunner`] (worker pool).
+///
+/// This is useful for grouped runs where some groups may be very small.
+/// For small batches it can be cheaper to run on the current thread than to
+/// pay the overhead of scheduling work across threads.
+/// The best choice depends on the workload, which is why this is not the default runner
+/// implementation.
 #[derive(Debug)]
 pub struct SmartRunner<PanicHookProvider> {
     threshold: usize,
@@ -25,19 +36,30 @@ impl Default for SmartRunner<DefaultPanicHookProvider> {
 }
 
 impl<P> SmartRunner<P> {
+    /// Create a smart runner using the default panic hook provider.
+    ///
+    /// This is the same as `SmartRunner::default()`.
     pub fn new() -> SmartRunner<DefaultPanicHookProvider> {
         SmartRunner::default()
     }
 
+    /// Set the maximum test count that will still use [`SimpleRunner`].
+    ///
+    /// This replaces the previous threshold.
     pub fn with_threshold(self, threshold: usize) -> Self {
         Self { threshold, ..self }
     }
 
+    /// Override the worker thread count used by the internal [`DefaultRunner`].
     pub fn with_threads(mut self, threads: NonZeroUsize) -> Self {
         self.default = self.default.with_thread_count(threads);
         self
     }
 
+    /// Replace the panic hook provider used for output capture.
+    ///
+    /// The provider is applied to both the internal [`SimpleRunner`] and
+    /// [`DefaultRunner`].
     pub fn with_panic_hook_provider<WithPanicHookProvider: Clone>(
         self,
         panic_hook_provider: WithPanicHookProvider,

@@ -18,6 +18,15 @@ use crate::{
 
 // TODO: add early aborting and keep going flag
 
+/// The default [`TestRunner`] implementation used by the default test harness.
+///
+/// The behavior is meant to feel similar to the built in Rust test harness:
+/// tests are executed on a worker pool, outcomes are collected as they finish,
+/// and the order of results is not tied to the input order.
+///
+/// This runner uses multiple threads.
+/// By default, the thread count is based on [`std::thread::available_parallelism`], but it can be
+/// overridden.
 #[derive(Debug)]
 pub struct DefaultRunner<PanicHookProvider> {
     threads: NonZeroUsize,
@@ -34,10 +43,16 @@ impl Default for DefaultRunner<DefaultPanicHookProvider> {
 }
 
 impl<PanicHookProvider> DefaultRunner<PanicHookProvider> {
+    /// Create a default runner using the default panic hook provider.
+    ///
+    /// This is the same as `DefaultRunner::default()`.
     pub fn new() -> DefaultRunner<DefaultPanicHookProvider> {
         DefaultRunner::default()
     }
 
+    /// Override the number of worker threads used by the runner.
+    ///
+    /// This replaces the previous thread count.
     pub fn with_thread_count(self, count: NonZeroUsize) -> Self {
         Self {
             threads: count,
@@ -45,6 +60,10 @@ impl<PanicHookProvider> DefaultRunner<PanicHookProvider> {
         }
     }
 
+    /// Replace the panic hook provider used for output capture.
+    ///
+    /// The runner is generic over a [`PanicHookProvider`] so we can swap out the
+    /// output capture panic hook behavior without replacing the whole runner.
     pub fn with_panic_hook_provider<WithPanicHookProvider>(
         self,
         panic_hook_provider: WithPanicHookProvider,

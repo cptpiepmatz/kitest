@@ -10,6 +10,14 @@ use crate::{
     test::TestMeta,
 };
 
+/// A simple [`TestRunner`] that runs tests on the current thread.
+///
+/// This is a simpler alternative to [`DefaultRunner`](super::DefaultRunner).
+/// It executes tests sequentially, in the order they are provided, and does not spawn any extra
+/// threads.
+///
+/// This is handy in tests and other situations where deterministic ordering is
+/// useful, while still keeping the same behavior around timing and output capture.
 #[derive(Debug)]
 pub struct SimpleRunner<PanicHookProvider> {
     panic_hook_provider: PanicHookProvider,
@@ -24,10 +32,14 @@ impl Default for SimpleRunner<DefaultPanicHookProvider> {
 }
 
 impl<PanicHookProvider> SimpleRunner<PanicHookProvider> {
+    /// Create a simple runner using the default panic hook provider.
+    ///
+    /// This is the same as `SimpleRunner::default()`.
     pub fn new() -> SimpleRunner<DefaultPanicHookProvider> {
         SimpleRunner::default()
     }
 
+    /// Replace the panic hook provider used for output capture.
     pub fn with_panic_hook_provider<WithPanicHookProvider>(
         self,
         panic_hook_provider: WithPanicHookProvider,

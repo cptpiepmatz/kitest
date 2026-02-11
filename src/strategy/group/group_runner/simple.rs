@@ -2,6 +2,14 @@ use std::ops::ControlFlow;
 
 use crate::group::{TestGroupOutcomes, TestGroupRunner};
 
+/// A [`TestGroupRunner`] that simply runs each group and always continues.
+///
+/// This runner just executes the provided group function and returns
+/// `ControlFlow::Continue` with the produced outcomes. It does not perform
+/// any setup, teardown, or early stopping logic.
+///
+/// This is usually sufficient for basic grouped test harnesses and is
+/// especially useful in tests where no special group handling is required.
 #[derive(Debug, Default)]
 pub struct SimpleGroupRunner;
 
