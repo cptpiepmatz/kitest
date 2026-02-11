@@ -3,10 +3,26 @@ use crate::{
     test::TestMeta,
 };
 
+/// The default [`TestIgnore`] implementation used by the default test harness.
+///
+/// The behavior is meant to feel similar to the built-in Rust test harness:
+/// tests can be marked as ignored in their metadata, and we can choose whether
+/// to honor that, include them anyway, or only run ignored tests.
 #[derive(Debug, Default)]
 pub enum DefaultIgnore {
+    /// Run all tests, including tests that are marked as ignored.
     IncludeIgnored,
+
+    /// Only run tests that are marked as ignored.
+    ///
+    /// This effectively inverts the usual ignore decision: tests that are not
+    /// ignored are treated as ignored.
     IgnoredOnly,
+
+    /// Default behavior: respect the ignore status from the test metadata.
+    ///
+    /// If a test is marked as ignored (optionally with a reason), the test will
+    /// be ignored with the same status.
     #[default]
     Default,
 }

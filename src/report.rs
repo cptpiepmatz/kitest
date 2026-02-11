@@ -20,18 +20,18 @@ use crate::{formatter::FormatError, outcome::TestOutcome};
 /// Collected outcomes of a test run.
 ///
 /// [`TestOutcomes`] is a list of `(test_name, outcome)` pairs produced by a
-/// [`TestHarness`] run.
+/// [`TestHarness`](super::TestHarness) run.
 ///
 /// The test name is a borrowed string tied to the lifetime of the original
 /// test list, and the [`TestOutcome`] contains the full result of executing
 /// that test.
 pub type TestOutcomes<'t> = Vec<(&'t str, TestOutcome)>;
 
-/// The report produced by running a [`TestHarness`].
+/// The report produced by running a [`TestHarness`](super::TestHarness).
 ///
-/// [`TestReport`] is returned by [`TestHarness::run`]. It contains all outcomes of the
-/// test run, the total time spent executing the harness, and any errors reported by
-/// the formatter.
+/// [`TestReport`] is returned by [`TestHarness::run`](super::TestHarness::run).
+/// It contains all outcomes of the test run, the total time spent executing the harness, and any
+/// errors reported by the formatter.
 ///
 /// The recorded duration only covers the time spent inside the harness itself.
 /// Any work done before calling `run` (for example test discovery or data loading)

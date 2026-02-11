@@ -3,6 +3,10 @@ use crate::{
     test::TestMeta,
 };
 
+/// A [`TestIgnore`] implementation that never ignores tests.
+///
+/// All tests are always executed, regardless of any ignore metadata they may
+/// carry.
 #[derive(Debug, Default)]
 pub struct NoIgnore;
 

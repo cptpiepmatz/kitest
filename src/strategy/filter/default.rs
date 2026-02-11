@@ -5,6 +5,13 @@ use crate::{
     test::Test,
 };
 
+/// The default [`TestFilter`] implementation used by the default test harness.
+///
+/// The behavior is meant to feel similar to the built in Rust test harness:
+/// we can include tests by name (or name parts) and skip tests by name (or name parts).
+///
+/// By default, `exact` is `false`, so `filter` and `skip` entries are treated as
+/// substrings of the test name.
 #[derive(Debug, Default)]
 pub struct DefaultFilter {
     exact: bool,
@@ -13,10 +20,23 @@ pub struct DefaultFilter {
 }
 
 impl DefaultFilter {
+    /// Set whether filter and skip entries must match test names exactly.
+    ///
+    /// If `exact` is `true`, a filter entry only matches when it is equal to the full
+    /// test name. If `exact` is `false` (the default), entries match when they are
+    /// contained in the test name.
+    ///
+    /// This replaces the previous `exact` value.
     pub fn with_exact(self, exact: bool) -> Self {
         Self { exact, ..self }
     }
 
+    /// Replace the current inclusion filter list.
+    ///
+    /// If the filter list is empty, filtering is effectively disabled and all tests
+    /// are allowed through (unless they are skipped via [`with_skip`](Self::with_skip)).
+    ///
+    /// This replaces the previous filter list.
     pub fn with_filter(self, filter: impl IntoIterator<Item = impl Into<String>>) -> Self {
         Self {
             filter: filter.into_iter().map(Into::into).collect(),
@@ -24,10 +44,20 @@ impl DefaultFilter {
         }
     }
 
+    /// Append entries to the inclusion filter list.
+    ///
+    /// If the filter list is empty, filtering is effectively disabled and all tests
+    /// are allowed through (unless they are skipped).
     pub fn append_filter(&mut self, filter: impl IntoIterator<Item = impl Into<String>>) {
         self.filter.extend(filter.into_iter().map(Into::into));
     }
 
+    /// Replace the current skip list.
+    ///
+    /// Skip entries remove matching tests from the run, even if they also match the
+    /// inclusion filter.
+    ///
+    /// This replaces the previous skip list.
     pub fn with_skip(self, skip: impl IntoIterator<Item = impl Into<String>>) -> Self {
         Self {
             skip: skip.into_iter().map(Into::into).collect(),
@@ -35,6 +65,10 @@ impl DefaultFilter {
         }
     }
 
+    /// Append entries to the skip list.
+    ///
+    /// Skip entries remove matching tests from the run, even if they also match the
+    /// inclusion filter.
     pub fn append_skip(&mut self, skip: impl IntoIterator<Item = impl Into<String>>) {
         self.skip.extend(skip.into_iter().map(Into::into));
     }

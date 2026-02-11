@@ -9,10 +9,24 @@ use crate::{
     test::{TestMeta, TestResult},
 };
 
+/// The default [`TestPanicHandler`] implementation used by the default test harness.
+///
+/// The behavior is meant to feel similar to the built in Rust test harness:
+/// a test passes when it returns `Ok(())` and does not panic, and it fails when
+/// it returns an error or panics.
+///
+/// This handler also respects the [`PanicExpectation`] stored in [`TestMeta`]:
+/// - [`PanicExpectation::ShouldPanic`] treats a panic as a pass and a normal return as a failure
+/// - [`PanicExpectation::ShouldPanicWithExpected`] additionally requires the panic message
+///   to contain the expected text fragment
 #[derive(Debug, Default)]
 pub struct DefaultPanicHandler;
 
 impl DefaultPanicHandler {
+    /// Convert a panic payload into a string.
+    ///
+    /// This matches the common payload types produced by `panic!` (`&'static str` and `String`).
+    /// Other payload types are formatted as a generic placeholder.
     pub fn payload_as_string(err: Box<dyn Any + Send + 'static>) -> String {
         err.downcast::<&'static str>()
             .map(|s| s.to_string())
