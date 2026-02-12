@@ -52,6 +52,6 @@ const TESTS: &[Test] = &[
 
 fn main() -> impl Termination {
     kitest::harness(TESTS)
-        .with_formatter(PrettyFormatter::default().with_color_settings(ColorSetting::Always))
+        .with_formatter(PrettyFormatter::default().with_color_setting(ColorSetting::Always))
         .run()
 }

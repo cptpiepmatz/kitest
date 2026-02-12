@@ -28,7 +28,7 @@ use crate::{
 #[derive(Debug)]
 pub struct PrettyFormatter<'t, W: io::Write + SupportsColor, L, Extra> {
     target: W,
-    color_settings: ColorSetting,
+    color_setting: ColorSetting,
     _label_marker: PhantomData<L>,
     tests: HashMap<&'t str, &'t Test<Extra>>,
 }
@@ -50,16 +50,16 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
     ) -> PrettyFormatter<'t, WithTarget, L, Extra> {
         PrettyFormatter {
             target,
-            color_settings: self.color_settings,
+            color_setting: self.color_setting,
             _label_marker: PhantomData,
             tests: Default::default(),
         }
     }
 
     /// Replace the color settings.
-    pub fn with_color_settings(self, color_settings: ColorSetting) -> Self {
+    pub fn with_color_setting(self, color_setting: ColorSetting) -> Self {
         Self {
-            color_settings,
+            color_setting,
             ..self
         }
     }
@@ -73,7 +73,7 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
     ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupKey>, Extra> {
         PrettyFormatter {
             target: self.target,
-            color_settings: self.color_settings,
+            color_setting: self.color_setting,
             _label_marker: PhantomData,
             tests: Default::default(),
         }
@@ -88,7 +88,7 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
     ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupCtx>, Extra> {
         PrettyFormatter {
             target: self.target,
-            color_settings: self.color_settings,
+            color_setting: self.color_setting,
             _label_marker: PhantomData,
             tests: Default::default(),
         }
@@ -99,7 +99,7 @@ impl<'t, Extra> Default for PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroup
     fn default() -> Self {
         Self {
             target: io::stdout(),
-            color_settings: Default::default(),
+            color_setting: Default::default(),
             _label_marker: PhantomData,
             tests: Default::default(),
         }
@@ -109,7 +109,7 @@ impl<'t, Extra> Default for PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroup
 impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra> {
     /// Return whether this formatter will currently emit colored output.
     pub fn use_color(&self) -> bool {
-        match self.color_settings {
+        match self.color_setting {
             ColorSetting::Automatic => self.target.supports_color(),
             ColorSetting::Always => true,
             ColorSetting::Never => false,

@@ -91,6 +91,7 @@ fn run_rust_doc_test(path: impl AsRef<Path>) -> Result<RustDocTestReport, Error>
     let path = format!("target/snapshot/{}", path.as_ref().display());
     let output = Command::new(path)
         .arg("--test-threads=1")
+        .arg("--color=always")
         .output()
         .map_err(Error::Io)?;
     let stdout = String::from_utf8(output.stdout).map_err(Error::FromUtf8)?;

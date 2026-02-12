@@ -4,8 +4,16 @@ pub mod test;
 
 mod sanitize;
 
-use kitest::test::TestOrigin;
+use kitest::{formatter::common::color::ColorSetting, test::TestOrigin};
 pub use sanitize::*;
+
+#[cfg(not(target_os = "windows"))]
+pub const COLOR_SETTING: ColorSetting = ColorSetting::Always;
+
+// on Windows does the built-in test harness could color instructions to the terminal and not ansi 
+// colors
+#[cfg(target_os = "windows")]
+pub const COLOR_SETTING: ColorSetting = ColorSetting::Never;
 
 macro_rules! snapshot {
     ($mod_name:ident: [
@@ -34,6 +42,7 @@ macro_rules! snapshot {
                 .with_formatter(
                     kitest::formatter::pretty::PrettyFormatter::default()
                         .with_target(actual.clone())
+                        .with_color_setting($crate::lib::COLOR_SETTING)
                     )
                 .with_runner(kitest::runner::SimpleRunner::default())
                 .run();
