@@ -14,6 +14,17 @@ use crate::{
     panic::PanicExpectation,
 };
 
+/// A human friendly formatter that behaves similar to the built in Rust test harness.
+///
+/// It prints per test status lines and a final summary. On failures it prints
+/// additional details and captured output.
+///
+/// The formatter writes to a target `W`, which makes it possible to format into
+/// something other than the console (for example a log file or an in memory buffer).
+///
+/// Coloring is controlled via [`ColorSetting`]. In automatic mode, the formatter
+/// uses the target's [`SupportsColor`] implementation to decide if color should
+/// be used.
 #[derive(Debug)]
 pub struct PrettyFormatter<'t, W: io::Write + SupportsColor, L, Extra> {
     target: W,
@@ -23,10 +34,16 @@ pub struct PrettyFormatter<'t, W: io::Write + SupportsColor, L, Extra> {
 }
 
 impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra> {
+    /// Create a `PrettyFormatter` that writes to stdout.
+    ///
+    /// By default, group labels are derived from the group key via [`GroupLabel`].
     pub fn new() -> PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroupKey>, Extra> {
         PrettyFormatter::default()
     }
 
+    /// Replace the output target.
+    ///
+    /// This can be used to write into a file, a buffer, or any other writer.
     pub fn with_target<WithTarget: io::Write + SupportsColor>(
         self,
         target: WithTarget,
@@ -39,6 +56,7 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
         }
     }
 
+    /// Replace the color settings.
     pub fn with_color_settings(self, color_settings: ColorSetting) -> Self {
         Self {
             color_settings,
@@ -46,6 +64,10 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
         }
     }
 
+    /// Choose group labels based on the group key.
+    ///
+    /// This affects only grouped output and uses [`GroupLabel`] with
+    /// [`FromGroupKey`] to derive the display name.
     pub fn with_group_label_from_key(
         self,
     ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupKey>, Extra> {
@@ -57,6 +79,10 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
         }
     }
 
+    /// Choose group labels based on the group context.
+    ///
+    /// This affects only grouped output and uses [`GroupLabel`] with
+    /// [`FromGroupCtx`] to derive the display name.
     pub fn with_group_label_from_ctx(
         self,
     ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupCtx>, Extra> {
@@ -81,6 +107,7 @@ impl<'t, Extra> Default for PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroup
 }
 
 impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra> {
+    /// Return whether this formatter will currently emit colored output.
     pub fn use_color(&self) -> bool {
         match self.color_settings {
             ColorSetting::Automatic => self.target.supports_color(),

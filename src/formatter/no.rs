@@ -1,5 +1,11 @@
 use crate::formatter::*;
 
+/// A formatter that produces no output.
+///
+/// `NoFormatter` implements all formatter and list formatter traits, but discards
+/// every event. This is useful when we want to run or list tests without any
+/// formatting (for example in benchmarks or when integrating kitest into another
+/// system that handles its own reporting).
 #[derive(Debug, Default)]
 pub struct NoFormatter;
 

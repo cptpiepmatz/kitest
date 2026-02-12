@@ -32,3 +32,5 @@ impl<'t, Extra: 't, W: io::Write> TestListFormatter<'t, Extra> for TerseFormatte
     type BeginListing = ();
     type EndListing = ();
 }
+
+// TODO: need to implement formatting for running tests
