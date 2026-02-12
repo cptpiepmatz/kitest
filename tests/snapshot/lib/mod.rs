@@ -10,7 +10,7 @@ pub use sanitize::*;
 #[cfg(not(target_os = "windows"))]
 pub const COLOR_SETTING: ColorSetting = ColorSetting::Always;
 
-// on Windows does the built-in test harness could color instructions to the terminal and not ansi 
+// on Windows does the built-in test harness could color instructions to the terminal and not ansi
 // colors
 #[cfg(target_os = "windows")]
 pub const COLOR_SETTING: ColorSetting = ColorSetting::Never;

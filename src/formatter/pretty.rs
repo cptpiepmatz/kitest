@@ -338,9 +338,11 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
 
         writeln!(self.target)?;
         write!(self.target, "test result: ")?;
-        match failed {
-            0 => write!(self.target, "ok. ")?,
-            _ => write!(self.target, "FAILED. ")?,
+        match (failed, self.use_color()) {
+            (0, false) => write!(self.target, "ok. ")?,
+            (0, true) => write!(self.target, "{GREEN}ok{RESET}. ")?,
+            (_, false) => write!(self.target, "FAILED. ")?,
+            (_, true) => write!(self.target, "{RED}FAILED{RESET}. ")?,
         }
         writeln!(
             self.target,
