@@ -53,6 +53,8 @@ macro_rules! snapshot {
                 $crate::lib::sanitize_panic_output(&expected.stdout),
                 $crate::lib::sanitize_panic_output(&actual)
             );
+
+            // TODO: also test listing and terse formatter
         }
     }
 }
