@@ -35,3 +35,14 @@ pub fn sanitize_panic_output(input: &str) -> String {
 
     tmp.to_string()
 }
+
+static NO_BENCHMARKS_RE: LazyLock<Regex> = LazyLock::new(|| {
+    // Matches: 8 tests, 0 benchmarks etc.
+    Regex::new(r"(?P<tests>[0-9]+ tests?), (?P<benchmarks>[0-9]+ benchmarks?)").unwrap()
+});
+
+pub fn sanitize_list_output(input: &str) -> String {
+    NO_BENCHMARKS_RE
+        .replace_all(input, |caps: &regex::Captures| caps["tests"].to_string())
+        .to_string()
+}

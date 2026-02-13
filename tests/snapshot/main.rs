@@ -1,6 +1,7 @@
 #![allow(special_module_name)]
 
 use std::{
+    ffi::OsStr,
     io,
     path::Path,
     process::{Command, ExitCode},
@@ -13,8 +14,8 @@ use kitest::formatter::common::color::SupportsColor;
 mod lib;
 mod snapshots;
 
-// #[macro_use]
-// extern crate pretty_assertions;
+#[macro_use]
+extern crate pretty_assertions;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -87,11 +88,15 @@ struct RustDocTestReport {
     exit_code: ExitCode,
 }
 
-fn run_rust_doc_test(path: impl AsRef<Path>) -> Result<RustDocTestReport, Error> {
+fn run_rust_doc_test(
+    path: impl AsRef<Path>,
+    args: impl IntoIterator<Item = impl AsRef<OsStr>>,
+) -> Result<RustDocTestReport, Error> {
     let path = format!("target/snapshot/{}", path.as_ref().display());
     let output = Command::new(path)
         .arg("--test-threads=1")
         .arg("--color=always")
+        .args(args)
         .output()
         .map_err(Error::Io)?;
     let stdout = String::from_utf8(output.stdout).map_err(Error::FromUtf8)?;

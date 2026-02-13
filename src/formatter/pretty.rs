@@ -22,9 +22,9 @@ use crate::{
 /// The formatter writes to a target `W`, which makes it possible to format into
 /// something other than the console (for example a log file or an in memory buffer).
 ///
-/// Coloring is controlled via [`ColorSetting`]. In automatic mode, the formatter
-/// uses the target's [`SupportsColor`] implementation to decide if color should
-/// be used.
+/// Coloring is controlled via [`ColorSetting`].
+/// In automatic mode, the formatter uses the target's [`SupportsColor`] implementation to decide
+/// if color should be used.
 #[derive(Debug, Clone)]
 pub struct PrettyFormatter<'t, W: io::Write, L, Extra> {
     target: W,
@@ -478,7 +478,7 @@ where
     type GroupOutcomes = ();
 }
 
-impl<'t, Extra: 't, W: io::Write + io::IsTerminal, L> TestListFormatter<'t, Extra>
+impl<'t, Extra: 't, W: io::Write, L> TestListFormatter<'t, Extra>
     for PrettyFormatter<'t, W, L, Extra>
 {
     type Error = io::Error;
@@ -490,7 +490,10 @@ impl<'t, Extra: 't, W: io::Write + io::IsTerminal, L> TestListFormatter<'t, Extr
 
     type EndListing = PrettyTestCount;
     fn fmt_end_listing(&mut self, data: Self::EndListing) -> Result<(), Self::Error> {
-        writeln!(self.target, "\n{} tests", data.0)
+        match data.0 {
+            1 => writeln!(self.target, "\n1 test"),
+            n => writeln!(self.target, "\n{n} tests"),
+        }
     }
 
     type InitListing = ();
