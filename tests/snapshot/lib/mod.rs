@@ -32,7 +32,7 @@ macro_rules! snapshot {
                 .with_formatter(kitest::formatter::no::NoFormatter);
             let pretty_formatter = || kitest::formatter::pretty::PrettyFormatter::default();
 
-            // on Windows does the built-in test harness call color instructions to the terminal 
+            // on Windows does the built-in test harness call color instructions to the terminal
             // and not ansi color codes
             #[cfg(not(target_os = "windows"))]
             let _pretty_test_color = {
