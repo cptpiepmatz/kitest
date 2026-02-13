@@ -49,7 +49,7 @@ use crate::{
 /// The lifetime parameter `'t` is the lifetime of the test slice stored in the harness.
 /// All strategies are allowed to borrow from the tests through `'t`, which avoids unnecessary
 /// allocations and copying.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[must_use = "test harnesses are lazy, you have to call either `run` or `list` to do something"]
 pub struct TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter> {
     pub(crate) tests: &'t [Test<Extra>],

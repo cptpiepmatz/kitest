@@ -248,7 +248,7 @@ fn default_panic_hook(panic_hook_info: &PanicHookInfo<'_>) {
         .expect("infallible for Vec<u8>");
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct DefaultPanicHookProvider;
 
 impl PanicHookProvider for DefaultPanicHookProvider {

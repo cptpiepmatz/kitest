@@ -25,8 +25,8 @@ use crate::{
 /// Coloring is controlled via [`ColorSetting`]. In automatic mode, the formatter
 /// uses the target's [`SupportsColor`] implementation to decide if color should
 /// be used.
-#[derive(Debug)]
-pub struct PrettyFormatter<'t, W: io::Write + SupportsColor, L, Extra> {
+#[derive(Debug, Clone)]
+pub struct PrettyFormatter<'t, W: io::Write, L, Extra> {
     target: W,
     color_setting: ColorSetting,
     _label_marker: PhantomData<L>,

@@ -12,7 +12,7 @@ use crate::{
 ///
 /// By default, `exact` is `false`, so `filter` and `skip` entries are treated as
 /// substrings of the test name.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct DefaultFilter {
     exact: bool,
     filter: Vec<String>,

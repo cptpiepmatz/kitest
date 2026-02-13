@@ -6,7 +6,7 @@ use crate::formatter::*;
 /// every event. This is useful when we want to run or list tests without any
 /// formatting (for example in benchmarks or when integrating kitest into another
 /// system that handles its own reporting).
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct NoFormatter;
 
 macro_rules! impl_unit_from {

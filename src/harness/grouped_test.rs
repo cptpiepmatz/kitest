@@ -42,7 +42,7 @@ use crate::{
 ///
 /// Like [`TestHarness`](super::TestHarness), this harness is lazy.
 /// Call [`run`](Self::run) to execute tests or [`list`](Self::list) to list them.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[must_use = "test harnesses are lazy, you have to call either `run` or `list` to do something"]
 pub struct GroupedTestHarness<
     't,
