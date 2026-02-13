@@ -1,4 +1,7 @@
-use std::path::Path;
+use std::{
+    path::Path,
+    sync::{LazyLock, Mutex},
+};
 
 pub mod test;
 
@@ -17,11 +20,11 @@ macro_rules! snapshot {
             use $crate::lib::*;
             use std::{sync::LazyLock, ops::Deref};
             use kitest::{
-                prelude::*, 
-                runner::SimpleRunner, 
+                prelude::*,
+                runner::SimpleRunner,
                 formatter::{pretty::PrettyFormatter, terse::TerseFormatter}
             };
-            
+
             mod test_functions {
                 include!(concat!("snapshots/", stringify!($mod_name), ".rs"));
             }
@@ -47,6 +50,8 @@ macro_rules! snapshot {
                 #[cfg(not(target_os = "windows"))]
                 #[test]
                 fn color() {
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
                         ["--format=pretty", "--color=always"]
@@ -72,6 +77,8 @@ macro_rules! snapshot {
 
                 #[test]
                 fn no_color() {
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
                         ["--format=pretty", "--color=never"]
@@ -97,6 +104,8 @@ macro_rules! snapshot {
 
                 #[test]
                 fn list() {
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
                         ["--format=pretty", "--list"]
@@ -123,6 +132,8 @@ macro_rules! snapshot {
 
                 #[test]
                 fn list() {
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
                         ["--format=terse", "--list"]
@@ -142,12 +153,14 @@ macro_rules! snapshot {
                         $crate::lib::sanitize_list_output(&actual)
                     );
                 }
-            } 
+            }
         }
     }
 }
 
 pub(crate) use snapshot;
+
+pub static SNAPSHOT_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 pub fn snapshot_file(file: impl AsRef<Path>, line: u32) -> TestOrigin {
     TestOrigin::TextFile {

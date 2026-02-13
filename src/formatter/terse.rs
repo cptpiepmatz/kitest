@@ -21,7 +21,10 @@ impl Default for TerseFormatter<io::Stdout> {
 }
 
 impl<W: io::Write> TerseFormatter<W> {
-    pub fn with_target<WithTarget: io::Write>(self, with_target: WithTarget) -> TerseFormatter<WithTarget> {
+    pub fn with_target<WithTarget: io::Write>(
+        self,
+        with_target: WithTarget,
+    ) -> TerseFormatter<WithTarget> {
         TerseFormatter {
             target: with_target,
             color_setting: self.color_setting,
