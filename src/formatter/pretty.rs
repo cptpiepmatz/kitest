@@ -57,9 +57,9 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
     }
 
     /// Replace the color settings.
-    pub fn with_color_setting(self, color_setting: ColorSetting) -> Self {
+    pub fn with_color_setting(self, color_setting: impl Into<ColorSetting>) -> Self {
         Self {
-            color_setting,
+            color_setting: color_setting.into(),
             ..self
         }
     }

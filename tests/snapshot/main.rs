@@ -95,7 +95,6 @@ fn run_rust_doc_test(
     let path = format!("target/snapshot/{}", path.as_ref().display());
     let output = Command::new(path)
         .arg("--test-threads=1")
-        .arg("--color=always")
         .args(args)
         .output()
         .map_err(Error::Io)?;

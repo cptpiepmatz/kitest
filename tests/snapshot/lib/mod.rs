@@ -4,16 +4,8 @@ pub mod test;
 
 mod sanitize;
 
-use kitest::{formatter::common::color::ColorSetting, test::TestOrigin};
+use kitest::test::TestOrigin;
 pub use sanitize::*;
-
-#[cfg(not(target_os = "windows"))]
-pub const COLOR_SETTING: ColorSetting = ColorSetting::Always;
-
-// on Windows does the built-in test harness could color instructions to the terminal and not ansi
-// colors
-#[cfg(target_os = "windows")]
-pub const COLOR_SETTING: ColorSetting = ColorSetting::Never;
 
 macro_rules! snapshot {
     ($mod_name:ident: [
@@ -38,22 +30,44 @@ macro_rules! snapshot {
             let harness = kitest::harness(&tests)
                 .with_runner(kitest::runner::SimpleRunner::default())
                 .with_formatter(kitest::formatter::no::NoFormatter);
-            let pretty_formatter = |buffer| kitest::formatter::pretty::PrettyFormatter::default()
-                .with_target(buffer)
-                .with_color_setting($crate::lib::COLOR_SETTING);
+            let pretty_formatter = || kitest::formatter::pretty::PrettyFormatter::default();
 
-            let _pretty_test = {
+            // on Windows does the built-in test harness call color instructions to the terminal 
+            // and not ansi color codes
+            #[cfg(not(target_os = "windows"))]
+            let _pretty_test_color = {
                 let expected = crate::run_rust_doc_test(
                     &file_name,
-                    ["--format=pretty"]
+                    ["--format=pretty", "--color=always"]
                 ).unwrap();
 
                 let actual = crate::Buffer::default();
                 kitest::capture::reset_first_panic();
-                let report = harness
-                    .clone()
-                    .with_formatter(pretty_formatter(actual.clone()))
-                    .run();
+                let formatter = pretty_formatter()
+                    .with_target(actual.clone())
+                    .with_color_setting(true);
+                let report = harness.clone().with_formatter(formatter).run();
+
+                let actual = actual.try_to_string().unwrap();
+                assert_eq!(expected.exit_code, report.exit_code());
+                assert_eq!(
+                    $crate::lib::sanitize_panic_output(&expected.stdout),
+                    $crate::lib::sanitize_panic_output(&actual)
+                );
+            };
+
+            let _pretty_test_no_color = {
+                let expected = crate::run_rust_doc_test(
+                    &file_name,
+                    ["--format=pretty", "--color=never"]
+                ).unwrap();
+
+                let actual = crate::Buffer::default();
+                kitest::capture::reset_first_panic();
+                let formatter = pretty_formatter()
+                    .with_target(actual.clone())
+                    .with_color_setting(false);
+                let report = harness.clone().with_formatter(formatter).run();
 
                 let actual = actual.try_to_string().unwrap();
                 assert_eq!(expected.exit_code, report.exit_code());
@@ -71,10 +85,8 @@ macro_rules! snapshot {
 
                 let actual = crate::Buffer::default();
                 kitest::capture::reset_first_panic();
-                harness
-                    .clone()
-                    .with_formatter(pretty_formatter(actual.clone()))
-                    .list();
+                let formatter = pretty_formatter().with_target(actual.clone());
+                harness.clone().with_formatter(formatter).list();
 
                 let actual = actual.try_to_string().unwrap();
                 assert_eq!(

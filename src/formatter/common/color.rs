@@ -20,6 +20,15 @@ pub enum ColorSetting {
     Never,
 }
 
+impl From<bool> for ColorSetting {
+    fn from(value: bool) -> Self {
+        match value {
+            true => ColorSetting::Always,
+            false => ColorSetting::Never,
+        }
+    }
+}
+
 pub(crate) mod colors {
     pub const RESET: &str = "\x1b(B\x1b[m";
     pub const RED: &str = "\x1b[31m";
