@@ -31,6 +31,7 @@ macro_rules! snapshot {
                 .with_runner(kitest::runner::SimpleRunner::default())
                 .with_formatter(kitest::formatter::no::NoFormatter);
             let pretty_formatter = || kitest::formatter::pretty::PrettyFormatter::default();
+            let terse_formatter = || kitest::formatter::terse::TerseFormatter::default();
 
             // on Windows does the built-in test harness call color instructions to the terminal
             // and not ansi color codes
@@ -50,7 +51,7 @@ macro_rules! snapshot {
 
                 let actual = actual.try_to_string().unwrap();
                 assert_eq!(expected.exit_code, report.exit_code());
-                assert_eq!(
+                assert_str_eq!(
                     $crate::lib::sanitize_panic_output(&expected.stdout),
                     $crate::lib::sanitize_panic_output(&actual)
                 );
@@ -71,7 +72,7 @@ macro_rules! snapshot {
 
                 let actual = actual.try_to_string().unwrap();
                 assert_eq!(expected.exit_code, report.exit_code());
-                assert_eq!(
+                assert_str_eq!(
                     $crate::lib::sanitize_panic_output(&expected.stdout),
                     $crate::lib::sanitize_panic_output(&actual)
                 );
@@ -89,7 +90,25 @@ macro_rules! snapshot {
                 harness.clone().with_formatter(formatter).list();
 
                 let actual = actual.try_to_string().unwrap();
-                assert_eq!(
+                assert_str_eq!(
+                    $crate::lib::sanitize_list_output(&expected.stdout),
+                    $crate::lib::sanitize_list_output(&actual)
+                );
+            };
+
+            let _terse_list = {
+                let expected = crate::run_rust_doc_test(
+                    &file_name,
+                    ["--format=terse", "--list"]
+                ).unwrap();
+
+                let actual = crate::Buffer::default();
+                kitest::capture::reset_first_panic();
+                let formatter = terse_formatter().with_target(actual.clone());
+                harness.clone().with_formatter(formatter).list();
+
+                let actual = actual.try_to_string().unwrap();
+                assert_str_eq!(
                     $crate::lib::sanitize_list_output(&expected.stdout),
                     $crate::lib::sanitize_list_output(&actual)
                 );
