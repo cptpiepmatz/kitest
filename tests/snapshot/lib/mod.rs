@@ -10,6 +10,7 @@ mod sanitize;
 use kitest::test::TestOrigin;
 pub use sanitize::*;
 
+pub use std::assert_eq as assert_str_eq;
 macro_rules! snapshot {
     ($mod_name:ident: [
         $($test_name:ident $(: {
