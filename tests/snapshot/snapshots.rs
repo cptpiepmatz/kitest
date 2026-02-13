@@ -1,4 +1,4 @@
-use crate::lib::{snapshot, snapshot_file};
+use crate::lib::snapshot;
 
 snapshot!(all_ignored: [first: {ignore: true}, second: {ignore: true}, third: {ignore: "reasons"}]);
 snapshot!(all_ok: [ok_1, ok_2, ok_3, ok_4]);

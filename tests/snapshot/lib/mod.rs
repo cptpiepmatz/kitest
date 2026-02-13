@@ -13,108 +13,136 @@ macro_rules! snapshot {
             $($field_name:ident: $field_value: expr),* $(,)?
         })?),* $(,)?
     ]) => {
-        mod $mod_name;
+        mod $mod_name {
+            use $crate::lib::*;
+            use std::{sync::LazyLock, ops::Deref};
+            use kitest::{
+                prelude::*, 
+                runner::SimpleRunner, 
+                formatter::{pretty::PrettyFormatter, terse::TerseFormatter}
+            };
+            
+            mod test_functions {
+                include!(concat!("snapshots/", stringify!($mod_name), ".rs"));
+            }
 
-        #[test]
-        fn $mod_name() {
-            let file_name = crate::build_cargo_test(stringify!($mod_name)).unwrap();
+            static BUILD_CARGO_TEST: LazyLock<String> = LazyLock::new(|| {
+                crate::build_cargo_test(stringify!($mod_name)).unwrap()
+            });
 
-            let tests = [$(
-                $crate::lib::test::test! {
+            const TEST_N: usize = [$(stringify!($test_name)),*].len();
+            static TESTS: LazyLock<[Test; TEST_N]> = LazyLock::new(|| [$(
+                test::test! {
                     name: stringify!($test_name),
-                    func: || $mod_name::$test_name(),
+                    func: || test_functions::$test_name(),
                     $($($field_name: $field_value,)*)?
                 },
-            )*];
+            )*]);
 
-            let harness = kitest::harness(&tests)
-                .with_runner(kitest::runner::SimpleRunner::default())
-                .with_formatter(kitest::formatter::no::NoFormatter);
-            let pretty_formatter = || kitest::formatter::pretty::PrettyFormatter::default();
-            let terse_formatter = || kitest::formatter::terse::TerseFormatter::default();
+            mod pretty {
+                use super::*;
 
-            // on Windows does the built-in test harness call color instructions to the terminal
-            // and not ansi color codes
-            #[cfg(not(target_os = "windows"))]
-            let _pretty_test_color = {
-                let expected = crate::run_rust_doc_test(
-                    &file_name,
-                    ["--format=pretty", "--color=always"]
-                ).unwrap();
+                // on Windows does the built-in test harness call color instructions to the terminal
+                // and not ansi color codes
+                #[cfg(not(target_os = "windows"))]
+                #[test]
+                fn color() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=pretty", "--color=always"]
+                    ).unwrap();
 
-                let actual = crate::Buffer::default();
-                kitest::capture::reset_first_panic();
-                let formatter = pretty_formatter()
-                    .with_target(actual.clone())
-                    .with_color_setting(true);
-                let report = harness.clone().with_formatter(formatter).run();
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = PrettyFormatter::default()
+                        .with_target(actual.clone())
+                        .with_color_setting(true);
+                    let report = kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .run();
 
-                let actual = actual.try_to_string().unwrap();
-                assert_eq!(expected.exit_code, report.exit_code());
-                assert_str_eq!(
-                    $crate::lib::sanitize_panic_output(&expected.stdout),
-                    $crate::lib::sanitize_panic_output(&actual)
-                );
-            };
+                    let actual = actual.try_to_string().unwrap();
+                    assert_eq!(expected.exit_code, report.exit_code());
+                    assert_str_eq!(
+                        $crate::lib::sanitize_panic_output(&expected.stdout),
+                        $crate::lib::sanitize_panic_output(&actual)
+                    );
+                }
 
-            let _pretty_test_no_color = {
-                let expected = crate::run_rust_doc_test(
-                    &file_name,
-                    ["--format=pretty", "--color=never"]
-                ).unwrap();
+                #[test]
+                fn no_color() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=pretty", "--color=never"]
+                    ).unwrap();
 
-                let actual = crate::Buffer::default();
-                kitest::capture::reset_first_panic();
-                let formatter = pretty_formatter()
-                    .with_target(actual.clone())
-                    .with_color_setting(false);
-                let report = harness.clone().with_formatter(formatter).run();
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = PrettyFormatter::default()
+                        .with_target(actual.clone())
+                        .with_color_setting(false);
+                    let report = kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .run();
 
-                let actual = actual.try_to_string().unwrap();
-                assert_eq!(expected.exit_code, report.exit_code());
-                assert_str_eq!(
-                    $crate::lib::sanitize_panic_output(&expected.stdout),
-                    $crate::lib::sanitize_panic_output(&actual)
-                );
-            };
+                    let actual = actual.try_to_string().unwrap();
+                    assert_eq!(expected.exit_code, report.exit_code());
+                    assert_str_eq!(
+                        $crate::lib::sanitize_panic_output(&expected.stdout),
+                        $crate::lib::sanitize_panic_output(&actual)
+                    );
+                }
 
-            let _pretty_list = {
-                let expected = crate::run_rust_doc_test(
-                    &file_name,
-                    ["--format=pretty", "--list"]
-                ).unwrap();
+                #[test]
+                fn list() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=pretty", "--list"]
+                    ).unwrap();
 
-                let actual = crate::Buffer::default();
-                kitest::capture::reset_first_panic();
-                let formatter = pretty_formatter().with_target(actual.clone());
-                harness.clone().with_formatter(formatter).list();
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = PrettyFormatter::default().with_target(actual.clone());
+                    kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .list();
 
-                let actual = actual.try_to_string().unwrap();
-                assert_str_eq!(
-                    $crate::lib::sanitize_list_output(&expected.stdout),
-                    $crate::lib::sanitize_list_output(&actual)
-                );
-            };
+                    let actual = actual.try_to_string().unwrap();
+                    assert_str_eq!(
+                        $crate::lib::sanitize_list_output(&expected.stdout),
+                        $crate::lib::sanitize_list_output(&actual)
+                    );
+                }
+            }
 
-            let _terse_list = {
-                let expected = crate::run_rust_doc_test(
-                    &file_name,
-                    ["--format=terse", "--list"]
-                ).unwrap();
+            mod terse {
+                use super::*;
 
-                let actual = crate::Buffer::default();
-                kitest::capture::reset_first_panic();
-                let formatter = terse_formatter().with_target(actual.clone());
-                harness.clone().with_formatter(formatter).list();
+                #[test]
+                fn list() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=terse", "--list"]
+                    ).unwrap();
 
-                let actual = actual.try_to_string().unwrap();
-                assert_str_eq!(
-                    $crate::lib::sanitize_list_output(&expected.stdout),
-                    $crate::lib::sanitize_list_output(&actual)
-                );
-            };
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = TerseFormatter::default().with_target(actual.clone());
+                    kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .list();
 
-            // TODO: also test listing and terse formatter
+                    let actual = actual.try_to_string().unwrap();
+                    assert_str_eq!(
+                        $crate::lib::sanitize_list_output(&expected.stdout),
+                        $crate::lib::sanitize_list_output(&actual)
+                    );
+                }
+            } 
         }
     }
 }

@@ -7,8 +7,8 @@ use crate::formatter::{
 
 #[derive(Debug)]
 pub struct TerseFormatter<W: io::Write> {
-    pub target: W,
-    pub color_setting: ColorSetting,
+    target: W,
+    color_setting: ColorSetting,
 }
 
 impl Default for TerseFormatter<io::Stdout> {
@@ -16,6 +16,22 @@ impl Default for TerseFormatter<io::Stdout> {
         Self {
             target: io::stdout(),
             color_setting: Default::default(),
+        }
+    }
+}
+
+impl<W: io::Write> TerseFormatter<W> {
+    pub fn with_target<WithTarget: io::Write>(self, with_target: WithTarget) -> TerseFormatter<WithTarget> {
+        TerseFormatter {
+            target: with_target,
+            color_setting: self.color_setting,
+        }
+    }
+
+    pub fn with_color_setting(self, color_setting: impl Into<ColorSetting>) -> Self {
+        TerseFormatter {
+            color_setting: color_setting.into(),
+            ..self
         }
     }
 }
