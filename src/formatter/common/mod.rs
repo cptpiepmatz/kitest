@@ -4,12 +4,15 @@
 //! They are intentionally formatter focused and are not meant to be general purpose building blocks
 //! for unrelated code.
 
-use std::{collections::HashMap, io};
+use std::{collections::HashMap, fmt::Display, io, marker::PhantomData};
 
 use crate::{
     formatter::{
-        FmtListTest, TestFormatter,
-        common::color::{ColorSetting, SupportsColor},
+        FmtGroupStart, FmtListTest, GroupedTestFormatter, TestFormatter,
+        common::{
+            color::{ColorSetting, SupportsColor},
+            label::{FromGroupKey, GroupLabel},
+        },
     },
     outcome::TestFailure,
     test::Test,
@@ -34,13 +37,14 @@ impl<'t, Extra> From<FmtListTest<'t, Extra>> for TestName<'t> {
 }
 
 #[derive(Debug, Clone)]
-pub(super) struct CommonFormatter<'t, W: io::Write, Extra> {
+pub(super) struct CommonFormatter<'t, W: io::Write, L, Extra> {
     pub target: W,
     pub color_setting: ColorSetting,
     pub tests: HashMap<&'t str, &'t Test<Extra>>,
+    pub _label_marker: PhantomData<L>,
 }
 
-impl<'t, W: io::Write + SupportsColor, Extra> CommonFormatter<'t, W, Extra> {
+impl<'t, W: io::Write + SupportsColor, L, Extra> CommonFormatter<'t, W, L, Extra> {
     pub fn use_color(&self) -> bool {
         match self.color_setting {
             ColorSetting::Automatic => self.target.supports_color(),
@@ -50,18 +54,19 @@ impl<'t, W: io::Write + SupportsColor, Extra> CommonFormatter<'t, W, Extra> {
     }
 }
 
-impl<'t, Extra> Default for CommonFormatter<'t, io::Stdout, Extra> {
+impl<'t, Extra> Default for CommonFormatter<'t, io::Stdout, GroupLabel<FromGroupKey>, Extra> {
     fn default() -> Self {
         Self {
             target: io::stdout(),
             color_setting: Default::default(),
             tests: Default::default(),
+            _label_marker: PhantomData,
         }
     }
 }
 
-impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send> TestFormatter<'t, Extra>
-    for CommonFormatter<'t, W, Extra>
+impl<'t, W: io::Write + SupportsColor + Send, L: Send, Extra: 't + Sync> TestFormatter<'t, Extra>
+    for CommonFormatter<'t, W, L, Extra>
 {
     type Error = io::Error;
 
@@ -152,4 +157,62 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send> TestFormatter<'t
     type TestIgnored = ();
     type TestStart = ();
     type TestOutcome = ();
+}
+
+impl<'t, Extra, GroupKey, GroupCtx, W, L> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
+    for CommonFormatter<'t, W, L, Extra>
+where
+    Extra: 't + Sync,
+    GroupKey: 't,
+    GroupCtx: 't,
+    W: io::Write + SupportsColor + Send,
+    L: Send + Display,
+    for<'b, 'g> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>>,
+{
+    type GroupedRunStart = fto::TestCount;
+    fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
+        <CommonFormatter<'_, _, _, _> as TestFormatter<'_, Extra>>::fmt_run_start(self, data)
+    }
+
+    type GroupStart = fto::GroupStart<L>;
+    fn fmt_group_start(&mut self, data: Self::GroupStart) -> Result<(), Self::Error> {
+        writeln!(self.target)?;
+        let group_name = match data.name.is_empty() {
+            true => "default",
+            false => data.name.as_str(),
+        };
+        writeln!(
+            self.target,
+            "group {group_name}, running {} tests",
+            data.tests
+        )
+    }
+
+    type GroupedRunOutcomes = fto::GroupedRunOutcomes;
+    fn fmt_grouped_run_outcomes(
+        &mut self,
+        fto::GroupedRunOutcomes {
+            groups,
+            passed,
+            failed,
+            ignored,
+            filtered_out,
+            duration,
+        }: Self::GroupedRunOutcomes,
+    ) -> Result<(), Self::Error> {
+        writeln!(self.target)?;
+        write!(self.target, "test result: ")?;
+        match failed {
+            0 => write!(self.target, "ok. ")?,
+            _ => write!(self.target, "FAILED. ")?,
+        }
+        writeln!(
+            self.target,
+            "{passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; across {groups} groups, finished in {:.2}s",
+            duration.as_secs_f64()
+        )?;
+        writeln!(self.target)
+    }
+
+    type GroupOutcomes = ();
 }

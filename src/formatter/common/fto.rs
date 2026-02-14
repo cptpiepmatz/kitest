@@ -1,3 +1,5 @@
+use std::{fmt::Display, marker::PhantomData};
+
 use crate::{capture::OutputCapture, formatter::*, outcome::*};
 
 #[derive(Debug, Clone, Copy)]
@@ -85,6 +87,70 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for RunOutcomes<'t> {
                     })
                 })
                 .collect(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct GroupStart<L> {
+    pub tests: usize,
+    pub name: String,
+    pub _label_marker: PhantomData<L>,
+}
+
+impl<'g, GroupKey, GroupCtx, L> From<FmtGroupStart<'g, GroupKey, GroupCtx>> for GroupStart<L>
+where
+    for<'b> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>> + Display,
+{
+    fn from(value: FmtGroupStart<'g, GroupKey, GroupCtx>) -> Self {
+        let label = L::from(&value);
+        let label = label.to_string();
+        Self {
+            name: label,
+            tests: value.tests,
+            _label_marker: PhantomData,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct GroupedRunOutcomes {
+    pub groups: usize,
+    pub passed: usize,
+    pub failed: usize,
+    pub ignored: usize,
+    pub filtered_out: usize,
+    pub duration: Duration,
+}
+
+impl<'t, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> for GroupedRunOutcomes {
+    fn from(value: FmtGroupedRunOutcomes<'t, 'o, GroupKey>) -> Self {
+        fn count_outcomes<GroupKey, P>(
+            value: &FmtGroupedRunOutcomes<'_, '_, GroupKey>,
+            predicate: P,
+        ) -> usize
+        where
+            P: Fn(&TestOutcome) -> bool,
+        {
+            value
+                .outcomes
+                .iter()
+                .map(|(_, outcomes)| {
+                    outcomes
+                        .iter()
+                        .filter(|(_, outcome)| predicate(outcome))
+                        .count()
+                })
+                .sum()
+        }
+
+        Self {
+            groups: value.outcomes.len(),
+            passed: count_outcomes(&value, |outcome| outcome.passed()),
+            failed: count_outcomes(&value, |outcome| outcome.failed()),
+            ignored: count_outcomes(&value, |outcome| outcome.ignored()),
+            filtered_out: 0, // TODO: get proper value here
+            duration: value.duration,
         }
     }
 }

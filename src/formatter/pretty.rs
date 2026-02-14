@@ -28,8 +28,7 @@ use crate::{
 /// if color should be used.
 #[derive(Debug, Clone)]
 pub struct PrettyFormatter<'t, W: io::Write, L, Extra> {
-    common: CommonFormatter<'t, W, Extra>,
-    _label_marker: PhantomData<L>,
+    common: CommonFormatter<'t, W, L, Extra>,
 }
 
 impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
@@ -52,8 +51,8 @@ impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
                 target,
                 color_setting: self.common.color_setting,
                 tests: self.common.tests,
+                _label_marker: PhantomData,
             },
-            _label_marker: PhantomData,
         }
     }
 
@@ -64,7 +63,6 @@ impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
                 color_setting: color_setting.into(),
                 ..self.common
             },
-            ..self
         }
     }
 
@@ -76,8 +74,12 @@ impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
         self,
     ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupKey>, Extra> {
         PrettyFormatter {
-            common: self.common,
-            _label_marker: PhantomData,
+            common: CommonFormatter {
+                target: self.common.target,
+                color_setting: self.common.color_setting,
+                tests: self.common.tests,
+                _label_marker: PhantomData,
+            },
         }
     }
 
@@ -89,8 +91,12 @@ impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
         self,
     ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupCtx>, Extra> {
         PrettyFormatter {
-            common: self.common,
-            _label_marker: PhantomData,
+            common: CommonFormatter {
+                target: self.common.target,
+                color_setting: self.common.color_setting,
+                tests: self.common.tests,
+                _label_marker: PhantomData,
+            },
         }
     }
 }
@@ -99,7 +105,6 @@ impl<'t, Extra> Default for PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroup
     fn default() -> Self {
         Self {
             common: Default::default(),
-            _label_marker: PhantomData,
         }
     }
 }
@@ -252,70 +257,6 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
     type TestStart = ();
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct PrettyGroupStart<L> {
-    pub tests: usize,
-    pub name: String,
-    pub _label_marker: PhantomData<L>,
-}
-
-impl<'g, GroupKey, GroupCtx, L> From<FmtGroupStart<'g, GroupKey, GroupCtx>> for PrettyGroupStart<L>
-where
-    for<'b> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>> + Display,
-{
-    fn from(value: FmtGroupStart<'g, GroupKey, GroupCtx>) -> Self {
-        let label = L::from(&value);
-        let label = label.to_string();
-        Self {
-            name: label,
-            tests: value.tests,
-            _label_marker: PhantomData,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct PrettyGroupedRunOutcomes {
-    pub groups: usize,
-    pub passed: usize,
-    pub failed: usize,
-    pub ignored: usize,
-    pub filtered_out: usize,
-    pub duration: Duration,
-}
-
-impl<'t, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> for PrettyGroupedRunOutcomes {
-    fn from(value: FmtGroupedRunOutcomes<'t, 'o, GroupKey>) -> Self {
-        fn count_outcomes<GroupKey, P>(
-            value: &FmtGroupedRunOutcomes<'_, '_, GroupKey>,
-            predicate: P,
-        ) -> usize
-        where
-            P: Fn(&TestOutcome) -> bool,
-        {
-            value
-                .outcomes
-                .iter()
-                .map(|(_, outcomes)| {
-                    outcomes
-                        .iter()
-                        .filter(|(_, outcome)| predicate(outcome))
-                        .count()
-                })
-                .sum()
-        }
-
-        Self {
-            groups: value.outcomes.len(),
-            passed: count_outcomes(&value, |outcome| outcome.passed()),
-            failed: count_outcomes(&value, |outcome| outcome.failed()),
-            ignored: count_outcomes(&value, |outcome| outcome.ignored()),
-            filtered_out: 0, // TODO: get proper value here
-            duration: value.duration,
-        }
-    }
-}
-
 impl<'t, Extra: 't + Sync, GroupKey, GroupCtx, W, L>
     GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx> for PrettyFormatter<'t, W, L, Extra>
 where
@@ -328,47 +269,20 @@ where
 {
     type GroupedRunStart = fto::TestCount;
     fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
-        <PrettyFormatter<'_, _, _, _> as TestFormatter<'_, Extra>>::fmt_run_start(self, data)
+        self.common.fmt_grouped_run_start(data)
     }
 
-    type GroupStart = PrettyGroupStart<L>;
+    type GroupStart = fto::GroupStart<L>;
     fn fmt_group_start(&mut self, data: Self::GroupStart) -> Result<(), Self::Error> {
-        writeln!(self.common.target)?;
-        let group_name = match data.name.is_empty() {
-            true => "default",
-            false => data.name.as_str(),
-        };
-        writeln!(
-            self.common.target,
-            "group {group_name}, running {} tests",
-            data.tests
-        )
+        self.common.fmt_group_start(data)
     }
 
-    type GroupedRunOutcomes = PrettyGroupedRunOutcomes;
+    type GroupedRunOutcomes = fto::GroupedRunOutcomes;
     fn fmt_grouped_run_outcomes(
         &mut self,
-        PrettyGroupedRunOutcomes {
-            groups,
-            passed,
-            failed,
-            ignored,
-            filtered_out,
-            duration,
-        }: Self::GroupedRunOutcomes,
+        data: Self::GroupedRunOutcomes,
     ) -> Result<(), Self::Error> {
-        writeln!(self.common.target)?;
-        write!(self.common.target, "test result: ")?;
-        match failed {
-            0 => write!(self.common.target, "ok. ")?,
-            _ => write!(self.common.target, "FAILED. ")?,
-        }
-        writeln!(
-            self.common.target,
-            "{passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; across {groups} groups, finished in {:.2}s",
-            duration.as_secs_f64()
-        )?;
-        writeln!(self.common.target)
+        self.common.fmt_grouped_run_outcomes(data)
     }
 
     type GroupOutcomes = ();

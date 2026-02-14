@@ -1,9 +1,11 @@
+use std::fmt::Display;
 pub use std::io;
 
 use crate::{
     formatter::{
         common::{
             color::{ColorSetting, SupportsColor, colors::*},
+            label::{FromGroupKey, GroupLabel},
             *,
         },
         *,
@@ -12,13 +14,13 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct TerseFormatter<'t, W: io::Write, Extra> {
-    common: CommonFormatter<'t, W, Extra>,
+pub struct TerseFormatter<'t, W: io::Write, L, Extra> {
+    common: CommonFormatter<'t, W, L, Extra>,
     progress: usize,
     last_ok: bool,
 }
 
-impl<'t, Extra> Default for TerseFormatter<'t, io::Stdout, Extra> {
+impl<'t, Extra> Default for TerseFormatter<'t, io::Stdout, GroupLabel<FromGroupKey>, Extra> {
     fn default() -> Self {
         Self {
             common: CommonFormatter::default(),
@@ -28,16 +30,17 @@ impl<'t, Extra> Default for TerseFormatter<'t, io::Stdout, Extra> {
     }
 }
 
-impl<'t, W: io::Write, Extra> TerseFormatter<'t, W, Extra> {
+impl<'t, W: io::Write, L, Extra> TerseFormatter<'t, W, L, Extra> {
     pub fn with_target<WithTarget: io::Write>(
         self,
         with_target: WithTarget,
-    ) -> TerseFormatter<'t, WithTarget, Extra> {
+    ) -> TerseFormatter<'t, WithTarget, L, Extra> {
         TerseFormatter {
             common: CommonFormatter {
                 target: with_target,
                 color_setting: self.common.color_setting,
                 tests: self.common.tests,
+                _label_marker: self.common._label_marker,
             },
             progress: self.progress,
             last_ok: self.last_ok,
@@ -55,7 +58,7 @@ impl<'t, W: io::Write, Extra> TerseFormatter<'t, W, Extra> {
     }
 }
 
-impl<'t, W: io::Write + SupportsColor, Extra> TerseFormatter<'t, W, Extra> {
+impl<'t, W: io::Write + SupportsColor, L, Extra> TerseFormatter<'t, W, L, Extra> {
     /// Return whether this formatter will currently emit colored output.
     pub fn use_color(&self) -> bool {
         self.common.use_color()
@@ -76,8 +79,8 @@ impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for TerseTestOutcome<'t>
     }
 }
 
-impl<'t, Extra: 't + Sync, W: io::Write + Send + SupportsColor> TestFormatter<'t, Extra>
-    for TerseFormatter<'t, W, Extra>
+impl<'t, W: io::Write + Send + SupportsColor, L: Send, Extra: 't + Sync> TestFormatter<'t, Extra>
+    for TerseFormatter<'t, W, L, Extra>
 {
     type Error = io::Error;
 
@@ -139,7 +142,9 @@ impl<'t, Extra: 't + Sync, W: io::Write + Send + SupportsColor> TestFormatter<'t
     type TestStart = ();
 }
 
-impl<'t, Extra: 't, W: io::Write> TestListFormatter<'t, Extra> for TerseFormatter<'t, W, Extra> {
+impl<'t, W: io::Write, L, Extra: 't> TestListFormatter<'t, Extra>
+    for TerseFormatter<'t, W, L, Extra>
+{
     type Error = io::Error;
 
     type ListTest = TestName<'t>;
@@ -150,6 +155,37 @@ impl<'t, Extra: 't, W: io::Write> TestListFormatter<'t, Extra> for TerseFormatte
     type InitListing = ();
     type BeginListing = ();
     type EndListing = ();
+}
+
+impl<'t, GroupKey, GroupCtx, W, L, Extra> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
+    for TerseFormatter<'t, W, L, Extra>
+where
+    GroupKey: 't,
+    GroupCtx: 't,
+    W: io::Write + SupportsColor + Send,
+    L: Send + Display,
+    Extra: 't + Sync,
+    for<'b, 'g> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>>,
+{
+    type GroupedRunStart = fto::TestCount;
+    fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
+        self.common.fmt_grouped_run_start(data)
+    }
+
+    type GroupStart = fto::GroupStart<L>;
+    fn fmt_group_start(&mut self, data: Self::GroupStart) -> Result<(), Self::Error> {
+        self.common.fmt_group_start(data)
+    }
+
+    type GroupedRunOutcomes = fto::GroupedRunOutcomes;
+    fn fmt_grouped_run_outcomes(
+        &mut self,
+        data: Self::GroupedRunOutcomes,
+    ) -> Result<(), Self::Error> {
+        self.common.fmt_grouped_run_outcomes(data)
+    }
+
+    type GroupOutcomes = ();
 }
 
 // TODO: need to implement formatting for running tests
