@@ -7,6 +7,7 @@
 use crate::formatter::FmtListTest;
 
 pub mod color;
+pub mod fto; // format transfer object
 pub mod label;
 
 /// A small newtype around a test name.

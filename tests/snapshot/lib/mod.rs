@@ -10,7 +10,7 @@ mod sanitize;
 use kitest::test::TestOrigin;
 pub use sanitize::*;
 
-pub use std::assert_eq as assert_str_eq;
+// pub use std::assert_eq as assert_str_eq;
 macro_rules! snapshot {
     ($mod_name:ident: [
         $($test_name:ident $(: {
@@ -130,6 +130,33 @@ macro_rules! snapshot {
 
             mod terse {
                 use super::*;
+
+                #[test]
+                fn no_color() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=terse", "--color=never"]
+                    ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = TerseFormatter::default()
+                        .with_target(actual.clone())
+                        .with_color_setting(false);
+                    let report = kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .run();
+
+                    let actual = actual.try_to_string().unwrap();
+                    assert_eq!(expected.exit_code, report.exit_code());
+                    assert_str_eq!(
+                        $crate::lib::sanitize_panic_output(&expected.stdout),
+                        $crate::lib::sanitize_panic_output(&actual)
+                    );
+                }
 
                 #[test]
                 fn list() {

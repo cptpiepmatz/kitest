@@ -33,6 +33,7 @@ snapshot!(expected_panic: [
         origin: snapshot_file("expected_panic.rs", 54)
     },
 ]);
+snapshot!(panic_in_the_middle: [ok_before, panic_in_the_middle_a, panic_in_the_middle_b, ok_after]);
 snapshot!(single_error: [fail]);
 snapshot!(single_ok: [one_test]);
 snapshot!(single_ignored: [one_test: {ignore: true}]);

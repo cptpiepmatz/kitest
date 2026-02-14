@@ -6,6 +6,7 @@ use crate::{
         common::{
             TestName,
             color::{ColorSetting, SupportsColor, colors::*},
+            fto,
             label::{FromGroupCtx, FromGroupKey, GroupLabel},
         },
         *,
@@ -33,7 +34,7 @@ pub struct PrettyFormatter<'t, W: io::Write, L, Extra> {
     tests: HashMap<&'t str, &'t Test<Extra>>,
 }
 
-impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra> {
+impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
     /// Create a `PrettyFormatter` that writes to stdout.
     ///
     /// By default, group labels are derived from the group key via [`GroupLabel`].
@@ -44,7 +45,7 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
     /// Replace the output target.
     ///
     /// This can be used to write into a file, a buffer, or any other writer.
-    pub fn with_target<WithTarget: io::Write + SupportsColor>(
+    pub fn with_target<WithTarget: io::Write>(
         self,
         target: WithTarget,
     ) -> PrettyFormatter<'t, WithTarget, L, Extra> {
@@ -114,38 +115,6 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
             ColorSetting::Always => true,
             ColorSetting::Never => false,
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct PrettyRunInit<'t, Extra> {
-    pub tests: &'t [Test<Extra>],
-}
-
-impl<'t, Extra> From<FmtRunInit<'t, Extra>> for PrettyRunInit<'t, Extra> {
-    fn from(value: FmtRunInit<'t, Extra>) -> Self {
-        Self { tests: value.tests }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct PrettyTestCount(usize);
-
-impl From<FmtRunStart> for PrettyTestCount {
-    fn from(value: FmtRunStart) -> Self {
-        PrettyTestCount(value.active)
-    }
-}
-
-impl From<FmtEndListing> for PrettyTestCount {
-    fn from(value: FmtEndListing) -> Self {
-        PrettyTestCount(value.active + value.ignored)
-    }
-}
-
-impl From<FmtGroupedRunStart> for PrettyTestCount {
-    fn from(value: FmtGroupedRunStart) -> Self {
-        PrettyTestCount(value.tests)
     }
 }
 
@@ -230,13 +199,13 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
 {
     type Error = io::Error;
 
-    type RunInit = PrettyRunInit<'t, Extra>;
+    type RunInit = fto::Tests<'t, Extra>;
     fn fmt_run_init(&mut self, data: Self::RunInit) -> Result<(), Self::Error> {
-        self.tests = HashMap::from_iter(data.tests.iter().map(|test| (test.name.as_ref(), test)));
+        self.tests = HashMap::from_iter(data.0.iter().map(|test| (test.name.as_ref(), test)));
         Ok(())
     }
 
-    type RunStart = PrettyTestCount;
+    type RunStart = fto::TestCount;
     fn fmt_run_start(&mut self, data: Self::RunStart) -> Result<(), Self::Error> {
         match data.0 {
             1 => writeln!(self.target, "\nrunning 1 test"),
@@ -282,10 +251,10 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
         writeln!(self.target)
     }
 
-    type RunOutcomes = PrettyRunOutcomes<'t>;
+    type RunOutcomes = fto::RunOutcomes<'t>;
     fn fmt_run_outcomes(
         &mut self,
-        PrettyRunOutcomes {
+        fto::RunOutcomes {
             passed,
             failed,
             ignored,
@@ -430,7 +399,7 @@ where
     L: Send + Display,
     for<'b, 'g> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>>,
 {
-    type GroupedRunStart = PrettyTestCount;
+    type GroupedRunStart = fto::TestCount;
     fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
         <PrettyFormatter<'_, _, _, _> as TestFormatter<'_, Extra>>::fmt_run_start(self, data)
     }
@@ -488,7 +457,7 @@ impl<'t, Extra: 't, W: io::Write, L> TestListFormatter<'t, Extra>
         writeln!(self.target, "{}: test", data.0)
     }
 
-    type EndListing = PrettyTestCount;
+    type EndListing = fto::TestCount;
     fn fmt_end_listing(&mut self, data: Self::EndListing) -> Result<(), Self::Error> {
         match data.0 {
             1 => writeln!(self.target, "\n1 test"),
