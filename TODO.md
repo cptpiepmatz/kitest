@@ -7,12 +7,12 @@
 - [ ] `--no-capture`: Don't capture stdout/stderr of each task, allow printing directly
 - [x] `--test-threads n_threads`: Number of threads used for running tests in parallel
 - [x] `--skip FILTER`: Skip tests whose names contain FILTER (can be used multiple times)
-- [ ] `--quiet` / `-q`: Display one character per test instead of one line (alias to `--format=terse`)
+- [x] `--quiet` / `-q`: Display one character per test instead of one line (alias to `--format=terse`)
 - [x] `--exact`: Exactly match filters rather than by substring
 - [x] `--color auto|always|never`: Configure coloring of output
-- [ ] `--format pretty|terse|json|junit`: Configure formatting of output
-  - [ ] `--format pretty`
-  - [ ] `--format terse`
+- [x] `--format pretty|terse|json|junit`: Configure formatting of output
+  - [x] `--format pretty`
+  - [x] `--format terse`
 - [ ] `--show-output`: Show captured stdout of successful tests
 - [ ] `--report-time`: Show execution time of each test (supports thresholds via env vars)
 - [ ] `--ensure-time`: Treat excess test execution time as an error (uses same env vars as report-time)
