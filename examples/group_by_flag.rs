@@ -74,6 +74,5 @@ fn main() -> impl Termination {
     kitest::harness(TESTS)
         .with_grouper(|meta: &TestMeta<Flag>| meta.extra)
         .with_runner(SimpleRunner::default())
-        // .with_formatter(FlagFormatter(io::stdout()))
         .run()
 }
