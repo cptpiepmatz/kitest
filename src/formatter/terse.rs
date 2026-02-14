@@ -120,7 +120,7 @@ impl<'t, Extra: 't + Sync, W: io::Write + Send + SupportsColor> TestFormatter<'t
             TestStatus::TimedOut | TestStatus::Failed(..) => self.last_ok = false,
         }
 
-        self.progress = self.progress + 1;
+        self.progress += 1;
 
         write_res
     }
