@@ -1,19 +1,29 @@
 #[cfg_attr(snapshot, test)]
-pub fn ok_before() {}
+pub fn a_ok() {}
 
 #[cfg_attr(snapshot, test)]
-pub fn panic_in_the_middle_a() {
+pub fn b_panic() {
     if true {
         panic!()
     }
 }
 
 #[cfg_attr(snapshot, test)]
-pub fn panic_in_the_middle_b() {
+pub fn c_ok() {}
+
+#[cfg_attr(snapshot, test)]
+pub fn d_panic() {
     if true {
         panic!()
     }
 }
 
 #[cfg_attr(snapshot, test)]
-pub fn ok_after() {}
+pub fn e_panic() {
+    if true {
+        panic!()
+    }
+}
+
+#[cfg_attr(snapshot, test)]
+pub fn f_ok() {}

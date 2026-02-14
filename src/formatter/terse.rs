@@ -16,7 +16,9 @@ use crate::{
 pub struct TerseFormatter<'t, W: io::Write, Extra> {
     target: W,
     color_setting: ColorSetting,
-    tests: HashMap<&'t str, &'t Test<Extra>>
+    tests: HashMap<&'t str, &'t Test<Extra>>,
+    progress: usize,
+    last_ok: bool,
 }
 
 impl<'t, Extra> Default for TerseFormatter<'t, io::Stdout, Extra> {
@@ -25,6 +27,8 @@ impl<'t, Extra> Default for TerseFormatter<'t, io::Stdout, Extra> {
             target: io::stdout(),
             color_setting: Default::default(),
             tests: HashMap::default(),
+            progress: 0,
+            last_ok: false,
         }
     }
 }
@@ -38,6 +42,8 @@ impl<'t, W: io::Write, Extra> TerseFormatter<'t, W, Extra> {
             target: with_target,
             color_setting: self.color_setting,
             tests: self.tests,
+            progress: self.progress,
+            last_ok: self.last_ok,
         }
     }
 
@@ -62,14 +68,14 @@ impl<'t, W: io::Write + SupportsColor, Extra> TerseFormatter<'t, W, Extra> {
 
 pub struct TerseTestOutcome<'t> {
     pub name: &'t str,
-    pub status: TestStatus 
+    pub status: TestStatus,
 }
 
 impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for TerseTestOutcome<'t> {
     fn from(value: FmtTestOutcome<'t, 'o, Extra>) -> Self {
         Self {
             name: value.meta.name.as_ref(),
-            status: value.outcome.status.clone()
+            status: value.outcome.status.clone(),
         }
     }
 }
@@ -95,13 +101,28 @@ impl<'t, Extra: 't + Sync, W: io::Write + Send + SupportsColor> TestFormatter<'t
 
     type TestOutcome = TerseTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
-        match data.status {
+        let write_res = match data.status {
             TestStatus::Passed => write!(self.target, "."),
-            TestStatus::TimedOut => Ok(()),
             TestStatus::Ignored { .. } => write!(self.target, "i"),
-            TestStatus::Failed(..) => Ok(()), // printed during fmt_run_outcomes
             TestStatus::Other(..) => write!(self.target, "o"),
+            TestStatus::Failed(..) | TestStatus::TimedOut => {
+                if self.last_ok {
+                    writeln!(self.target, " {}/{}", self.progress, self.tests.len())?;
+                }
+                writeln!(self.target, "{} --- FAILED", data.name)
+            }
+        };
+
+        match data.status {
+            TestStatus::Passed | TestStatus::Ignored { .. } | TestStatus::Other(..) => {
+                self.last_ok = true
+            }
+            TestStatus::TimedOut | TestStatus::Failed(..) => self.last_ok = false,
         }
+
+        self.progress = self.progress + 1;
+
+        write_res
     }
 
     type RunOutcomes = fto::RunOutcomes<'t>;
@@ -116,18 +137,6 @@ impl<'t, Extra: 't + Sync, W: io::Write + Send + SupportsColor> TestFormatter<'t
             failures,
         }: Self::RunOutcomes,
     ) -> Result<(), Self::Error> {
-        if !failures.is_empty() {
-            let ok = passed + ignored;
-            if ok > 0 {
-                let all = ok + failed;
-                writeln!(self.target, " {ok}/{all}")?;
-            }
-
-            for failure in failures.iter() {
-                writeln!(self.target, "{} --- FAILED", failure.name)?;
-            }
-        }
-
         // TODO: move into common behavior
         if !failures.is_empty() {
             writeln!(self.target)?;
