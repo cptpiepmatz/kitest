@@ -131,6 +131,36 @@ macro_rules! snapshot {
             mod terse {
                 use super::*;
 
+                // on Windows does the built-in test harness call color instructions to the terminal
+                // and not ansi color codes
+                #[cfg(not(target_os = "windows"))]
+                #[test]
+                fn color() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=terse", "--color=always"]
+                    ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = TerseFormatter::default()
+                        .with_target(actual.clone())
+                        .with_color_setting(true);
+                    let report = kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .run();
+
+                    let actual = actual.try_to_string().unwrap();
+                    assert_eq!(expected.exit_code, report.exit_code());
+                    assert_str_eq!(
+                        $crate::lib::sanitize_panic_output(&expected.stdout),
+                        $crate::lib::sanitize_panic_output(&actual)
+                    );
+                }
+
                 #[test]
                 fn no_color() {
                     let expected = crate::run_rust_doc_test(

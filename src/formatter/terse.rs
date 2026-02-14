@@ -93,10 +93,18 @@ impl<'t, Extra: 't + Sync, W: io::Write + Send + SupportsColor> TestFormatter<'t
 
     type TestOutcome = TerseTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
+        let use_color = self.use_color();
+        let green = if use_color { GREEN } else { "" };
+        let yellow = if use_color { YELLOW } else { "" };
+        let cyan = if use_color { CYAN } else { "" };
+        let red = if use_color { RED } else { "" };
+        let reset = if use_color { RESET } else { "" };
+
+        let target = &mut self.common.target;
         let write_res = match data.status {
-            TestStatus::Passed => write!(self.common.target, "."),
-            TestStatus::Ignored { .. } => write!(self.common.target, "i"),
-            TestStatus::Other(..) => write!(self.common.target, "o"),
+            TestStatus::Passed => write!(target, "{green}.{reset}"),
+            TestStatus::Ignored { .. } => write!(target, "{yellow}i{reset}"),
+            TestStatus::Other(..) => write!(target, "{cyan}o{reset}"),
             TestStatus::Failed(..) | TestStatus::TimedOut => {
                 if self.last_ok {
                     writeln!(
@@ -106,7 +114,7 @@ impl<'t, Extra: 't + Sync, W: io::Write + Send + SupportsColor> TestFormatter<'t
                         self.common.tests.len()
                     )?;
                 }
-                writeln!(self.common.target, "{} --- FAILED", data.name)
+                writeln!(self.common.target, "{} --- {red}FAILED{reset}", data.name)
             }
         };
 
