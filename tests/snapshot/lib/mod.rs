@@ -51,12 +51,12 @@ macro_rules! snapshot {
                 #[cfg(not(target_os = "windows"))]
                 #[test]
                 fn color() {
-                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
-
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
                         ["--format=pretty", "--color=always"]
                     ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
 
                     let actual = crate::Buffer::default();
                     kitest::capture::reset_first_panic();
@@ -78,12 +78,12 @@ macro_rules! snapshot {
 
                 #[test]
                 fn no_color() {
-                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
-
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
                         ["--format=pretty", "--color=never"]
                     ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
 
                     let actual = crate::Buffer::default();
                     kitest::capture::reset_first_panic();
@@ -105,12 +105,12 @@ macro_rules! snapshot {
 
                 #[test]
                 fn list() {
-                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
-
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
                         ["--format=pretty", "--list"]
                     ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
 
                     let actual = crate::Buffer::default();
                     kitest::capture::reset_first_panic();
@@ -133,12 +133,12 @@ macro_rules! snapshot {
 
                 #[test]
                 fn list() {
-                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
-
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
                         ["--format=terse", "--list"]
                     ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
 
                     let actual = crate::Buffer::default();
                     kitest::capture::reset_first_panic();
