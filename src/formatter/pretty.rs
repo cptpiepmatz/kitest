@@ -1,10 +1,10 @@
-use std::{collections::HashMap, fmt::Display, io, marker::PhantomData, time::Duration};
+use std::{fmt::Display, io, marker::PhantomData, time::Duration};
 
 use crate::{
     capture::OutputCapture,
     formatter::{
         common::{
-            TestName,
+            CommonFormatter, TestName,
             color::{ColorSetting, SupportsColor, colors::*},
             fto,
             label::{FromGroupCtx, FromGroupKey, GroupLabel},
@@ -28,10 +28,8 @@ use crate::{
 /// if color should be used.
 #[derive(Debug, Clone)]
 pub struct PrettyFormatter<'t, W: io::Write, L, Extra> {
-    target: W,
-    color_setting: ColorSetting,
+    common: CommonFormatter<'t, W, Extra>,
     _label_marker: PhantomData<L>,
-    tests: HashMap<&'t str, &'t Test<Extra>>,
 }
 
 impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
@@ -50,17 +48,22 @@ impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
         target: WithTarget,
     ) -> PrettyFormatter<'t, WithTarget, L, Extra> {
         PrettyFormatter {
-            target,
-            color_setting: self.color_setting,
+            common: CommonFormatter {
+                target,
+                color_setting: self.common.color_setting,
+                tests: self.common.tests,
+            },
             _label_marker: PhantomData,
-            tests: Default::default(),
         }
     }
 
     /// Replace the color settings.
     pub fn with_color_setting(self, color_setting: impl Into<ColorSetting>) -> Self {
         Self {
-            color_setting: color_setting.into(),
+            common: CommonFormatter {
+                color_setting: color_setting.into(),
+                ..self.common
+            },
             ..self
         }
     }
@@ -73,10 +76,8 @@ impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
         self,
     ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupKey>, Extra> {
         PrettyFormatter {
-            target: self.target,
-            color_setting: self.color_setting,
+            common: self.common,
             _label_marker: PhantomData,
-            tests: Default::default(),
         }
     }
 
@@ -88,10 +89,8 @@ impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
         self,
     ) -> PrettyFormatter<'t, W, GroupLabel<FromGroupCtx>, Extra> {
         PrettyFormatter {
-            target: self.target,
-            color_setting: self.color_setting,
+            common: self.common,
             _label_marker: PhantomData,
-            tests: Default::default(),
         }
     }
 }
@@ -99,10 +98,8 @@ impl<'t, W: io::Write, L, Extra> PrettyFormatter<'t, W, L, Extra> {
 impl<'t, Extra> Default for PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroupKey>, Extra> {
     fn default() -> Self {
         Self {
-            target: io::stdout(),
-            color_setting: Default::default(),
+            common: Default::default(),
             _label_marker: PhantomData,
-            tests: Default::default(),
         }
     }
 }
@@ -110,11 +107,7 @@ impl<'t, Extra> Default for PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroup
 impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra> {
     /// Return whether this formatter will currently emit colored output.
     pub fn use_color(&self) -> bool {
-        match self.color_setting {
-            ColorSetting::Automatic => self.target.supports_color(),
-            ColorSetting::Always => true,
-            ColorSetting::Never => false,
-        }
+        self.common.use_color()
     }
 }
 
@@ -201,124 +194,58 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
 
     type RunInit = fto::Tests<'t, Extra>;
     fn fmt_run_init(&mut self, data: Self::RunInit) -> Result<(), Self::Error> {
-        self.tests = HashMap::from_iter(data.0.iter().map(|test| (test.name.as_ref(), test)));
-        Ok(())
+        self.common.fmt_run_init(data)
     }
 
     type RunStart = fto::TestCount;
     fn fmt_run_start(&mut self, data: Self::RunStart) -> Result<(), Self::Error> {
-        match data.0 {
-            1 => writeln!(self.target, "\nrunning 1 test"),
-            count => writeln!(self.target, "\nrunning {count} tests"),
-        }
+        self.common.fmt_run_start(data)
     }
 
     type TestOutcome = PrettyTestOutcome<'t>;
     fn fmt_test_outcome(&mut self, data: Self::TestOutcome) -> Result<(), Self::Error> {
-        write!(self.target, "test {}", data.name)?;
+        let use_color = self.use_color();
+        let target = &mut self.common.target;
+
+        write!(target, "test {}", data.name)?;
         if let PanicExpectation::ShouldPanic | PanicExpectation::ShouldPanicWithExpected(..) =
             data.should_panic
         {
-            write!(self.target, " - should panic")?;
+            write!(target, " - should panic")?;
         }
-        write!(self.target, " ... ")?;
-        match (data.status, self.use_color()) {
-            (TestStatus::Passed, true) => write!(self.target, "{GREEN}ok{RESET}")?,
-            (TestStatus::Passed, false) => write!(self.target, "ok")?,
+        write!(target, " ... ")?;
+        match (data.status, use_color) {
+            (TestStatus::Passed, true) => write!(target, "{GREEN}ok{RESET}")?,
+            (TestStatus::Passed, false) => write!(target, "ok")?,
             (
                 TestStatus::Ignored {
                     reason: Some(reason),
                 },
                 true,
-            ) => write!(self.target, "{YELLOW}ignored, {reason}{RESET}")?,
+            ) => write!(target, "{YELLOW}ignored, {reason}{RESET}")?,
             (
                 TestStatus::Ignored {
                     reason: Some(reason),
                 },
                 false,
-            ) => write!(self.target, "ignored, {reason}")?,
+            ) => write!(target, "ignored, {reason}")?,
             (TestStatus::Ignored { reason: None }, true) => {
-                write!(self.target, "{YELLOW}ignored{RESET}")?
+                write!(target, "{YELLOW}ignored{RESET}")?
             }
-            (TestStatus::Ignored { reason: None }, false) => write!(self.target, "ignored")?,
-            (TestStatus::TimedOut, true) => write!(self.target, "{RED}timed out{RESET}")?,
-            (TestStatus::TimedOut, false) => write!(self.target, "timed out")?,
-            (TestStatus::Failed(_test_failure), true) => write!(self.target, "{RED}FAILED{RESET}")?,
-            (TestStatus::Failed(_test_failure), false) => write!(self.target, "FAILED")?,
-            (TestStatus::Other(_), true) => write!(self.target, "{CYAN}other{RESET}")?,
-            (TestStatus::Other(_), false) => write!(self.target, "other")?,
+            (TestStatus::Ignored { reason: None }, false) => write!(target, "ignored")?,
+            (TestStatus::TimedOut, true) => write!(target, "{RED}timed out{RESET}")?,
+            (TestStatus::TimedOut, false) => write!(target, "timed out")?,
+            (TestStatus::Failed(_test_failure), true) => write!(target, "{RED}FAILED{RESET}")?,
+            (TestStatus::Failed(_test_failure), false) => write!(target, "FAILED")?,
+            (TestStatus::Other(_), true) => write!(target, "{CYAN}other{RESET}")?,
+            (TestStatus::Other(_), false) => write!(target, "other")?,
         };
-        writeln!(self.target)
+        writeln!(target)
     }
 
     type RunOutcomes = fto::RunOutcomes<'t>;
-    fn fmt_run_outcomes(
-        &mut self,
-        fto::RunOutcomes {
-            passed,
-            failed,
-            ignored,
-            filtered_out,
-            duration,
-            failures,
-        }: Self::RunOutcomes,
-    ) -> Result<(), Self::Error> {
-        if !failures.is_empty() {
-            writeln!(self.target)?;
-            writeln!(self.target, "failures:")?;
-            writeln!(self.target)?;
-            for failure in failures.iter() {
-                writeln!(self.target, "---- {} stdout ----", failure.name)?;
-                match &failure.failure {
-                    TestFailure::Error(err) => writeln!(self.target, "Error: {err}")?,
-                    TestFailure::Panicked(_) => self.target.write_all(failure.output.raw())?,
-                    TestFailure::DidNotPanic { .. } => {
-                        if let Some(meta) = self.tests.get(failure.name)
-                            && let Some(origin) = &meta.origin
-                        {
-                            write!(
-                                self.target,
-                                "note: test did not panic as expected at {origin}"
-                            )?;
-                        }
-                    }
-                    TestFailure::PanicMismatch {
-                        got: _,
-                        expected: None,
-                    } => unreachable!("mismatch not possible without expectation"),
-                    TestFailure::PanicMismatch {
-                        got,
-                        expected: Some(expected),
-                    } => {
-                        self.target.write_all(failure.output.raw())?;
-                        writeln!(self.target, "note: panic did not contain expected string")?;
-                        writeln!(self.target, "      panic message: {got:?}")?;
-                        write!(self.target, " expected substring: {expected:?}")?;
-                    }
-                }
-                writeln!(self.target)?;
-            }
-            writeln!(self.target)?;
-            writeln!(self.target, "failures:")?;
-            for failure in failures.iter() {
-                writeln!(self.target, "    {}", failure.name)?;
-            }
-        }
-
-        writeln!(self.target)?;
-        write!(self.target, "test result: ")?;
-        match (failed, self.use_color()) {
-            (0, false) => write!(self.target, "ok. ")?,
-            (0, true) => write!(self.target, "{GREEN}ok{RESET}. ")?,
-            (_, false) => write!(self.target, "FAILED. ")?,
-            (_, true) => write!(self.target, "{RED}FAILED{RESET}. ")?,
-        }
-        writeln!(
-            self.target,
-            "{passed} passed; {failed} failed; {ignored} ignored; 0 measured; {filtered_out} filtered out; finished in {:.2}s",
-            duration.as_secs_f64()
-        )?;
-        writeln!(self.target)
+    fn fmt_run_outcomes(&mut self, data: Self::RunOutcomes) -> Result<(), Self::Error> {
+        self.common.fmt_run_outcomes(data)
     }
 
     type TestIgnored = ();
@@ -406,13 +333,13 @@ where
 
     type GroupStart = PrettyGroupStart<L>;
     fn fmt_group_start(&mut self, data: Self::GroupStart) -> Result<(), Self::Error> {
-        writeln!(self.target)?;
+        writeln!(self.common.target)?;
         let group_name = match data.name.is_empty() {
             true => "default",
             false => data.name.as_str(),
         };
         writeln!(
-            self.target,
+            self.common.target,
             "group {group_name}, running {} tests",
             data.tests
         )
@@ -430,18 +357,18 @@ where
             duration,
         }: Self::GroupedRunOutcomes,
     ) -> Result<(), Self::Error> {
-        writeln!(self.target)?;
-        write!(self.target, "test result: ")?;
+        writeln!(self.common.target)?;
+        write!(self.common.target, "test result: ")?;
         match failed {
-            0 => write!(self.target, "ok. ")?,
-            _ => write!(self.target, "FAILED. ")?,
+            0 => write!(self.common.target, "ok. ")?,
+            _ => write!(self.common.target, "FAILED. ")?,
         }
         writeln!(
-            self.target,
+            self.common.target,
             "{passed} passed; {failed} failed; {ignored} ignored; {filtered_out} filtered out; across {groups} groups, finished in {:.2}s",
             duration.as_secs_f64()
         )?;
-        writeln!(self.target)
+        writeln!(self.common.target)
     }
 
     type GroupOutcomes = ();
@@ -454,14 +381,14 @@ impl<'t, Extra: 't, W: io::Write, L> TestListFormatter<'t, Extra>
 
     type ListTest = TestName<'t>;
     fn fmt_list_test(&mut self, data: Self::ListTest) -> Result<(), Self::Error> {
-        writeln!(self.target, "{}: test", data.0)
+        writeln!(self.common.target, "{}: test", data.0)
     }
 
     type EndListing = fto::TestCount;
     fn fmt_end_listing(&mut self, data: Self::EndListing) -> Result<(), Self::Error> {
         match data.0 {
-            1 => writeln!(self.target, "\n1 test"),
-            n => writeln!(self.target, "\n{n} tests"),
+            1 => writeln!(self.common.target, "\n1 test"),
+            n => writeln!(self.common.target, "\n{n} tests"),
         }
     }
 
