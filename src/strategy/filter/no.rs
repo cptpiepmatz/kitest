@@ -6,7 +6,7 @@ use crate::{
 /// A [`TestFilter`] that does not filter out any tests.
 ///
 /// All input tests are included in the run, and no tests are counted as filtered out.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct NoFilter;
 
 impl NoFilter {

@@ -18,7 +18,7 @@ use crate::{
 /// pay the overhead of scheduling work across threads.
 /// The best choice depends on the workload, which is why this is not the default runner
 /// implementation.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SmartRunner<PanicHookProvider> {
     threshold: usize,
     simple: SimpleRunner<PanicHookProvider>,

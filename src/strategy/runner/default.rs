@@ -27,7 +27,7 @@ use crate::{
 /// This runner uses multiple threads.
 /// By default, the thread count is based on [`std::thread::available_parallelism`], but it can be
 /// overridden.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DefaultRunner<PanicHookProvider> {
     threads: NonZeroUsize,
     panic_hook_provider: PanicHookProvider,

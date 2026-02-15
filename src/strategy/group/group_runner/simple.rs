@@ -10,7 +10,7 @@ use crate::group::{TestGroupOutcomes, TestGroupRunner};
 ///
 /// This is usually sufficient for basic grouped test harnesses and is
 /// especially useful in tests where no special group handling is required.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct SimpleGroupRunner;
 
 impl<'t, Extra, GroupKey, GroupCtx> TestGroupRunner<'t, Extra, GroupKey, GroupCtx>

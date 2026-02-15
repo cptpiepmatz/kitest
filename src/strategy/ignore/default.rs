@@ -8,7 +8,7 @@ use crate::{
 /// The behavior is meant to feel similar to the built-in Rust test harness:
 /// tests can be marked as ignored in their metadata, and we can choose whether
 /// to honor that, include them anyway, or only run ignored tests.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum DefaultIgnore {
     /// Run all tests, including tests that are marked as ignored.
     IncludeIgnored,

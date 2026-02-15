@@ -82,7 +82,7 @@ impl<Extra> Deref for Test<Extra> {
 ///
 /// The generic `Extra` parameter stores user provided metadata used to annotate tests for a
 /// specific use case.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TestMeta<Extra = ()> {
     /// The display name of the test.
     ///
@@ -134,7 +134,7 @@ pub struct TestMeta<Extra = ()> {
 /// The [`origin!`](crate::origin) macro produces `Some(TestOrigin::TextFile { .. })` at the call
 /// site, so it can be used to stamp tests with a source location easily.
 #[non_exhaustive]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TestOrigin {
     /// A typical location in a plain text file.
     ///
@@ -364,7 +364,7 @@ where
 /// Note: failures store a `String` instead of a borrowed string.
 /// The expectation is that `Ok` is the hot path, and allocating error strings only happens on
 /// failure.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TestResult(pub Result<(), String>);
 
 impl From<()> for TestResult {

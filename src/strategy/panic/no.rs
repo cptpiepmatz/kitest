@@ -14,7 +14,7 @@ use crate::{
 ///
 /// Since no unwinding happens inside the handler, the test function does not need
 /// to be [`UnwindSafe`](std::panic::UnwindSafe).
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct NoPanicHandler;
 
 impl<Extra> TestPanicHandler<Extra> for NoPanicHandler {

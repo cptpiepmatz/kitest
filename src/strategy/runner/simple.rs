@@ -18,7 +18,7 @@ use crate::{
 ///
 /// This is handy in tests and other situations where deterministic ordering is
 /// useful, while still keeping the same behavior around timing and output capture.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SimpleRunner<PanicHookProvider> {
     panic_hook_provider: PanicHookProvider,
 }

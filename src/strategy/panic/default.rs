@@ -19,7 +19,7 @@ use crate::{
 /// - [`PanicExpectation::ShouldPanic`] treats a panic as a pass and a normal return as a failure
 /// - [`PanicExpectation::ShouldPanicWithExpected`] additionally requires the panic message
 ///   to contain the expected text fragment
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DefaultPanicHandler;
 
 impl DefaultPanicHandler {

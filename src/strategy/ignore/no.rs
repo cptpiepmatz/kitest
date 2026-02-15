@@ -7,7 +7,7 @@ use crate::{
 ///
 /// All tests are always executed, regardless of any ignore metadata they may
 /// carry.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct NoIgnore;
 
 impl<Extra> TestIgnore<Extra> for NoIgnore {
