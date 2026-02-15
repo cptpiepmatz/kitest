@@ -2,7 +2,6 @@
 name = "kitest"
 version = "0.1.0"
 edition = "2024"
-publish = false
 rust-version = "1.88.0"
 description = "A composable test harness toolkit with room to fly."
 repository = "https://github.com/cptpiepmatz/kitest"
