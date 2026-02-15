@@ -195,6 +195,62 @@
 //!         .report()
 //! }
 //! ```
+//!
+//! ## Argument parsing and configuration
+//!
+//! Kitest does not provide argument parsing.
+//!
+//! Crates like [`clap`](https://crates.io/crates/clap),
+//! [`lexopt`](https://crates.io/crates/lexopt),
+//! [`bpaf`](https://crates.io/crates/bpaf),
+//! or [`argh`](https://crates.io/crates/argh)
+//! already handle command line parsing well and integrate naturally with a custom `main` function.
+//!
+//! The intended workflow is:
+//!
+//! 1. Parse command line arguments in `main`.
+//! 3. Collect tests.
+//! 4. Decide which harness configuration to build.
+//! 5. Run that harness.
+//!
+//! Depending on the parsed arguments, you might:
+//!
+//! - Switch between different formatters
+//! - Enable or disable grouping
+//! - Run in list mode instead of executing tests
+//! - Choose different filters or runners
+//!
+//! Kitest is optimized for compiling a concrete harness configuration.
+//! Strategy types are part of the harness type, which keeps everything static and efficient.
+//! This also means strategy implementations are not swapped dynamically at runtime.
+//!
+//! If different configurations are possible, define them explicitly and select one
+//! based on the parsed arguments:
+//!
+//! ```
+//! # use kitest::prelude::*;
+//! # use std::process::Termination;
+//! #
+//! # enum Mode { Run, List }
+//! # struct Args { mode: Mode }
+//! # fn parse() -> Args { Args { mode: Mode::Run } }
+//! # fn collect() -> Vec<Test> { Vec::new() }
+//! #
+//! let args = parse();
+//! let tests = collect();
+//!
+//! match args.mode {
+//!     Mode::Run => {
+//!         kitest::harness(&tests).run().report();
+//!     },
+//!     Mode::List => {
+//!         kitest::harness(&tests).list();
+//!     }
+//! }
+//! ```
+//!
+//! Argument parsing lives outside of Kitest.
+//! Kitest focuses only on building and running test harnesses.
 
 pub mod capture;
 pub mod formatter;
