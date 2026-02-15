@@ -126,6 +126,8 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> TerseFormatter<'t, W, L, Extra>
     }
 }
 
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct TerseTestOutcome<'t> {
     pub name: &'t str,
     pub status: TestStatus,

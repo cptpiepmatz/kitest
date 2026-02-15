@@ -116,7 +116,8 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> PrettyFormatter<'t, W, L, Extra
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct PrettyTestOutcome<'t> {
     pub name: &'t str,
     pub status: TestStatus,
@@ -133,7 +134,8 @@ impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for PrettyTestOutcome<'t
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct PrettyRunOutcomes<'t> {
     pub passed: usize,
     pub failed: usize,
@@ -143,7 +145,8 @@ pub struct PrettyRunOutcomes<'t> {
     pub failures: Vec<PrettyFailure<'t>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct PrettyFailure<'t> {
     pub name: &'t str,
     pub failure: TestFailure,

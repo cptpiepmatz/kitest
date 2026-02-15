@@ -34,7 +34,7 @@ impl From<FmtGroupedRunStart> for TestCount {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RunOutcomes<'t> {
     pub passed: usize,
     pub failed: usize,
@@ -44,7 +44,7 @@ pub struct RunOutcomes<'t> {
     pub failures: Vec<Failure<'t>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Failure<'t> {
     pub name: &'t str,
     pub failure: TestFailure,
@@ -93,7 +93,7 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for RunOutcomes<'t> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GroupStart<L> {
     pub tests: usize,
     pub name: String,
@@ -115,7 +115,7 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GroupedRunOutcomes {
     pub groups: usize,
     pub passed: usize,

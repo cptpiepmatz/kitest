@@ -7,13 +7,13 @@ use crate::formatter::FmtGroupStart;
 /// Marker type indicating that a group label should be derived from the group key.
 ///
 /// Requires the `GroupKey` to implement [`Display`].
-#[derive(Debug, Default, Clone, Copy, Hash)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct FromGroupKey;
 
 /// Marker type indicating that a group label should be derived from the group context.
 ///
 /// Requires the `GroupCtx` to implement [`Display`].
-#[derive(Debug, Default, Clone, Copy, Hash)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct FromGroupCtx;
 
 /// A displayable label for a test group.
@@ -22,7 +22,7 @@ pub struct FromGroupCtx;
 /// - `GroupLabel<FromGroupCtx>` derives its label from the group context
 ///
 /// In both cases, the respective type must implement [`Display`].
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct GroupLabel<M> {
     marker: PhantomData<M>,
 
