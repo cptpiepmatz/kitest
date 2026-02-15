@@ -1,3 +1,5 @@
+//! Format transfer objects that are used by multiple formatters.
+
 use std::{fmt::Display, marker::PhantomData};
 
 use crate::{capture::OutputCapture, formatter::*, outcome::*};

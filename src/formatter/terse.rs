@@ -1,11 +1,11 @@
-use std::fmt::Display;
 pub use std::io;
+use std::{fmt::Display, marker::PhantomData};
 
 use crate::{
     formatter::{
         common::{
             color::{ColorSetting, SupportsColor, colors::*},
-            label::{FromGroupKey, GroupLabel},
+            label::{FromGroupCtx, FromGroupKey, GroupLabel},
             *,
         },
         *,
@@ -13,6 +13,18 @@ use crate::{
     outcome::TestStatus,
 };
 
+/// A compact formatter that keeps output minimal, while still being readable.
+///
+/// Instead of printing one full status line per test, it prints a single character per test:
+/// - `.` for passed
+/// - `i` for ignored
+/// - `o` for other
+///
+/// On the first failing or timed out test, it switches to printing failure lines so we can
+/// immediately see what broke.
+///
+/// Coloring is controlled via [`ColorSetting`]. In automatic mode, the formatter uses the
+/// target's [`SupportsColor`] implementation to decide if color should be used.
 #[derive(Debug)]
 pub struct TerseFormatter<'t, W: io::Write, L, Extra> {
     common: CommonFormatter<'t, W, L, Extra>,
@@ -31,6 +43,16 @@ impl<'t, Extra> Default for TerseFormatter<'t, io::Stdout, GroupLabel<FromGroupK
 }
 
 impl<'t, W: io::Write, L, Extra> TerseFormatter<'t, W, L, Extra> {
+    /// Create a `TerseFormatter` that writes to stdout.
+    ///
+    /// By default, group labels are derived from the group key via [`GroupLabel`].
+    pub fn new() -> TerseFormatter<'t, io::Stdout, GroupLabel<FromGroupKey>, Extra> {
+        TerseFormatter::default()
+    }
+
+    /// Replace the output target.
+    ///
+    /// This can be used to write into a file, a buffer, or any other writer.
     pub fn with_target<WithTarget: io::Write>(
         self,
         with_target: WithTarget,
@@ -47,6 +69,7 @@ impl<'t, W: io::Write, L, Extra> TerseFormatter<'t, W, L, Extra> {
         }
     }
 
+    /// Replace the color settings.
     pub fn with_color_setting(self, color_setting: impl Into<ColorSetting>) -> Self {
         TerseFormatter {
             common: CommonFormatter {
@@ -54,6 +77,44 @@ impl<'t, W: io::Write, L, Extra> TerseFormatter<'t, W, L, Extra> {
                 ..self.common
             },
             ..self
+        }
+    }
+
+    /// Choose group labels based on the group key.
+    ///
+    /// This affects only grouped output and uses [`GroupLabel`] with
+    /// [`FromGroupKey`] to derive the display name.
+    pub fn with_group_label_from_key(
+        self,
+    ) -> TerseFormatter<'t, W, GroupLabel<FromGroupKey>, Extra> {
+        TerseFormatter {
+            common: CommonFormatter {
+                target: self.common.target,
+                color_setting: self.common.color_setting,
+                tests: self.common.tests,
+                _label_marker: PhantomData,
+            },
+            progress: self.progress,
+            last_ok: self.last_ok,
+        }
+    }
+
+    /// Choose group labels based on the group context.
+    ///
+    /// This affects only grouped output and uses [`GroupLabel`] with
+    /// [`FromGroupCtx`] to derive the display name.
+    pub fn with_group_label_from_ctx(
+        self,
+    ) -> TerseFormatter<'t, W, GroupLabel<FromGroupCtx>, Extra> {
+        TerseFormatter {
+            common: CommonFormatter {
+                target: self.common.target,
+                color_setting: self.common.color_setting,
+                tests: self.common.tests,
+                _label_marker: PhantomData,
+            },
+            progress: self.progress,
+            last_ok: self.last_ok,
         }
     }
 }
@@ -187,5 +248,3 @@ where
 
     type GroupOutcomes = ();
 }
-
-// TODO: need to implement formatting for running tests
