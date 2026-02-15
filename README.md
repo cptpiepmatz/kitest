@@ -1,6 +1,5 @@
 <p align="center">
   <picture>
-    <source srcset="./logo/logo.svg">
     <img height="250" src="https://raw.githubusercontent.com/cptpiepmatz/kitest/main/logo/logo.svg">
   </picture>
 </p>
@@ -44,7 +43,6 @@ It is a foundation for creating one.
 Example output with the default formatter:
 
 <picture>
-  <source srcset="./media/default-example.png">
   <img src="https://raw.githubusercontent.com/cptpiepmatz/kitest/refs/heads/main/media/default-example.png">
 </picture>
 
@@ -193,7 +191,6 @@ All tests with the same `Flag` value run together.
 Example grouped output:
 
 <picture>
-  <source srcset="./media/group-by-flag-example.png">
   <img src="https://raw.githubusercontent.com/cptpiepmatz/kitest/refs/heads/main/media/group-by-flag-example.png">
 </picture>
 
