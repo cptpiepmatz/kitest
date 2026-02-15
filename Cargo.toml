@@ -4,7 +4,11 @@ version = "0.0.0"
 edition = "2024"
 publish = false
 rust-version = "1.88.0"
-exclude = ["*.afdesign"]
+include = [
+  "doc/html/**",
+  "logo/logo.svg",
+  "src/**"
+]
 
 [dependencies]
 crossbeam-channel = "0.5.15"
@@ -14,7 +18,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ci)', "cfg(snapshot)"] }
 
 [workspace]
 resolver = "3"
-members = ["examples/macros/support", "doc"]
+members = ["examples/macros/support", "doc/crate"]
 
 [dev-dependencies]
 linkme = "0.3.35"

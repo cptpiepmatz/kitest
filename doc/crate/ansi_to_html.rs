@@ -3,8 +3,8 @@ use std::{env, fs, path::PathBuf, sync::LazyLock};
 static CARGO_MANIFEST_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()));
 
-static ANSI_DIR: LazyLock<PathBuf> = LazyLock::new(|| CARGO_MANIFEST_DIR.join("ansi"));
-static HTML_DIR: LazyLock<PathBuf> = LazyLock::new(|| CARGO_MANIFEST_DIR.join("html"));
+static ANSI_DIR: LazyLock<PathBuf> = LazyLock::new(|| CARGO_MANIFEST_DIR.join("../ansi"));
+static HTML_DIR: LazyLock<PathBuf> = LazyLock::new(|| CARGO_MANIFEST_DIR.join("../html"));
 
 const GENERATED_COMMENT: &str = "<!--
   This file was automatically generated from an ANSI source file (.ansi).
