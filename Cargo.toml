@@ -12,7 +12,8 @@ categories = ["command-line-utilities", "development-tools", "development-tools:
 include = [
   "doc/html/**",
   "logo/logo.svg",
-  "src/**"
+  "src/**",
+  "LICENSE",
 ]
 
 [dependencies]
