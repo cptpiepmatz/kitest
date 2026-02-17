@@ -61,6 +61,7 @@ pub struct RunOutcomes<'t> {
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Failure<'t> {
+    pub group: Option<String>,
     pub name: &'t str,
     pub failure: TestFailure,
     pub output: OutputCapture,
@@ -98,6 +99,7 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for RunOutcomes<'t> {
                     };
 
                     Some(Failure {
+                        group: None,
                         name,
                         failure: failure.clone(),
                         output: outcome.output.clone(),
@@ -133,7 +135,7 @@ where
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]
-pub struct GroupedRunOutcomes<'t> {
+pub struct GroupedRunOutcomes<'t, L> {
     pub groups: usize,
     pub passed: usize,
     pub failed: usize,
@@ -141,14 +143,17 @@ pub struct GroupedRunOutcomes<'t> {
     pub filtered_out: usize,
     pub duration: Duration,
     pub failures: Vec<Failure<'t>>,
+    pub _label_marker: PhantomData<L>,
 }
 
-impl<'t, 'g, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>>
-    for GroupedRunOutcomes<'t>
+impl<'t, 'o, GroupKey, GroupCtx, L> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey, GroupCtx>>
+    for GroupedRunOutcomes<'t, L>
+where
+    for<'g> L: From<(&'g GroupKey, Option<&'g GroupCtx>)> + Display,
 {
-    fn from(value: FmtGroupedRunOutcomes<'t, 'o, GroupKey>) -> Self {
-        fn count_outcomes<GroupKey, P>(
-            value: &FmtGroupedRunOutcomes<'_, '_, GroupKey>,
+    fn from(value: FmtGroupedRunOutcomes<'t, 'o, GroupKey, GroupCtx>) -> Self {
+        fn count_outcomes<GroupKey, GroupCtx, P>(
+            value: &FmtGroupedRunOutcomes<'_, '_, GroupKey, GroupCtx>,
             predicate: P,
         ) -> usize
         where
@@ -157,7 +162,7 @@ impl<'t, 'g, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>>
             value
                 .outcomes
                 .iter()
-                .map(|(_, outcomes)| {
+                .map(|(_, outcomes, _)| {
                     outcomes
                         .iter()
                         .filter(|(_, outcome)| predicate(outcome))
@@ -167,6 +172,7 @@ impl<'t, 'g, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>>
         }
 
         Self {
+            _label_marker: PhantomData,
             groups: value.outcomes.len(),
             passed: count_outcomes(&value, |outcome| outcome.passed()),
             failed: count_outcomes(&value, |outcome| outcome.failed()),
@@ -176,17 +182,21 @@ impl<'t, 'g, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>>
             failures: value
                 .outcomes
                 .iter()
-                .flat_map(|(group_key, outcomes)| {
+                .flat_map(|(group_key, outcomes, group_ctx)| {
                     outcomes
-                        .into_iter()
-                        .map(move |(name, outcome)| (group_key, name, outcome))
+                        .iter()
+                        .map(move |(name, outcome)| (name, outcome, group_key, group_ctx))
                 })
-                .filter_map(|(_group_key, name, outcome)| {
+                .filter_map(|(name, outcome, group_key, group_ctx)| {
                     let TestStatus::Failed(failure) = &outcome.status else {
                         return None;
                     };
 
+                    let group = L::from((group_key, group_ctx.as_ref())).to_string();
+                    let group = (!group.is_empty()).then_some(group);
+
                     Some(Failure {
+                        group,
                         name,
                         failure: failure.clone(),
                         output: outcome.output.clone(),
@@ -197,7 +207,7 @@ impl<'t, 'g, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>>
     }
 }
 
-impl<'t> GroupedRunOutcomes<'t> {
+impl<'t, L> GroupedRunOutcomes<'t, L> {
     pub fn split(self) -> (usize, RunOutcomes<'t>) {
         (
             self.groups,

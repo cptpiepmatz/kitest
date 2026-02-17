@@ -116,7 +116,7 @@ impl<
     ///
     /// Formatting errors are collected and included in the report instead of
     /// aborting the run early.
-    pub fn run(mut self) -> GroupedTestReport<'t, GroupKey, Formatter::Error> {
+    pub fn run(mut self) -> GroupedTestReport<'t, GroupKey, GroupCtx, Formatter::Error> {
         let now = Instant::now();
 
         let mut formatter = self.formatter;
@@ -186,7 +186,7 @@ impl<
                             tests: tests.len(),
                             worker_count: runner.worker_count(tests.len()),
                             key: &key,
-                            ctx,
+                            ctx: ctx.as_ref(),
                         }
                         .into(),
                     ));
@@ -244,7 +244,7 @@ impl<
                                 .collect()
                         },
                         &key,
-                        ctx,
+                        ctx.as_ref(),
                     );
 
                     match outcomes {
@@ -264,12 +264,12 @@ impl<
                             outcomes,
                             duration: *duration,
                             key,
-                            ctx: *ctx,
+                            ctx: ctx.as_ref(),
                         }
                         .into(),
                     ));
                 })
-                .map(|(outcomes, _, key, _)| (key, outcomes))
+                .map(|(outcomes, _, key, ctx)| (key, outcomes, ctx))
                 .collect();
 
             drop(ftx);
@@ -376,7 +376,7 @@ impl<
                 FmtListGroupStart {
                     tests: tests_len,
                     key: &key,
-                    ctx,
+                    ctx: ctx.as_ref(),
                 }
                 .fmt(|data| formatter.fmt_list_group_start(data)),
             );
@@ -400,7 +400,7 @@ impl<
                 FmtListGroupEnd {
                     tests: tests_len,
                     key: &key,
-                    ctx,
+                    ctx: ctx.as_ref(),
                 }
                 .fmt(|data| formatter.fmt_list_group_end(data)),
             );

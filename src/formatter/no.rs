@@ -27,7 +27,7 @@ impl_unit_from![
     FmtGroupedRunStart,
     FmtGroupStart<'g, GroupKey, GroupCtx>,
     FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx>,
-    FmtGroupedRunOutcomes<'t, 'o, GroupKey>,
+    FmtGroupedRunOutcomes<'t, 'o, GroupKey, GroupCtx>,
     FmtInitListing<'t, Extra>,
     FmtBeginListing,
     FmtListTest<'t, Extra>,

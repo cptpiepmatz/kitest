@@ -46,7 +46,12 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> CommonFormatter<'t, W, L, Extra
             writeln!(self.target, "failures:")?;
             writeln!(self.target)?;
             for failure in data.failures.iter() {
-                writeln!(self.target, "---- {} stdout ----", failure.name)?;
+                match &failure.group {
+                    Some(group) => {
+                        writeln!(self.target, "---- {group} - {} stdout ----", failure.name)?
+                    }
+                    None => writeln!(self.target, "---- {} stdout ----", failure.name)?,
+                }
                 match &failure.failure {
                     TestFailure::Error(err) => writeln!(self.target, "Error: {err}")?,
                     TestFailure::Panicked(_) => self.target.write_all(failure.output.raw())?,
@@ -79,7 +84,10 @@ impl<'t, W: io::Write + SupportsColor, L, Extra> CommonFormatter<'t, W, L, Extra
             writeln!(self.target)?;
             writeln!(self.target, "failures:")?;
             for failure in data.failures.iter() {
-                writeln!(self.target, "    {}", failure.name)?;
+                match &failure.group {
+                    Some(group) => writeln!(self.target, "    {group}: {}", failure.name)?,
+                    None => writeln!(self.target, "    {}", failure.name)?,
+                }
             }
         }
 
@@ -105,8 +113,11 @@ impl<'t, Extra> Default for CommonFormatter<'t, io::Stdout, GroupLabel<FromGroup
     }
 }
 
-impl<'t, W: io::Write + SupportsColor + Send, L: Send, Extra: 't + Sync> TestFormatter<'t, Extra>
-    for CommonFormatter<'t, W, L, Extra>
+impl<'t, W, L, Extra> TestFormatter<'t, Extra> for CommonFormatter<'t, W, L, Extra>
+where
+    W: io::Write + SupportsColor + Send,
+    L: Send,
+    Extra: 't + Sync,
 {
     type Error = io::Error;
 
@@ -127,7 +138,7 @@ impl<'t, W: io::Write + SupportsColor + Send, L: Send, Extra: 't + Sync> TestFor
     type RunOutcomes = fto::RunOutcomes<'t>;
     fn fmt_run_outcomes(
         &mut self,
-        ref data @ fto::RunOutcomes {
+        #[allow(clippy::toplevel_ref_arg)] ref data @ fto::RunOutcomes {
             ref passed,
             ref failed,
             ref ignored,
@@ -159,6 +170,7 @@ where
     W: io::Write + SupportsColor + Send,
     L: Send + Display,
     for<'b, 'g> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>>,
+    for<'o> L: From<(&'o GroupKey, Option<&'o GroupCtx>)>,
 {
     type GroupedRunStart = fto::TestCount;
     fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
@@ -179,7 +191,7 @@ where
         )
     }
 
-    type GroupedRunOutcomes = fto::GroupedRunOutcomes<'t>;
+    type GroupedRunOutcomes = fto::GroupedRunOutcomes<'t, L>;
     fn fmt_grouped_run_outcomes(
         &mut self,
         data: Self::GroupedRunOutcomes,

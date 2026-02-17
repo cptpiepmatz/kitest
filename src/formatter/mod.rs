@@ -189,8 +189,8 @@ pub struct FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx = ()> {
 
 #[derive(Debug, Clone)]
 #[non_exhaustive]
-pub struct FmtGroupedRunOutcomes<'t, 'o, GroupKey> {
-    pub outcomes: &'o GroupedTestOutcomes<'t, GroupKey>,
+pub struct FmtGroupedRunOutcomes<'t, 'o, GroupKey, GroupCtx> {
+    pub outcomes: &'o GroupedTestOutcomes<'t, GroupKey, GroupCtx>,
     pub duration: Duration,
 }
 
@@ -233,7 +233,7 @@ pub trait GroupedTestFormatter<'t, Extra: 't, GroupKey: 't, GroupCtx: 't = ()>:
         discard!(data)
     }
 
-    type GroupedRunOutcomes: for<'o> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> + Send;
+    type GroupedRunOutcomes: for<'o> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey, GroupCtx>> + Send;
     /// Called at the end of the grouped run with all group outcomes.
     ///
     /// This replaces [`TestFormatter::fmt_run_outcomes`] for grouped runs.
@@ -416,7 +416,7 @@ make_format_error! {
     FmtGroupedRunStart: GroupedRunStart,
     FmtGroupStart<'g, GroupKey, GroupCtx>: GroupStart,
     FmtGroupOutcomes<'t, 'g, 'o, GroupKey, GroupCtx>: GroupOutcomes,
-    FmtGroupedRunOutcomes<'t, 'o, GroupKey>: GroupedRunOutcomes,
+    FmtGroupedRunOutcomes<'t, 'o, GroupKey, GroupCtx>: GroupedRunOutcomes,
     FmtInitListing<'t, Extra>: InitListing,
     FmtBeginListing: BeginListing,
     FmtListTest<'t, Extra>: ListTest,

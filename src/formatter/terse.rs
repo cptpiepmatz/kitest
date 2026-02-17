@@ -230,6 +230,7 @@ where
     L: Send + Display,
     Extra: 't + Sync,
     for<'b, 'g> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>>,
+    for<'o> L: From<(&'o GroupKey, Option<&'o GroupCtx>)>,
 {
     type GroupedRunStart = fto::TestCount;
     fn fmt_grouped_run_start(&mut self, data: Self::GroupedRunStart) -> Result<(), Self::Error> {
@@ -241,7 +242,7 @@ where
         self.common.fmt_group_start(data)
     }
 
-    type GroupedRunOutcomes = fto::GroupedRunOutcomes<'t>;
+    type GroupedRunOutcomes = fto::GroupedRunOutcomes<'t, L>;
     fn fmt_grouped_run_outcomes(
         &mut self,
         data: Self::GroupedRunOutcomes,

@@ -95,7 +95,8 @@ impl<'t, FmtError: 't> Termination for TestReport<'t, FmtError> {
 /// outcomes of all tests executed in that group.
 ///
 /// This mirrors [`TestOutcomes`], but adds one level of structure for grouping.
-pub type GroupedTestOutcomes<'t, GroupKey> = Vec<(GroupKey, Vec<(&'t str, TestOutcome)>)>;
+pub type GroupedTestOutcomes<'t, GroupKey, GroupCtx> =
+    Vec<(GroupKey, Vec<(&'t str, TestOutcome)>, Option<GroupCtx>)>;
 
 /// The report produced by running a [`GroupedTestHarness`](super::GroupedTestHarness).
 ///
@@ -111,11 +112,11 @@ pub type GroupedTestOutcomes<'t, GroupKey> = Vec<(GroupKey, Vec<(&'t str, TestOu
 #[derive(Debug)]
 #[non_exhaustive]
 #[must_use = "ignoring this report may hide test failures or formatting errors"]
-pub struct GroupedTestReport<'t, GroupKey, FmtError: 't> {
+pub struct GroupedTestReport<'t, GroupKey, GroupCtx, FmtError: 't> {
     /// Outcomes of all executed test groups.
     ///
     /// Each entry contains the group key and the outcomes of the tests in that group.
-    pub outcomes: GroupedTestOutcomes<'t, GroupKey>,
+    pub outcomes: GroupedTestOutcomes<'t, GroupKey, GroupCtx>,
 
     /// Total duration of the grouped test run.
     pub duration: Duration,
@@ -126,7 +127,7 @@ pub struct GroupedTestReport<'t, GroupKey, FmtError: 't> {
     pub fmt_errors: Vec<(FormatError, FmtError)>,
 }
 
-impl<'t, GroupKey, FmtError: 't> GroupedTestReport<'t, GroupKey, FmtError> {
+impl<'t, GroupKey, GroupCtx, FmtError: 't> GroupedTestReport<'t, GroupKey, GroupCtx, FmtError> {
     /// Compute the process exit code for this grouped test report.
     ///
     /// The exit code is determined as follows:
@@ -142,7 +143,7 @@ impl<'t, GroupKey, FmtError: 't> GroupedTestReport<'t, GroupKey, FmtError> {
         let any_failed = self
             .outcomes
             .iter()
-            .any(|(_, outcomes)| outcomes.iter().any(|(_, outcome)| outcome.failed()));
+            .any(|(_, outcomes, _)| outcomes.iter().any(|(_, outcome)| outcome.failed()));
         if any_failed {
             return ExitCode::FAILURE;
         }
@@ -154,7 +155,9 @@ impl<'t, GroupKey, FmtError: 't> GroupedTestReport<'t, GroupKey, FmtError> {
     }
 }
 
-impl<'t, GroupKey, FmtError: 't> Termination for GroupedTestReport<'t, GroupKey, FmtError> {
+impl<'t, GroupKey, GroupCtx, FmtError: 't> Termination
+    for GroupedTestReport<'t, GroupKey, GroupCtx, FmtError>
+{
     fn report(self) -> ExitCode {
         self.exit_code()
     }

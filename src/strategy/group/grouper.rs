@@ -22,7 +22,7 @@ pub trait TestGrouper<Extra, GroupKey, GroupCtx = ()> {
     /// Optionally return group context for a group key.
     ///
     /// The default implementation returns `None`.
-    fn group_ctx(&self, key: &GroupKey) -> Option<&GroupCtx> {
+    fn group_ctx(&mut self, key: &GroupKey) -> Option<GroupCtx> {
         let _ = key;
         None
     }

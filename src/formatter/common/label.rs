@@ -41,6 +41,17 @@ impl<'g, GroupKey: Display, GroupCtx> From<&FmtGroupStart<'g, GroupKey, GroupCtx
     }
 }
 
+impl<GroupKey: Display, GroupCtx> From<(&GroupKey, Option<&GroupCtx>)>
+    for GroupLabel<FromGroupKey>
+{
+    fn from(value: (&GroupKey, Option<&GroupCtx>)) -> Self {
+        GroupLabel {
+            marker: PhantomData,
+            label: value.0.to_string(),
+        }
+    }
+}
+
 // TODO: implement this conversion for other types
 
 impl<'g, GroupKey, GroupCtx: Display> From<&FmtGroupStart<'g, GroupKey, GroupCtx>>
@@ -50,6 +61,17 @@ impl<'g, GroupKey, GroupCtx: Display> From<&FmtGroupStart<'g, GroupKey, GroupCtx
         GroupLabel {
             marker: PhantomData,
             label: value.ctx.map(|ctx| ctx.to_string()).unwrap_or_default(),
+        }
+    }
+}
+
+impl<GroupKey, GroupCtx: Display> From<(&GroupKey, Option<&GroupCtx>)>
+    for GroupLabel<FromGroupCtx>
+{
+    fn from(value: (&GroupKey, Option<&GroupCtx>)) -> Self {
+        GroupLabel {
+            marker: PhantomData,
+            label: value.1.map(|ctx| ctx.to_string()).unwrap_or_default(),
         }
     }
 }
