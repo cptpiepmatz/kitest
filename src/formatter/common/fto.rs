@@ -34,7 +34,21 @@ impl From<FmtGroupedRunStart> for TestCount {
     }
 }
 
+/// A small newtype around a test name.
+///
+/// This is mainly used to make formatter implementations nicer to read, since it
+/// can be constructed directly from [`FmtListTest`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct TestName<'t>(pub &'t str);
+
+impl<'t, Extra> From<FmtListTest<'t, Extra>> for TestName<'t> {
+    fn from(value: FmtListTest<'t, Extra>) -> Self {
+        Self(value.meta.name.as_ref())
+    }
+}
+
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct RunOutcomes<'t> {
     pub passed: usize,
     pub failed: usize,
@@ -45,6 +59,7 @@ pub struct RunOutcomes<'t> {
 }
 
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Failure<'t> {
     pub name: &'t str,
     pub failure: TestFailure,
@@ -94,6 +109,7 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for RunOutcomes<'t> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct GroupStart<L> {
     pub tests: usize,
     pub name: String,
@@ -115,17 +131,21 @@ where
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GroupedRunOutcomes {
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub struct GroupedRunOutcomes<'t> {
     pub groups: usize,
     pub passed: usize,
     pub failed: usize,
     pub ignored: usize,
     pub filtered_out: usize,
     pub duration: Duration,
+    pub failures: Vec<Failure<'t>>,
 }
 
-impl<'t, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> for GroupedRunOutcomes {
+impl<'t, 'g, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>>
+    for GroupedRunOutcomes<'t>
+{
     fn from(value: FmtGroupedRunOutcomes<'t, 'o, GroupKey>) -> Self {
         fn count_outcomes<GroupKey, P>(
             value: &FmtGroupedRunOutcomes<'_, '_, GroupKey>,
@@ -153,6 +173,42 @@ impl<'t, 'o, GroupKey> From<FmtGroupedRunOutcomes<'t, 'o, GroupKey>> for Grouped
             ignored: count_outcomes(&value, |outcome| outcome.ignored()),
             filtered_out: 0, // TODO: get proper value here
             duration: value.duration,
+            failures: value
+                .outcomes
+                .iter()
+                .flat_map(|(group_key, outcomes)| {
+                    outcomes
+                        .into_iter()
+                        .map(move |(name, outcome)| (group_key, name, outcome))
+                })
+                .filter_map(|(_group_key, name, outcome)| {
+                    let TestStatus::Failed(failure) = &outcome.status else {
+                        return None;
+                    };
+
+                    Some(Failure {
+                        name,
+                        failure: failure.clone(),
+                        output: outcome.output.clone(),
+                    })
+                })
+                .collect(),
         }
+    }
+}
+
+impl<'t> GroupedRunOutcomes<'t> {
+    pub fn split(self) -> (usize, RunOutcomes<'t>) {
+        (
+            self.groups,
+            RunOutcomes {
+                passed: self.passed,
+                failed: self.failed,
+                ignored: self.ignored,
+                filtered_out: self.filtered_out,
+                duration: self.duration,
+                failures: self.failures,
+            },
+        )
     }
 }

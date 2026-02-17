@@ -5,6 +5,7 @@ use crate::{
     formatter::{
         common::{
             color::{ColorSetting, SupportsColor, colors::*},
+            fto::TestName,
             label::{FromGroupCtx, FromGroupKey, GroupLabel},
             *,
         },
@@ -240,7 +241,7 @@ where
         self.common.fmt_group_start(data)
     }
 
-    type GroupedRunOutcomes = fto::GroupedRunOutcomes;
+    type GroupedRunOutcomes = fto::GroupedRunOutcomes<'t>;
     fn fmt_grouped_run_outcomes(
         &mut self,
         data: Self::GroupedRunOutcomes,
