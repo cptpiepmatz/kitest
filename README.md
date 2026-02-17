@@ -54,7 +54,7 @@ Kitest is typically added as a dev dependency:
 
 ```toml
 [dev-dependencies]
-kitest = "0.2.0"
+kitest = "0.3.0"
 ```
 
 ### Disable the default harness
