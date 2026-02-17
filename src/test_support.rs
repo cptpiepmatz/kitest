@@ -7,7 +7,7 @@ use crate::{
     formatter::no::NoFormatter,
     ignore::{IgnoreStatus, NoIgnore},
     panic::{NoPanicHandler, PanicExpectation},
-    runner::SimpleRunner,
+    runner::{SimpleRunner, scope::NoScopeFactory},
     test::{Test, TestFn, TestFnHandle, TestMeta, TestOrigin},
 };
 
@@ -80,7 +80,7 @@ pub fn harness(
     NoFilter,
     NoIgnore,
     NoPanicHandler,
-    SimpleRunner<DefaultPanicHookProvider>,
+    SimpleRunner<DefaultPanicHookProvider, NoScopeFactory>,
     NoFormatter,
 > {
     TestHarness {

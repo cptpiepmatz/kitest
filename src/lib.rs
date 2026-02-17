@@ -177,7 +177,10 @@
 //! use kitest::prelude::*;
 //! #
 //! # type MyFilter = kitest::filter::NoFilter;
-//! # type MyRunner = kitest::runner::SimpleRunner<kitest::capture::DefaultPanicHookProvider>;
+//! # type MyRunner = kitest::runner::SimpleRunner<
+//! #     kitest::capture::DefaultPanicHookProvider,
+//! #     kitest::runner::scope::NoScopeFactory
+//! # >;
 //!
 //! fn main() -> impl Termination {
 //!     // However you collect your tests. This can be static or data driven.

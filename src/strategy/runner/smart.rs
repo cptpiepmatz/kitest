@@ -3,7 +3,10 @@ use std::{num::NonZeroUsize, thread::Scope};
 use crate::{
     capture::{DefaultPanicHookProvider, PanicHookProvider},
     outcome::{TestOutcome, TestStatus},
-    runner::{DefaultRunner, SimpleRunner, TestRunner},
+    runner::{
+        DefaultRunner, SimpleRunner, TestRunner,
+        scope::{NoScopeFactory, TestScopeFactory},
+    },
     test::TestMeta,
 };
 
@@ -19,13 +22,13 @@ use crate::{
 /// The best choice depends on the workload, which is why this is not the default runner
 /// implementation.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SmartRunner<PanicHookProvider> {
+pub struct SmartRunner<PanicHookProvider, TestScopeFactory> {
     threshold: usize,
-    simple: SimpleRunner<PanicHookProvider>,
-    default: DefaultRunner<PanicHookProvider>,
+    simple: SimpleRunner<PanicHookProvider, TestScopeFactory>,
+    default: DefaultRunner<PanicHookProvider, TestScopeFactory>,
 }
 
-impl Default for SmartRunner<DefaultPanicHookProvider> {
+impl Default for SmartRunner<DefaultPanicHookProvider, NoScopeFactory> {
     fn default() -> Self {
         Self {
             threshold: 4,
@@ -35,11 +38,11 @@ impl Default for SmartRunner<DefaultPanicHookProvider> {
     }
 }
 
-impl<P> SmartRunner<P> {
+impl<PanicHookProvider, TestScopeFactory> SmartRunner<PanicHookProvider, TestScopeFactory> {
     /// Create a smart runner using the default panic hook provider.
     ///
     /// This is the same as `SmartRunner::default()`.
-    pub fn new() -> SmartRunner<DefaultPanicHookProvider> {
+    pub fn new() -> SmartRunner<DefaultPanicHookProvider, NoScopeFactory> {
         SmartRunner::default()
     }
 
@@ -63,13 +66,34 @@ impl<P> SmartRunner<P> {
     pub fn with_panic_hook_provider<WithPanicHookProvider: Clone>(
         self,
         panic_hook_provider: WithPanicHookProvider,
-    ) -> SmartRunner<WithPanicHookProvider> {
+    ) -> SmartRunner<WithPanicHookProvider, TestScopeFactory> {
         SmartRunner {
             threshold: self.threshold,
             simple: self
                 .simple
                 .with_panic_hook_provider(panic_hook_provider.clone()),
             default: self.default.with_panic_hook_provider(panic_hook_provider),
+        }
+    }
+
+    /// Replace the [`TestScopeFactory`] used by this runner.
+    ///
+    /// This allows injecting per test lifecycle hooks without replacing the entire runner.
+    /// The factory produces one scope instance per test, and that scope instance is used for both
+    /// [`before_test`](super::scope::TestScope::before_test) and
+    /// [`after_test`](super::scope::TestScope::after_test).
+    ///
+    /// This replaces the previous scope factory.
+    pub fn with_test_scope_factory<WithTestScopeFactory: Clone>(
+        self,
+        test_scope_factory: WithTestScopeFactory,
+    ) -> SmartRunner<PanicHookProvider, WithTestScopeFactory> {
+        SmartRunner {
+            threshold: self.threshold,
+            simple: self
+                .simple
+                .with_test_scope_factory(test_scope_factory.clone()),
+            default: self.default.with_test_scope_factory(test_scope_factory),
         }
     }
 }
@@ -95,8 +119,13 @@ where
     }
 }
 
-impl<P: PanicHookProvider, Extra: Sync> TestRunner<Extra> for SmartRunner<P> {
-    fn run<'t, 's, I, F>(
+impl<'t, P, T, Extra> TestRunner<'t, Extra> for SmartRunner<P, T>
+where
+    P: PanicHookProvider,
+    T: TestScopeFactory<'t, Extra> + Send + Sync + 'static,
+    Extra: Sync,
+{
+    fn run<'s, I, F>(
         &self,
         tests: I,
         scope: &'s Scope<'s, 't>,
@@ -107,12 +136,12 @@ impl<P: PanicHookProvider, Extra: Sync> TestRunner<Extra> for SmartRunner<P> {
         Extra: 't,
     {
         match tests.len() <= self.threshold {
-            true => SmartRunnerIterator::Simple(<SimpleRunner<_> as TestRunner<Extra>>::run(
+            true => SmartRunnerIterator::Simple(<SimpleRunner<_, _> as TestRunner<Extra>>::run(
                 &self.simple,
                 tests,
                 scope,
             )),
-            false => SmartRunnerIterator::Default(<DefaultRunner<_> as TestRunner<Extra>>::run(
+            false => SmartRunnerIterator::Default(<DefaultRunner<_, _> as TestRunner<Extra>>::run(
                 &self.default,
                 tests,
                 scope,
@@ -122,9 +151,11 @@ impl<P: PanicHookProvider, Extra: Sync> TestRunner<Extra> for SmartRunner<P> {
 
     fn worker_count(&self, test_count: usize) -> NonZeroUsize {
         match test_count <= self.threshold {
-            true => <SimpleRunner<_> as TestRunner<Extra>>::worker_count(&self.simple, test_count),
+            true => {
+                <SimpleRunner<_, _> as TestRunner<Extra>>::worker_count(&self.simple, test_count)
+            }
             false => {
-                <DefaultRunner<_> as TestRunner<Extra>>::worker_count(&self.default, test_count)
+                <DefaultRunner<_, _> as TestRunner<Extra>>::worker_count(&self.default, test_count)
             }
         }
     }

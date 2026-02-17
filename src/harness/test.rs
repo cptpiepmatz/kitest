@@ -66,7 +66,7 @@ impl<
     Filter: TestFilter<Extra>,
     Ignore: TestIgnore<Extra> + Send + Sync + 't,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 't,
-    Runner: TestRunner<Extra>,
+    Runner: TestRunner<'t, Extra>,
     Formatter: TestFormatter<'t, Extra> + 't,
 > TestHarness<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
 {
@@ -340,7 +340,7 @@ impl<'t, Extra, Filter, Ignore, PanicHandler, Runner, Formatter>
     ///
     /// Runners receive prepared test closures and are responsible for driving
     /// execution and returning outcomes.
-    pub fn with_runner<WithRunner: TestRunner<Extra>>(
+    pub fn with_runner<WithRunner: TestRunner<'t, Extra>>(
         self,
         runner: WithRunner,
     ) -> TestHarness<'t, Extra, Filter, Ignore, PanicHandler, WithRunner, Formatter> {

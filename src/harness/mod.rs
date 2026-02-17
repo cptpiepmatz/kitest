@@ -11,7 +11,7 @@ use crate::{
     },
     ignore::DefaultIgnore,
     panic::DefaultPanicHandler,
-    runner::DefaultRunner,
+    runner::{DefaultRunner, scope::NoScopeFactory},
     test::Test,
 };
 
@@ -67,7 +67,7 @@ pub fn harness<'t, Extra>(
     DefaultFilter,
     DefaultIgnore,
     DefaultPanicHandler,
-    DefaultRunner<DefaultPanicHookProvider>,
+    DefaultRunner<DefaultPanicHookProvider, NoScopeFactory>,
     PrettyFormatter<'t, io::Stdout, GroupLabel<FromGroupKey>, Extra>,
 > {
     TestHarness {

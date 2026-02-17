@@ -30,12 +30,14 @@ pub use simple::*;
 mod smart;
 pub use smart::*;
 
+pub mod scope;
+
 /// A strategy for running tests and producing [`TestOutcome`] values.
 ///
 /// A runner organizes when and where tests execute.
 /// It may use multiple threads, but it does not have to.
 /// The produced iterator does not have to keep the same order as the incoming test iterator.
-pub trait TestRunner<Extra> {
+pub trait TestRunner<'t, Extra> {
     /// Run the given tests and return their outcomes.
     ///
     /// The input iterator yields `(f, meta)` pairs where `f` is the test execution function.
@@ -55,7 +57,7 @@ pub trait TestRunner<Extra> {
     ///
     /// The runner may choose how to interpret the returned status when building
     /// the outcome.
-    fn run<'t, 's, I, F>(
+    fn run<'s, I, F>(
         &self,
         tests: I,
         scope: &'s Scope<'s, 't>,

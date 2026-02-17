@@ -82,7 +82,7 @@ impl<
     Ignore: TestIgnore<Extra> + Send + Sync + 't,
     GroupRunner: TestGroupRunner<'t, Extra, GroupKey, GroupCtx>,
     PanicHandler: TestPanicHandler<Extra> + Send + Sync + 't,
-    Runner: TestRunner<Extra>,
+    Runner: TestRunner<'t, Extra>,
     Formatter: GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx> + 't,
 >
     GroupedTestHarness<
@@ -632,7 +632,7 @@ impl<
     ///
     /// The runner controls how tests inside a group are scheduled and executed, for example
     /// sequentially or in parallel.
-    pub fn with_runner<WithRunner: TestRunner<Extra>>(
+    pub fn with_runner<WithRunner: TestRunner<'t, Extra>>(
         self,
         runner: WithRunner,
     ) -> GroupedTestHarness<

@@ -2,6 +2,7 @@ use std::{
     cmp,
     fmt::Debug,
     num::NonZeroUsize,
+    sync::Arc,
     thread::{self, Scope, ScopedJoinHandle},
     time::Instant,
 };
@@ -12,7 +13,10 @@ use crate::{
         PanicHookProvider, TEST_OUTPUT_CAPTURE,
     },
     outcome::{TestOutcome, TestOutcomeAttachments, TestStatus},
-    runner::TestRunner,
+    runner::{
+        TestRunner,
+        scope::{NoScopeFactory, TestScope, TestScopeFactory},
+    },
     test::TestMeta,
 };
 
@@ -28,25 +32,27 @@ use crate::{
 /// By default, the thread count is based on [`std::thread::available_parallelism`], but it can be
 /// overridden.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DefaultRunner<PanicHookProvider> {
+pub struct DefaultRunner<PanicHookProvider, TestScopeFactory> {
     threads: NonZeroUsize,
     panic_hook_provider: PanicHookProvider,
+    test_scope_factory: Arc<TestScopeFactory>,
 }
 
-impl Default for DefaultRunner<DefaultPanicHookProvider> {
+impl Default for DefaultRunner<DefaultPanicHookProvider, NoScopeFactory> {
     fn default() -> Self {
         Self {
             threads: std::thread::available_parallelism().unwrap_or(NonZeroUsize::MIN),
             panic_hook_provider: DefaultPanicHookProvider,
+            test_scope_factory: Arc::new(NoScopeFactory),
         }
     }
 }
 
-impl<PanicHookProvider> DefaultRunner<PanicHookProvider> {
+impl<PanicHookProvider, TestScopeFactory> DefaultRunner<PanicHookProvider, TestScopeFactory> {
     /// Create a default runner using the default panic hook provider.
     ///
     /// This is the same as `DefaultRunner::default()`.
-    pub fn new() -> DefaultRunner<DefaultPanicHookProvider> {
+    pub fn new() -> DefaultRunner<DefaultPanicHookProvider, NoScopeFactory> {
         DefaultRunner::default()
     }
 
@@ -67,18 +73,38 @@ impl<PanicHookProvider> DefaultRunner<PanicHookProvider> {
     pub fn with_panic_hook_provider<WithPanicHookProvider>(
         self,
         panic_hook_provider: WithPanicHookProvider,
-    ) -> DefaultRunner<WithPanicHookProvider> {
+    ) -> DefaultRunner<WithPanicHookProvider, TestScopeFactory> {
         DefaultRunner {
             threads: self.threads,
             panic_hook_provider,
+            test_scope_factory: self.test_scope_factory,
+        }
+    }
+
+    /// Replace the [`TestScopeFactory`] used by this runner.
+    ///
+    /// This allows injecting per test lifecycle hooks without replacing the entire runner.
+    /// The factory produces one scope instance per test, and that scope instance is used for both
+    /// [`before_test`](TestScope::before_test) and [`after_test`](TestScope::after_test).
+    ///
+    /// This replaces the previous scope factory.
+    pub fn with_test_scope_factory<WithTestScopeFactory>(
+        self,
+        test_scope_factory: WithTestScopeFactory,
+    ) -> DefaultRunner<PanicHookProvider, WithTestScopeFactory> {
+        DefaultRunner {
+            threads: self.threads,
+            panic_hook_provider: self.panic_hook_provider,
+            test_scope_factory: Arc::new(test_scope_factory),
         }
     }
 }
 
-struct DefaultRunnerIterator<'t, 's, I, F, Extra>
+struct DefaultRunnerIterator<'t, 's, I, F, T, Extra>
 where
     I: Iterator<Item = (F, &'t TestMeta<Extra>)>,
     F: (Fn() -> TestStatus) + Send,
+    T: TestScopeFactory<'t, Extra>,
     Extra: 't,
 {
     source: I,
@@ -87,12 +113,14 @@ where
     _scope: &'s Scope<'s, 't>,
     _workers: Vec<ScopedJoinHandle<'s, ()>>,
     _panic_hook: CapturePanicHookGuard,
+    _test_scope_factory: Arc<T>,
 }
 
-impl<'t, 's, I, F, Extra: Sync> DefaultRunnerIterator<'t, 's, I, F, Extra>
+impl<'t, 's, I, F, T, Extra: Sync> DefaultRunnerIterator<'t, 's, I, F, T, Extra>
 where
     I: Iterator<Item = (F, &'t TestMeta<Extra>)>,
     F: (Fn() -> TestStatus) + Send + 's,
+    T: TestScopeFactory<'t, Extra> + Send + Sync + 'static,
     Extra: 't,
 {
     fn new(
@@ -100,6 +128,7 @@ where
         mut iter: I,
         scope: &'s Scope<'s, 't>,
         panic_hook: PanicHook,
+        test_scope_factory: Arc<T>,
     ) -> Self {
         let (itx, irx) = crossbeam_channel::bounded(worker_count.into());
         let (otx, orx) = crossbeam_channel::bounded(1);
@@ -107,24 +136,28 @@ where
             .map(|idx| {
                 let irx = irx.clone();
                 let otx = otx.clone();
+                let test_scope_factory = test_scope_factory.clone();
                 itx.send(iter.next()).expect("open space in channel");
                 thread::Builder::new()
                     .name(format!("kitest-worker-{idx}"))
                     .spawn_scoped(scope, move || {
                         while let Ok(Some((f, meta))) = irx.recv() {
+                            let mut test_scope = test_scope_factory.make_scope();
+                            test_scope.before_test(meta);
+
                             let now = Instant::now();
                             let status = f();
                             let duration = now.elapsed();
                             let output = TEST_OUTPUT_CAPTURE.with_borrow_mut(OutputCapture::take);
-                            let send_outcome_res = otx.send((
-                                meta,
-                                TestOutcome {
-                                    status,
-                                    duration,
-                                    output,
-                                    attachments: TestOutcomeAttachments::default(),
-                                },
-                            ));
+                            let outcome = TestOutcome {
+                                status,
+                                duration,
+                                output,
+                                attachments: TestOutcomeAttachments::default(),
+                            };
+
+                            test_scope.after_test(meta, &outcome);
+                            let send_outcome_res = otx.send((meta, outcome));
                             if send_outcome_res.is_err() {
                                 // If receiver dropped, the work is irrelevant anymore, drop silently.
                                 return;
@@ -142,14 +175,16 @@ where
             _scope: scope,
             _workers: workers,
             _panic_hook: CapturePanicHookGuard::install(panic_hook),
+            _test_scope_factory: test_scope_factory,
         }
     }
 }
 
-impl<'t, 's, I, F, Extra> Iterator for DefaultRunnerIterator<'t, 's, I, F, Extra>
+impl<'t, 's, I, F, T, Extra> Iterator for DefaultRunnerIterator<'t, 's, I, F, T, Extra>
 where
     I: Iterator<Item = (F, &'t TestMeta<Extra>)>,
     F: (Fn() -> TestStatus) + Send + 's,
+    T: TestScopeFactory<'t, Extra>,
     Extra: 't,
 {
     type Item = (&'t TestMeta<Extra>, TestOutcome);
@@ -168,11 +203,13 @@ where
     }
 }
 
-impl<P, Extra: Sync> TestRunner<Extra> for DefaultRunner<P>
+impl<'t, P, T, Extra> TestRunner<'t, Extra> for DefaultRunner<P, T>
 where
+    T: TestScopeFactory<'t, Extra> + Send + Sync + 'static,
     P: PanicHookProvider,
+    Extra: Sync,
 {
-    fn run<'t, 's, I, F>(
+    fn run<'s, I, F>(
         &self,
         tests: I,
         scope: &'s Scope<'s, 't>,
@@ -182,12 +219,14 @@ where
         F: (Fn() -> TestStatus) + Send + 's,
         Extra: 't,
     {
-        let worker_count = <DefaultRunner<_> as TestRunner<Extra>>::worker_count(self, tests.len());
+        let worker_count =
+            <DefaultRunner<_, _> as TestRunner<Extra>>::worker_count(self, tests.len());
         DefaultRunnerIterator::new(
             worker_count,
             tests,
             scope,
             self.panic_hook_provider.provide(),
+            self.test_scope_factory.clone(),
         )
     }
 
