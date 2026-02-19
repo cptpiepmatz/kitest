@@ -1,7 +1,8 @@
 use std::{slice, vec};
 
 use crate::{
-    filter::{FilteredTests, TestFilter}, test::Test
+    filter::{FilteredTests, TestFilter},
+    test::Test,
 };
 
 /// The default [`TestFilter`] implementation used by the default test harness.
@@ -9,10 +10,10 @@ use crate::{
 /// The behavior is meant to feel similar to the built in Rust test harness:
 /// we can include tests by name (or name parts) and skip tests by name (or name parts).
 ///
-/// The filter also allows filtering out all non-ignored tests, just like the built-in Rust test 
+/// The filter also allows filtering out all non-ignored tests, just like the built-in Rust test
 /// harness.
 /// Useful to replicate the behavior of `--ignored`.
-/// 
+///
 /// By default, `exact` is `false`, so `filter` and `skip` entries are treated as
 /// substrings of the test name.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
