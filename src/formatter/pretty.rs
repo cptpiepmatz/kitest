@@ -306,6 +306,7 @@ impl<'t, Extra: 't, W: io::Write, L> TestListFormatter<'t, Extra>
     type EndListing = fto::TestCount;
     fn fmt_end_listing(&mut self, data: Self::EndListing) -> Result<(), Self::Error> {
         match data.0 {
+            0 => writeln!(self.common.target, "0 tests"),
             1 => writeln!(self.common.target, "\n1 test"),
             n => writeln!(self.common.target, "\n{n} tests"),
         }

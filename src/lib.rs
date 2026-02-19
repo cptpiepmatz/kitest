@@ -290,3 +290,7 @@ mod util;
 
 #[cfg(any(test, doctest))]
 mod test_support;
+
+#[test]
+#[ignore]
+fn ignored() {}

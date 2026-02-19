@@ -38,6 +38,16 @@ pub enum IgnoreStatus {
     IgnoreWithReason(Cow<'static, str>),
 }
 
+impl IgnoreStatus {
+    /// Returns true if the status is a ignore status.
+    pub fn ignored(&self) -> bool {
+        match self {
+            IgnoreStatus::Run => false,
+            IgnoreStatus::Ignore | IgnoreStatus::IgnoreWithReason(_) => true,
+        }
+    }
+}
+
 impl From<bool> for IgnoreStatus {
     fn from(value: bool) -> Self {
         match value {

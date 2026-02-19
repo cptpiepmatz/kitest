@@ -23,7 +23,9 @@ macro_rules! snapshot {
             use kitest::{
                 prelude::*,
                 runner::SimpleRunner,
-                formatter::{pretty::PrettyFormatter, terse::TerseFormatter}
+                formatter::{pretty::PrettyFormatter, terse::TerseFormatter},
+                filter::DefaultFilter,
+                ignore::DefaultIgnore
             };
 
             mod test_functions {
@@ -104,6 +106,35 @@ macro_rules! snapshot {
                 }
 
                 #[test]
+                fn no_color_ignored() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=pretty", "--color=never", "--ignored"]
+                    ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = PrettyFormatter::default()
+                        .with_target(actual.clone())
+                        .with_color_setting(false);
+                    let report = kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .with_filter(DefaultFilter::default().with_only_ignored(true))
+                        .with_ignore(DefaultIgnore::IgnoredOnly)
+                        .run();
+
+                    let actual = actual.try_to_string().unwrap();
+                    assert_eq!(expected.exit_code, report.exit_code());
+                    assert_str_eq!(
+                        $crate::lib::sanitize_panic_output(&expected.stdout),
+                        $crate::lib::sanitize_panic_output(&actual)
+                    );
+                }
+
+                #[test]
                 fn list() {
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
@@ -118,6 +149,31 @@ macro_rules! snapshot {
                     kitest::harness(TESTS.deref())
                         .with_runner(SimpleRunner::default())
                         .with_formatter(formatter)
+                        .list();
+
+                    let actual = actual.try_to_string().unwrap();
+                    assert_str_eq!(
+                        $crate::lib::sanitize_list_output(&expected.stdout),
+                        $crate::lib::sanitize_list_output(&actual)
+                    );
+                }
+
+                #[test]
+                fn list_ignored() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=pretty", "--list", "--ignored"]
+                    ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = PrettyFormatter::default().with_target(actual.clone());
+                    kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .with_filter(DefaultFilter::default().with_only_ignored(true))
                         .list();
 
                     let actual = actual.try_to_string().unwrap();
@@ -189,6 +245,35 @@ macro_rules! snapshot {
                 }
 
                 #[test]
+                fn no_color_ignored() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=terse", "--color=never", "--ignored"]
+                    ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = TerseFormatter::default()
+                        .with_target(actual.clone())
+                        .with_color_setting(false);
+                    let report = kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .with_filter(DefaultFilter::default().with_only_ignored(true))
+                        .with_ignore(DefaultIgnore::IgnoredOnly)
+                        .run();
+
+                    let actual = actual.try_to_string().unwrap();
+                    assert_eq!(expected.exit_code, report.exit_code());
+                    assert_str_eq!(
+                        $crate::lib::sanitize_panic_output(&expected.stdout),
+                        $crate::lib::sanitize_panic_output(&actual)
+                    );
+                }
+
+                #[test]
                 fn list() {
                     let expected = crate::run_rust_doc_test(
                         BUILD_CARGO_TEST.deref(),
@@ -203,6 +288,31 @@ macro_rules! snapshot {
                     kitest::harness(TESTS.deref())
                         .with_runner(SimpleRunner::default())
                         .with_formatter(formatter)
+                        .list();
+
+                    let actual = actual.try_to_string().unwrap();
+                    assert_str_eq!(
+                        $crate::lib::sanitize_list_output(&expected.stdout),
+                        $crate::lib::sanitize_list_output(&actual)
+                    );
+                }
+
+                #[test]
+                fn list_ignored() {
+                    let expected = crate::run_rust_doc_test(
+                        BUILD_CARGO_TEST.deref(),
+                        ["--format=terse", "--list", "--ignored"]
+                    ).unwrap();
+
+                    let _snapshot_lock_guard = SNAPSHOT_LOCK.lock();
+
+                    let actual = crate::Buffer::default();
+                    kitest::capture::reset_first_panic();
+                    let formatter = TerseFormatter::default().with_target(actual.clone());
+                    kitest::harness(TESTS.deref())
+                        .with_runner(SimpleRunner::default())
+                        .with_formatter(formatter)
+                        .with_filter(DefaultFilter::default().with_only_ignored(true))
                         .list();
 
                     let actual = actual.try_to_string().unwrap();

@@ -1,8 +1,7 @@
 use std::{slice, vec};
 
 use crate::{
-    filter::{FilteredTests, TestFilter},
-    test::Test,
+    filter::{FilteredTests, TestFilter}, test::Test
 };
 
 /// The default [`TestFilter`] implementation used by the default test harness.
@@ -10,6 +9,10 @@ use crate::{
 /// The behavior is meant to feel similar to the built in Rust test harness:
 /// we can include tests by name (or name parts) and skip tests by name (or name parts).
 ///
+/// The filter also allows filtering out all non-ignored tests, just like the built-in Rust test 
+/// harness.
+/// Useful to replicate the behavior of `--ignored`.
+/// 
 /// By default, `exact` is `false`, so `filter` and `skip` entries are treated as
 /// substrings of the test name.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -17,6 +20,7 @@ pub struct DefaultFilter {
     exact: bool,
     filter: Vec<String>,
     skip: Vec<String>,
+    only_ignored: bool,
 }
 
 impl DefaultFilter {
@@ -72,6 +76,23 @@ impl DefaultFilter {
     pub fn append_skip(&mut self, skip: impl IntoIterator<Item = impl Into<String>>) {
         self.skip.extend(skip.into_iter().map(Into::into));
     }
+
+    /// Set whether only ignored tests should be executed.
+    ///
+    /// If `only_ignored` is `true`, only tests marked as ignored are considered
+    /// for execution. Non-ignored tests are filtered out before applying
+    /// `filter` and `skip`.
+    ///
+    /// This mirrors the behavior of the built-in Rust test harness when
+    /// running with `--ignored`.
+    ///
+    /// This replaces the previous `only_ignored` value.
+    pub fn with_only_ignored(self, only_ignored: bool) -> Self {
+        Self {
+            only_ignored,
+            ..self
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -105,7 +126,7 @@ impl<Extra> TestFilter<Extra> for DefaultFilter {
         &self,
         tests: &'t [Test<Extra>],
     ) -> FilteredTests<'t, impl ExactSizeIterator<Item = &'t Test<Extra>>, Extra> {
-        if self.filter.is_empty() && self.skip.is_empty() {
+        if self.filter.is_empty() && self.skip.is_empty() && !self.only_ignored {
             return FilteredTests {
                 tests: DefaultFilterIterator::Slice(tests.iter()),
                 filtered_out: 0,
@@ -121,6 +142,11 @@ impl<Extra> TestFilter<Extra> for DefaultFilter {
                     self.filter.is_empty() || self.filter.iter().any(|filter| name == filter);
 
                 if !in_filter {
+                    filtered += 1;
+                    continue;
+                }
+
+                if self.only_ignored && !meta.ignore.ignored() {
                     filtered += 1;
                     continue;
                 }
@@ -145,6 +171,11 @@ impl<Extra> TestFilter<Extra> for DefaultFilter {
                 self.filter.is_empty() || self.filter.iter().any(|filter| name.contains(filter));
 
             if !in_filter {
+                filtered += 1;
+                continue;
+            }
+
+            if self.only_ignored && !meta.ignore.ignored() {
                 filtered += 1;
                 continue;
             }
