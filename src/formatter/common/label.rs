@@ -2,7 +2,7 @@
 
 use std::{fmt::Display, marker::PhantomData};
 
-use crate::formatter::FmtGroupStart;
+use crate::formatter::{FmtGroupStart, FmtListGroupStart};
 
 /// Marker type indicating that a group label should be derived from the group key.
 ///
@@ -41,6 +41,17 @@ impl<'g, GroupKey: Display, GroupCtx> From<&FmtGroupStart<'g, GroupKey, GroupCtx
     }
 }
 
+impl<'g, GroupKey: Display, GroupCtx> From<&FmtListGroupStart<'g, GroupKey, GroupCtx>>
+    for GroupLabel<FromGroupKey>
+{
+    fn from(value: &FmtListGroupStart<'g, GroupKey, GroupCtx>) -> Self {
+        GroupLabel {
+            marker: PhantomData,
+            label: value.key.to_string(),
+        }
+    }
+}
+
 impl<GroupKey: Display, GroupCtx> From<(&GroupKey, Option<&GroupCtx>)>
     for GroupLabel<FromGroupKey>
 {
@@ -58,6 +69,17 @@ impl<'g, GroupKey, GroupCtx: Display> From<&FmtGroupStart<'g, GroupKey, GroupCtx
     for GroupLabel<FromGroupCtx>
 {
     fn from(value: &FmtGroupStart<'g, GroupKey, GroupCtx>) -> Self {
+        GroupLabel {
+            marker: PhantomData,
+            label: value.ctx.map(|ctx| ctx.to_string()).unwrap_or_default(),
+        }
+    }
+}
+
+impl<'g, GroupKey, GroupCtx: Display> From<&FmtListGroupStart<'g, GroupKey, GroupCtx>>
+    for GroupLabel<FromGroupCtx>
+{
+    fn from(value: &FmtListGroupStart<'g, GroupKey, GroupCtx>) -> Self {
         GroupLabel {
             marker: PhantomData,
             label: value.ctx.map(|ctx| ctx.to_string()).unwrap_or_default(),

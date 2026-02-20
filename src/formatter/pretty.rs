@@ -261,14 +261,14 @@ impl<'t, Extra: 't + Sync, W: io::Write + SupportsColor + Send, L: Send> TestFor
     type TestStart = ();
 }
 
-impl<'t, Extra: 't + Sync, GroupKey, GroupCtx, W, L>
-    GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx> for PrettyFormatter<'t, W, L, Extra>
+impl<'t, W, L, Extra, GroupKey, GroupCtx> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
+    for PrettyFormatter<'t, W, L, Extra>
 where
-    Extra: 't,
-    GroupKey: 't,
-    GroupCtx: 't,
     W: io::Write + SupportsColor + Send,
     L: Send + Display,
+    Extra: 't + Sync,
+    GroupKey: 't,
+    GroupCtx: 't,
     for<'b, 'g> L: From<&'b FmtGroupStart<'g, GroupKey, GroupCtx>>,
     for<'o> L: From<(&'o GroupKey, Option<&'o GroupCtx>)>,
 {
@@ -314,4 +314,42 @@ impl<'t, Extra: 't, W: io::Write, L> TestListFormatter<'t, Extra>
 
     type InitListing = ();
     type BeginListing = ();
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct PrettyListGroupStart<L> {
+    pub group_label: String,
+    pub _label_marker: PhantomData<L>,
+}
+
+impl<'g, L, GroupKey, GroupCtx> From<FmtListGroupStart<'g, GroupKey, GroupCtx>>
+    for PrettyListGroupStart<L>
+where
+    for<'b> L: From<&'b FmtListGroupStart<'g, GroupKey, GroupCtx>> + Display,
+{
+    fn from(value: FmtListGroupStart<'g, GroupKey, GroupCtx>) -> Self {
+        PrettyListGroupStart {
+            group_label: L::from(&value).to_string(),
+            _label_marker: PhantomData,
+        }
+    }
+}
+
+impl<'t, W, L, Extra, GroupKey, GroupCtx> GroupedTestListFormatter<'t, Extra, GroupKey, GroupCtx>
+    for PrettyFormatter<'t, W, L, Extra>
+where
+    W: io::Write + SupportsColor + Send,
+    L: Send + Display,
+    GroupKey: 't,
+    GroupCtx: 't,
+    for<'b, 'g> L: From<&'b FmtListGroupStart<'g, GroupKey, GroupCtx>>,
+{
+    type ListGroupStart = PrettyListGroupStart<L>;
+    fn fmt_list_group_start(&mut self, data: Self::ListGroupStart) -> Result<(), Self::Error> {
+        writeln!(self.common.target, "\ngroup {}", data.group_label)
+    }
+
+    type ListGroups = ();
+    type ListGroupEnd = ();
 }

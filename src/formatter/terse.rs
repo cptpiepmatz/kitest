@@ -206,21 +206,6 @@ impl<'t, W: io::Write + Send + SupportsColor, L: Send, Extra: 't + Sync> TestFor
     type TestStart = ();
 }
 
-impl<'t, W: io::Write, L, Extra: 't> TestListFormatter<'t, Extra>
-    for TerseFormatter<'t, W, L, Extra>
-{
-    type Error = io::Error;
-
-    type ListTest = TestName<'t>;
-    fn fmt_list_test(&mut self, data: Self::ListTest) -> Result<(), Self::Error> {
-        writeln!(self.common.target, "{}: test", data.0)
-    }
-
-    type InitListing = ();
-    type BeginListing = ();
-    type EndListing = ();
-}
-
 impl<'t, GroupKey, GroupCtx, W, L, Extra> GroupedTestFormatter<'t, Extra, GroupKey, GroupCtx>
     for TerseFormatter<'t, W, L, Extra>
 where
@@ -251,4 +236,31 @@ where
     }
 
     type GroupOutcomes = ();
+}
+
+impl<'t, W: io::Write, L, Extra: 't> TestListFormatter<'t, Extra>
+    for TerseFormatter<'t, W, L, Extra>
+{
+    type Error = io::Error;
+
+    type ListTest = TestName<'t>;
+    fn fmt_list_test(&mut self, data: Self::ListTest) -> Result<(), Self::Error> {
+        writeln!(self.common.target, "{}: test", data.0)
+    }
+
+    type InitListing = ();
+    type BeginListing = ();
+    type EndListing = ();
+}
+
+impl<'t, W, L, Extra, GroupKey, GroupCtx> GroupedTestListFormatter<'t, Extra, GroupKey, GroupCtx>
+    for TerseFormatter<'t, W, L, Extra>
+where
+    W: io::Write + SupportsColor + Send,
+    GroupKey: 't,
+    GroupCtx: 't,
+{
+    type ListGroups = ();
+    type ListGroupStart = ();
+    type ListGroupEnd = ();
 }
