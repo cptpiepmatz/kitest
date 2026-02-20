@@ -277,21 +277,23 @@ impl Drop for CapturePanicHookGuard {
 
 /// Controls whether Kitest's output macros capture output into [`TEST_OUTPUT_CAPTURE`].
 ///
-/// Kitest provides `print!`, `println!`, `eprint!`, `eprintln!`, and `dbg!` macros that mirror
-/// the standard library macros. This flag decides what those macros do:
+/// Kitest provides [`print!`], [`println!`], [`eprint!`], [`eprintln!`], and [`dbg!`] macros that
+/// mirror the standard library macros. 
+/// This flag decides what those macros do:
 ///
 /// - If `true` (default), the Kitest macros write into the per thread [`TEST_OUTPUT_CAPTURE`]
 ///   buffer, tagging each write as stdout or stderr.
 /// - If `false`, the Kitest macros pass through to the standard library implementations
-///   (`std::print!`, `std::println!`, `std::eprint!`, `std::eprintln!`, `std::dbg!`) and output
-///   goes to the real process stdout or stderr.
+///   ([`std::print!`], [`std::println!`], [`std::eprint!`], [`std::eprintln!`], `[std::dbg!`]) and 
+///   output goes to the real process stdout or stderr.
 ///
-/// This is a global static. Set it before any tests run, or only after all tests are done.
+/// This is a global static. 
+/// Set it before any tests run, or only after all tests are done.
 /// Changing it while tests are running can lead to confusing results, since different tests may
 /// observe different behavior.
 ///
-/// Note: this only affects Kitest's capture aware macros. Output written directly via
-/// `std::println!` and friends is not captured on stable Rust.
+/// Note: this only affects Kitest's capture aware macros. 
+/// Output written directly via [`std::println!`] and friends is not captured on stable Rust.
 pub static CAPTURE_OUTPUT_MACROS: AtomicBool = AtomicBool::new(true);
 
 thread_local! {
