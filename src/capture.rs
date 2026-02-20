@@ -314,6 +314,17 @@ macro_rules! print {
 
 #[macro_export]
 macro_rules! println {
+    () => {{
+        use ::std::{io::Write, sync::atomic::Ordering};
+        match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
+            false => ::std::println!(),
+            true => $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+                let mut stdout = capture.stdout();
+                stdout.write_all(b"\n").expect("infallible for Vec<u8>");
+            }),
+        };
+    }};
+
     ($($arg:tt)*) => {{
         use ::std::{io::Write, sync::atomic::Ordering};
         match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
@@ -343,6 +354,18 @@ macro_rules! eprint {
 
 #[macro_export]
 macro_rules! eprintln {
+    () => {{
+        use ::std::{io::Write, sync::atomic::Ordering};
+
+        match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
+            false => ::std::println!(),
+            true => $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+                let mut stdout = capture.stdout();
+                stderr.write_all(b"\n").expect("infallible for Vec<u8>");
+            }),
+        };
+    }};
+
     ($($arg:tt)*) => {{
         use ::std::{io::Write, sync::atomic::Ordering};
         match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
