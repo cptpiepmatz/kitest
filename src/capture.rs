@@ -275,6 +275,25 @@ impl Drop for CapturePanicHookGuard {
     }
 }
 
+/// Controls whether Kitest's output macros capture output into [`TEST_OUTPUT_CAPTURE`].
+///
+/// Kitest provides `print!`, `println!`, `eprint!`, `eprintln!`, and `dbg!` macros that mirror
+/// the standard library macros. This flag decides what those macros do:
+///
+/// - If `true` (default), the Kitest macros write into the per thread [`TEST_OUTPUT_CAPTURE`]
+///   buffer, tagging each write as stdout or stderr.
+/// - If `false`, the Kitest macros pass through to the standard library implementations
+///   (`std::print!`, `std::println!`, `std::eprint!`, `std::eprintln!`, `std::dbg!`) and output
+///   goes to the real process stdout or stderr.
+///
+/// This is a global static. Set it before any tests run, or only after all tests are done.
+/// Changing it while tests are running can lead to confusing results, since different tests may
+/// observe different behavior.
+///
+/// Note: this only affects Kitest's capture aware macros. Output written directly via
+/// `std::println!` and friends is not captured on stable Rust.
+pub static CAPTURE_OUTPUT_MACROS: AtomicBool = AtomicBool::new(true);
+
 thread_local! {
     pub static TEST_OUTPUT_CAPTURE: RefCell<OutputCapture> = RefCell::new(OutputCapture::new());
 }
@@ -282,70 +301,146 @@ thread_local! {
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {{
-        use ::std::io::Write;
-        $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
-            let mut stdout = capture.stdout();
-            stdout.write_fmt(::std::format_args!($($arg)*)).expect("infallible for Vec<u8>");
-        });
+        use ::std::{io::Write, sync::atomic::Ordering};
+        match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
+            false => ::std::print!($($arg)*),
+            true => $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+                let mut stdout = capture.stdout();
+                stdout.write_fmt(::std::format_args!($($arg)*)).expect("infallible for Vec<u8>");
+            }),
+        };
     }};
 }
 
 #[macro_export]
 macro_rules! println {
     ($($arg:tt)*) => {{
-        use ::std::io::Write;
-        $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
-            let mut stdout = capture.stdout();
-            stdout.write_fmt(::std::format_args!($($arg)*)).expect("infallible for Vec<u8>");
-            stdout.write_all(b"\n").expect("infallible for Vec<u8>");
-        });
+        use ::std::{io::Write, sync::atomic::Ordering};
+        match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
+            false => ::std::println!($($arg)*),
+            true => $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+                let mut stdout = capture.stdout();
+                stdout.write_fmt(::std::format_args!($($arg)*)).expect("infallible for Vec<u8>");
+                stdout.write_all(b"\n").expect("infallible for Vec<u8>");
+            })
+        };
     }};
 }
 
 #[macro_export]
 macro_rules! eprint {
     ($($arg:tt)*) => {{
-        use ::std::io::Write;
-        $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
-            let mut stderr = capture.stderr();
-            stderr.write_fmt(::std::format_args!($($arg)*)).expect("infallible for Vec<u8>");
-        });
+        use ::std::{io::Write, sync::atomic::Ordering};
+        match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
+            false => ::std::eprint!($($arg)*),
+            true => $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+                let mut stderr = capture.stderr();
+                stderr.write_fmt(::std::format_args!($($arg)*)).expect("infallible for Vec<u8>");
+            }),
+        };
     }};
 }
 
 #[macro_export]
 macro_rules! eprintln {
     ($($arg:tt)*) => {{
-        use ::std::io::Write;
-        $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
-            let mut stderr = capture.stderr();
-            stderr.write_fmt(::std::format_args!($($arg)*)).expect("infallible for Vec<u8>");
-            stderr.write_all(b"\n").expect("infallible for Vec<u8>");
-        });
+        use ::std::{io::Write, sync::atomic::Ordering};
+        match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
+            false => ::std::eprintln!($($arg)*),
+            true => $crate::capture::TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| {
+                let mut stderr = capture.stderr();
+                stderr.write_fmt(::std::format_args!($($arg)*)).expect("infallible for Vec<u8>");
+                stderr.write_all(b"\n").expect("infallible for Vec<u8>");
+            }),
+        };
     }};
 }
 
 #[macro_export]
 macro_rules! dbg {
-    () => {
-        $crate::eprintln!("[{}:{}:{}]", ::std::file!(), ::std::line!(), ::std::column!())
-    };
-    ($val:expr $(,)?) => {
-        match $val {
-            tmp => {
-                $crate::eprintln!(
-                    "[{}:{}:{}] {} = {:#?}",
-                    ::std::file!(),
-                    ::std::line!(),
-                    ::std::column!(),
-                    ::std::stringify!($val),
-                    &&tmp as &dyn ::std::fmt::Debug,
-                );
-                tmp
+    () => {{
+        use ::std::sync::atomic::Ordering;
+        match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
+            false => ::std::dbg!(),
+            true => $crate::eprintln!(
+                "[{}:{}:{}]",
+                ::std::file!(),
+                ::std::line!(),
+                ::std::column!()
+            ),
+        }
+    }};
+    ($val:expr $(,)?) => {{
+        use ::std::sync::atomic::Ordering;
+        match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
+            false => ::std::dbg!($val),
+            true => {
+                match $val {
+                    tmp => {
+                        $crate::eprintln!(
+                            "[{}:{}:{}] {} = {:#?}",
+                            ::std::file!(),
+                            ::std::line!(),
+                            ::std::column!(),
+                            ::std::stringify!($val),
+                            &&tmp as &dyn ::std::fmt::Debug,
+                        );
+                        tmp
+                    }
+                }
             }
         }
-    };
-    ($($val:expr),+ $(,)?) => {
-        ($($crate::dbg!($val)),+,)
-    };
+    }};
+    ($($val:expr),+ $(,)?) => {{
+        use ::std::sync::atomic::Ordering;
+        match $crate::capture::CAPTURE_OUTPUT_MACROS.load(Ordering::Relaxed) {
+            false => ::std::dbg!($($val),+),
+            true => ($($crate::dbg!($val)),+,),
+        }
+    }};
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+
+    #[test]
+    fn capture_output_macros_respects_flag() {
+        CAPTURE_OUTPUT_MACROS.store(true, Ordering::Relaxed);
+        TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| capture.clear());
+
+        print!("hello");
+        println!(" world");
+        eprint!("err");
+        eprintln!(" line");
+        let _ = dbg!(42);
+
+        TEST_OUTPUT_CAPTURE.with_borrow(|capture| {
+            assert!(
+                !capture.raw().is_empty(),
+                "expected output to be captured when flag is true"
+            );
+
+            // sanity check: both stdout and stderr got something
+            assert!(capture.read_stdout().count() > 0);
+            assert!(capture.read_stderr().count() > 0);
+        });
+
+        CAPTURE_OUTPUT_MACROS.store(false, Ordering::Relaxed);
+        TEST_OUTPUT_CAPTURE.with_borrow_mut(|capture| capture.clear());
+
+        print!("hello");
+        println!(" world");
+        eprint!("err");
+        eprintln!(" line");
+        let _ = dbg!(1337);
+
+        TEST_OUTPUT_CAPTURE.with_borrow(|capture| {
+            assert!(
+                capture.raw().is_empty(),
+                "expected capture to stay empty when flag is false"
+            );
+        });
+    }
 }
