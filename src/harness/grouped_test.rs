@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, ops::ControlFlow, panic::RefUnwindSafe, sync::Arc, time::Instant};
 
 use crate::{
-    GroupedTestReport,
+    GroupedTestReport, TestListReport,
     filter::{FilteredTests, TestFilter},
     formatter::*,
     group::{TestGroupRunner, TestGrouper, TestGroups},
@@ -338,7 +338,7 @@ impl<
     /// The harness is consumed by this call.
     ///
     /// Formatting errors are returned instead of stopping early.
-    pub fn list(mut self) -> Vec<(FormatError, Formatter::Error)> {
+    pub fn list(mut self) -> TestListReport<Formatter::Error> {
         let mut formatter = self.formatter;
         let mut fmt_errors = Vec::new();
         fmt_errors.push_on_error(
@@ -414,7 +414,7 @@ impl<
             .fmt(|data| formatter.fmt_end_listing(data)),
         );
 
-        fmt_errors
+        TestListReport(fmt_errors)
     }
 }
 

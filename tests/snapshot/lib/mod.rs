@@ -19,7 +19,7 @@ macro_rules! snapshot {
     ]) => {
         mod $mod_name {
             use $crate::lib::*;
-            use std::{sync::LazyLock, ops::Deref};
+            use std::{sync::LazyLock, ops::Deref, process::ExitCode};
             use kitest::{
                 prelude::*,
                 runner::SimpleRunner,
@@ -146,12 +146,13 @@ macro_rules! snapshot {
                     let actual = crate::Buffer::default();
                     kitest::capture::reset_first_panic();
                     let formatter = PrettyFormatter::default().with_target(actual.clone());
-                    kitest::harness(TESTS.deref())
+                    let report = kitest::harness(TESTS.deref())
                         .with_runner(SimpleRunner::default())
                         .with_formatter(formatter)
                         .list();
 
                     let actual = actual.try_to_string().unwrap();
+                    assert_eq!(report.exit_code(), ExitCode::SUCCESS);
                     assert_str_eq!(
                         $crate::lib::sanitize_list_output(&expected.stdout),
                         $crate::lib::sanitize_list_output(&actual)
@@ -170,13 +171,14 @@ macro_rules! snapshot {
                     let actual = crate::Buffer::default();
                     kitest::capture::reset_first_panic();
                     let formatter = PrettyFormatter::default().with_target(actual.clone());
-                    kitest::harness(TESTS.deref())
+                    let report = kitest::harness(TESTS.deref())
                         .with_runner(SimpleRunner::default())
                         .with_formatter(formatter)
                         .with_filter(DefaultFilter::default().with_only_ignored(true))
                         .list();
 
                     let actual = actual.try_to_string().unwrap();
+                    assert_eq!(report.exit_code(), ExitCode::SUCCESS);
                     assert_str_eq!(
                         $crate::lib::sanitize_list_output(&expected.stdout),
                         $crate::lib::sanitize_list_output(&actual)
@@ -285,12 +287,13 @@ macro_rules! snapshot {
                     let actual = crate::Buffer::default();
                     kitest::capture::reset_first_panic();
                     let formatter = TerseFormatter::default().with_target(actual.clone());
-                    kitest::harness(TESTS.deref())
+                    let report = kitest::harness(TESTS.deref())
                         .with_runner(SimpleRunner::default())
                         .with_formatter(formatter)
                         .list();
 
                     let actual = actual.try_to_string().unwrap();
+                    assert_eq!(report.exit_code(), ExitCode::SUCCESS);
                     assert_str_eq!(
                         $crate::lib::sanitize_list_output(&expected.stdout),
                         $crate::lib::sanitize_list_output(&actual)
@@ -309,13 +312,14 @@ macro_rules! snapshot {
                     let actual = crate::Buffer::default();
                     kitest::capture::reset_first_panic();
                     let formatter = TerseFormatter::default().with_target(actual.clone());
-                    kitest::harness(TESTS.deref())
+                    let report = kitest::harness(TESTS.deref())
                         .with_runner(SimpleRunner::default())
                         .with_formatter(formatter)
                         .with_filter(DefaultFilter::default().with_only_ignored(true))
                         .list();
 
                     let actual = actual.try_to_string().unwrap();
+                    assert_eq!(report.exit_code(), ExitCode::SUCCESS);
                     assert_str_eq!(
                         $crate::lib::sanitize_list_output(&expected.stdout),
                         $crate::lib::sanitize_list_output(&actual)

@@ -162,3 +162,48 @@ impl<'t, GroupKey, GroupCtx, FmtError: 't> Termination
         self.exit_code()
     }
 }
+
+/// The report produced when listing tests.
+///
+/// [`TestListReport`] is returned by harness operations that only list
+/// available tests instead of executing them.
+///
+/// Unlike [`TestReport`] and [`GroupedTestReport`], this report does not
+/// contain any test outcomes or timing information. It only records
+/// errors that occurred while formatting the test list output.
+///
+/// Formatter errors are collected rather than causing an early abort,
+/// allowing the listing process to attempt completion even if formatting
+/// fails partway through.
+#[derive(Debug)]
+#[non_exhaustive]
+#[must_use = "ignoring this report may hide formatter errors"]
+pub struct TestListReport<E>(
+    /// Errors reported while formatting the test list.
+    ///
+    /// Each entry contains the formatting event and the formatter specific error.
+    pub Vec<(FormatError, E)>,
+);
+
+impl<E> TestListReport<E> {
+    /// Compute the process exit code for this test list report.
+    ///
+    /// The exit code is determined as follows:
+    ///
+    /// - If any formatter errors occurred, the exit code is [`ExitCode::FAILURE`]
+    /// - Otherwise, the exit code is [`ExitCode::SUCCESS`]
+    ///
+    /// This matches the behavior of [`TestReport`] when no tests are executed.
+    pub fn exit_code(&self) -> ExitCode {
+        match self.0.is_empty() {
+            true => ExitCode::SUCCESS,
+            false => ExitCode::FAILURE,
+        }
+    }
+}
+
+impl<E> Termination for TestListReport<E> {
+    fn report(self) -> ExitCode {
+        self.exit_code()
+    }
+}

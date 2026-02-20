@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, process::Termination};
 
 use kitest::{filter::NoFilter, ignore::TestIgnore, prelude::*};
 
@@ -44,11 +44,12 @@ const TESTS: &[Test<Speed>] = &[
     ),
 ];
 
-fn main() {
+fn main() -> impl Termination {
     kitest::harness(TESTS)
         .with_filter(NoFilter)
         .with_ignore(IgnoreSlow)
-        .list();
+        .list()
+        .exit_code()
 }
 
 struct IgnoreSlow;

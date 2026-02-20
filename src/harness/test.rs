@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, panic::RefUnwindSafe, sync::Arc, time::Instant};
 
 use crate::{
-    GroupedTestHarness, TestReport,
+    GroupedTestHarness, TestListReport, TestReport,
     filter::{FilteredTests, TestFilter},
     formatter::*,
     group::{SimpleGroupRunner, TestGroupHashMap, TestGrouper},
@@ -219,10 +219,7 @@ impl<
     /// similar to `cargo test -- --list`.
     ///
     /// The harness is consumed by this call.
-    pub fn list(
-        self,
-    ) -> impl IntoIterator<IntoIter = impl ExactSizeIterator<Item = (FormatError, Formatter::Error)>>
-    {
+    pub fn list(self) -> TestListReport<Formatter::Error> {
         let mut formatter = self.formatter;
         let mut fmt_errors = Vec::new();
         fmt_errors.push_on_error(
@@ -266,7 +263,7 @@ impl<
             .fmt(|data| formatter.fmt_end_listing(data)),
         );
 
-        fmt_errors
+        TestListReport(fmt_errors)
     }
 }
 
