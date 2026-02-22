@@ -5,6 +5,7 @@
 </p>
 <h1 align="center">kitest</h1>
 <p align="center">
+  <i>pronounced "kai-test"</i><br>
   <b>🪁 A composable test harness toolkit with room to fly.</b>
 </p>
 
