@@ -5,24 +5,25 @@ use std::{
 
 /// Type erased user data with a fixed set of trait bounds.
 ///
-/// [`Whatever`] is a small type erasure container. It stores a value of any `'static` type, as
-/// long as it implements:
+/// [`Whatever`] is a small type erasure container.
+/// It stores a value of any `'static` type, as long as it implements:
 ///
 /// - [`Debug`]
 /// - [`Display`]
 /// - [`Clone`]
-/// - [`Eq`]
+/// - [`PartialEq`]
 /// - [`Send`] and [`Sync`]
 ///
 /// The main purpose of `Whatever` is to allow attaching "nice to have" user data in places where
-/// it is useful for reporting or formatting, but not required for executing tests. In those cases,
-/// the runtime indirection is acceptable.
+/// it is useful for reporting or formatting, but not required for executing tests.
+/// In those cases, the runtime indirection is acceptable.
 ///
 /// Why this exists:
 ///
 /// Kitest already carries `Extra` through most types so strategies can use metadata without
-/// downcasting. Adding more generic parameters everywhere for occasional optional data would make
-/// signatures even heavier and would spread type parameters through the whole crate.
+/// downcasting.
+/// Adding more generic parameters everywhere for occasional optional data would make signatures
+/// even heavier and would spread type parameters through the whole crate.
 ///
 /// `Whatever` avoids that by erasing the type when the value is not essential for the core test
 /// execution path.
@@ -38,7 +39,7 @@ trait WhateverImpl: Debug + Display + Any + Send + Sync {
 
 impl<T> WhateverImpl for T
 where
-    T: Debug + Display + Clone + Eq + Send + Sync + 'static,
+    T: Debug + Display + Clone + PartialEq + Send + Sync + 'static,
 {
     fn clone_whatever(&self) -> Whatever {
         Whatever(Box::new(self.clone()))
@@ -76,18 +77,18 @@ impl PartialEq for Whatever {
     }
 }
 
-impl Eq for Whatever {}
-
 impl Whatever {
     /// Create a new [`Whatever`] from a concrete value.
     ///
     /// The value must implement the full set of traits required by `Whatever`:
-    /// [`Debug`], [`Display`], [`Clone`], [`Eq`], [`Send`], and [`Sync`].
+    /// [`Debug`], [`Display`], [`Clone`], [`PartialEq`], [`Send`], and [`Sync`].
     ///
     /// This constructor performs type erasure.
     /// The original type information can later be recovered using the `Any` based accessors if
     /// both producer and consumer agree on the concrete type.
-    pub fn from<T: Debug + Display + Clone + Eq + Send + Sync + 'static>(value: T) -> Whatever {
+    pub fn from<T: Debug + Display + Clone + PartialEq + Send + Sync + 'static>(
+        value: T,
+    ) -> Whatever {
         Self(Box::new(value))
     }
 

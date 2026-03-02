@@ -81,7 +81,7 @@ impl<Extra> Deref for Test<Extra> {
 ///
 /// The generic `Extra` parameter stores user provided metadata used to annotate tests for a
 /// specific use case.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct TestMeta<Extra = ()> {
     /// The display name of the test.
     ///
@@ -133,7 +133,7 @@ pub struct TestMeta<Extra = ()> {
 /// The [`origin!`](crate::origin) macro produces `Some(TestOrigin::TextFile { .. })` at the call
 /// site, so it can be used to stamp tests with a source location easily.
 #[non_exhaustive]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TestOrigin {
     /// A typical location in a plain text file.
     ///
@@ -369,7 +369,7 @@ where
 /// While typically returned from regular Rust test functions, a runner may
 /// also construct a `TestResult` directly, for example when validating
 /// fixtures or aggregating diagnostics.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TestResult(pub Result<Option<Whatever>, Whatever>);
 
 impl From<()> for TestResult {

@@ -68,7 +68,7 @@ impl Deref for TestOutcome {
 ///
 /// A [`TestRunner`](super::runner::TestRunner) may further process or wrap this status when
 /// producing the final [`TestOutcome`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TestStatus {
     /// The test passed successfully.
     Passed,
@@ -155,7 +155,7 @@ impl TestStatus {
 /// `TestFailure` provides more detailed information for a failed test outcome.
 /// It is carried by [`TestStatus::Failed`] and is typically produced by a
 /// [`TestPanicHandler`](super::panic::TestPanicHandler).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TestFailure {
     /// The test failed with an error.
     ///
