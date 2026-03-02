@@ -14,7 +14,7 @@
 //! Implement [`TestPanicHandler`] to define how kitest executes tests and turns
 //! panics into statuses.
 
-use std::{borrow::Cow, panic::UnwindSafe};
+use std::borrow::Cow;
 
 use crate::{
     outcome::TestStatus,
@@ -79,9 +79,5 @@ pub trait TestPanicHandler<Extra> {
     /// The panic handler should at least execute `f`, since that is the actual
     /// test. The provided metadata can be used to read the test's
     /// [`PanicExpectation`] and to include context in the produced status.
-    fn handle<F: FnOnce() -> TestResult + UnwindSafe>(
-        &self,
-        f: F,
-        meta: &TestMeta<Extra>,
-    ) -> TestStatus;
+    fn handle<F: FnOnce() -> TestResult>(&self, f: F, meta: &TestMeta<Extra>) -> TestStatus;
 }

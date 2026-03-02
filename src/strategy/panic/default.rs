@@ -1,6 +1,6 @@
 use std::{
     any::Any,
-    panic::{UnwindSafe, catch_unwind},
+    panic::{AssertUnwindSafe, catch_unwind},
 };
 
 use crate::{
@@ -36,12 +36,10 @@ impl DefaultPanicHandler {
 }
 
 impl<Extra> TestPanicHandler<Extra> for DefaultPanicHandler {
-    fn handle<F: FnOnce() -> TestResult + UnwindSafe>(
-        &self,
-        f: F,
-        meta: &TestMeta<Extra>,
-    ) -> TestStatus {
-        let result = catch_unwind(f);
+    fn handle<F: FnOnce() -> TestResult>(&self, f: F, meta: &TestMeta<Extra>) -> TestStatus {
+        // we are very lenient here, shared state is an issue anyway in test runners,
+        // so unwinding should cause larger issues than that
+        let result = catch_unwind(AssertUnwindSafe(f));
         TestStatus::Failed(match (result, &meta.should_panic) {
             (Ok(result), PanicExpectation::ShouldNotPanic) => return result.into(),
             (Ok(_), PanicExpectation::ShouldPanic) => TestFailure::DidNotPanic { expected: None },

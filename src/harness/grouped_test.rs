@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::ControlFlow, panic::RefUnwindSafe, sync::Arc, time::Instant};
+use std::{marker::PhantomData, ops::ControlFlow, sync::Arc, time::Instant};
 
 use crate::{
     GroupedTestReport, TestListReport,
@@ -73,7 +73,7 @@ pub struct GroupedTestHarness<
 
 impl<
     't,
-    Extra: RefUnwindSafe + Sync,
+    Extra: Sync,
     GroupKey: 't,
     GroupCtx: 't,
     Filter: TestFilter<Extra>,

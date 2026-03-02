@@ -10,7 +10,6 @@ use std::{
     borrow::Cow,
     fmt::{Debug, Display},
     ops::Deref,
-    panic::RefUnwindSafe,
 };
 
 use crate::{Whatever, ignore::IgnoreStatus, panic::PanicExpectation};
@@ -226,7 +225,7 @@ pub enum TestFnHandle {
     /// somewhere.
     /// Boxing a closure makes it easy to capture state and keep the handle independent of where it
     /// was created.
-    Owned(Box<dyn TestFn + Send + Sync + RefUnwindSafe>),
+    Owned(Box<dyn TestFn + Send + Sync>),
 
     /// A static reference to a test function object.
     ///
@@ -234,7 +233,7 @@ pub enum TestFnHandle {
     /// it stores a reference to a function object with `'static` lifetime.
     /// This is useful when the closure is stored in a static value or otherwise lives for the
     /// entire program.
-    Static(&'static (dyn TestFn + Send + Sync + RefUnwindSafe)),
+    Static(&'static (dyn TestFn + Send + Sync)),
 }
 
 impl Debug for TestFnHandle {
@@ -276,7 +275,7 @@ impl TestFnHandle {
     /// This method takes ownership of the box.
     pub fn from_boxed<F, T>(f: F) -> Self
     where
-        F: Fn() -> T + Send + Sync + RefUnwindSafe + 'static,
+        F: Fn() -> T + Send + Sync + 'static,
         T: Into<TestResult>,
     {
         Self::Owned(Box::new(f))
@@ -290,7 +289,7 @@ impl TestFnHandle {
     ///
     /// This is useful when a closure or function object is stored in a static
     /// value and should be reused without allocation.
-    pub const fn from_static_obj(f: &'static (dyn TestFn + Send + Sync + RefUnwindSafe)) -> Self {
+    pub const fn from_static_obj(f: &'static (dyn TestFn + Send + Sync)) -> Self {
         Self::Static(f)
     }
 

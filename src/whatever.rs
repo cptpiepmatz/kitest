@@ -1,7 +1,6 @@
 use std::{
     any::Any,
     fmt::{self, Debug, Display, Formatter},
-    panic::RefUnwindSafe,
 };
 
 /// Type erased user data with a fixed set of trait bounds.
@@ -13,7 +12,6 @@ use std::{
 /// - [`Display`]
 /// - [`Clone`]
 /// - [`Eq`]
-/// - [`RefUnwindSafe`]
 /// - [`Send`] and [`Sync`]
 ///
 /// The main purpose of `Whatever` is to allow attaching "nice to have" user data in places where
@@ -33,14 +31,14 @@ use std::{
 /// Kitest specific tradeoff to keep the generic surface area under control.
 pub struct Whatever(Box<dyn WhateverImpl>);
 
-trait WhateverImpl: Debug + Display + Any + RefUnwindSafe + Send + Sync {
+trait WhateverImpl: Debug + Display + Any + Send + Sync {
     fn clone_whatever(&self) -> Whatever;
     fn eq_whatever(&self, other: &Whatever) -> bool;
 }
 
 impl<T> WhateverImpl for T
 where
-    T: Debug + Display + Clone + Eq + RefUnwindSafe + Send + Sync + 'static,
+    T: Debug + Display + Clone + Eq + Send + Sync + 'static,
 {
     fn clone_whatever(&self) -> Whatever {
         Whatever(Box::new(self.clone()))
@@ -84,14 +82,12 @@ impl Whatever {
     /// Create a new [`Whatever`] from a concrete value.
     ///
     /// The value must implement the full set of traits required by `Whatever`:
-    /// [`Debug`], [`Display`], [`Clone`], [`Eq`], [`RefUnwindSafe`], [`Send`], and [`Sync`].
+    /// [`Debug`], [`Display`], [`Clone`], [`Eq`], [`Send`], and [`Sync`].
     ///
     /// This constructor performs type erasure.
     /// The original type information can later be recovered using the `Any` based accessors if
     /// both producer and consumer agree on the concrete type.
-    pub fn from<T: Debug + Display + Clone + Eq + RefUnwindSafe + Send + Sync + 'static>(
-        value: T,
-    ) -> Whatever {
+    pub fn from<T: Debug + Display + Clone + Eq + Send + Sync + 'static>(value: T) -> Whatever {
         Self(Box::new(value))
     }
 
@@ -101,7 +97,7 @@ impl Whatever {
     /// It can later be downcast to the original concrete type.
     ///
     /// This is useful when ownership of the erased value is needed.
-    pub fn into_any(self) -> Box<dyn Any + RefUnwindSafe + Send + Sync> {
+    pub fn into_any(self) -> Box<dyn Any + Send + Sync> {
         self.0
     }
 

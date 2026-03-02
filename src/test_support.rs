@@ -1,4 +1,4 @@
-use std::{borrow::Cow, panic::RefUnwindSafe};
+use std::borrow::Cow;
 
 use crate::{
     TestHarness,
@@ -50,7 +50,7 @@ impl<Extra> From<BuildTest<Extra>> for Test<Extra> {
 
 impl<F> From<F> for TestFnHandle
 where
-    F: TestFn + Send + Sync + RefUnwindSafe + 'static,
+    F: TestFn + Send + Sync + 'static,
 {
     fn from(value: F) -> Self {
         TestFnHandle::Owned(Box::new(value))
