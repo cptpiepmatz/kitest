@@ -193,7 +193,8 @@ pub enum TestFailure {
 impl From<TestResult> for TestStatus {
     fn from(value: TestResult) -> Self {
         match value.0 {
-            Ok(_) => TestStatus::Passed,
+            Ok(None) => TestStatus::Passed,
+            Ok(Some(details)) => TestStatus::Other(details),
             Err(err) => TestStatus::Failed(TestFailure::Error(Whatever::from(err))),
         }
     }

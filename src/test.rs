@@ -342,38 +342,47 @@ where
 /// The result type returned by a test function.
 ///
 /// [`TestResult`] is what a [`TestFnHandle`] produces when a test is executed.
-/// It is a small, opinionated result type: a test either succeeds or fails, and failures carry an
-/// error message.
+/// A test either succeeds or fails, and may optionally carry extra data for other parts of the
+/// framework.
 ///
-/// A successful test does not produce any value. A failing test carries a `String` that
-/// describes what went wrong.
-/// This keeps the common success path cheap.
+/// Internally this is a `Result<Option<Whatever>, Whatever>`:
 ///
-/// `TestResult` is designed to be easy to return from typical test functions:
+/// - `Ok(None)` means the test passed and did not produce extra data.
+/// - `Ok(Some(_))` means the test passed and returned additional information.
+/// - `Err(_)` means the test failed and carries structured failure data.
 ///
-/// - It can be created from `()` which makes "no return value" test functions work well.
-/// - It can be created from `Result<T, E>` where `E: Debug`. On failure, the error is formatted
-///   using its `Debug` output and used as the failure message.
+/// The common path is `Ok(None)`, which does not allocate and is very cheap.
+/// Only when a test attaches extra data or fails do we allocate a [`Whatever`].
 ///
-/// While `TestResult` is most often produced by regular Rust test functions, it does not have to
-/// come from one.
-/// A data driven test runner can also construct a `TestResult` directly, for example when
-/// validating fixtures and producing its own error messages.
+/// Using [`Whatever`] allows tests and runners to attach type erased but still
+/// strongly bounded values. Consumers that know the concrete type can
+/// downcast and recover the original value, enabling richer reporting and
+/// integration without pushing more generics through the core API.
 ///
-/// Note: failures store a `String` instead of a borrowed string.
-/// The expectation is that `Ok` is the hot path, and allocating error strings only happens on
-/// failure.
+/// `TestResult` is designed to be ergonomic:
+///
+/// - It can be created from `()`, which maps to `Ok(None)`.
+/// - It can be created from `Result<(), E>` where `E: Error`. On failure,
+///   the error is converted into a `Whatever`, preserving its formatted
+///   representation while fitting into the unified result type.
+///
+/// While typically returned from regular Rust test functions, a runner may
+/// also construct a `TestResult` directly, for example when validating
+/// fixtures or aggregating diagnostics.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TestResult(pub Result<(), String>);
+pub struct TestResult(pub Result<Option<Whatever>, Whatever>);
 
 impl From<()> for TestResult {
     fn from(_: ()) -> Self {
-        Self(Ok(()))
+        Self(Ok(None))
     }
 }
 
 impl<E: Debug> From<Result<(), E>> for TestResult {
     fn from(v: Result<(), E>) -> Self {
-        TestResult(v.map_err(|e| format!("{e:#?}")))
+        TestResult(
+            v.map(|_| None)
+                .map_err(|e| Whatever::from(format!("{e:?}"))),
+        )
     }
 }
