@@ -1,5 +1,3 @@
-use std::panic::RefUnwindSafe;
-
 use kitest::prelude::*;
 
 pub struct BuildTest<Extra> {
@@ -43,7 +41,7 @@ pub struct WrappedTestFnHandle(TestFnHandle);
 
 impl<F> From<F> for WrappedTestFnHandle
 where
-    F: TestFn + Send + Sync + RefUnwindSafe + 'static,
+    F: TestFn + Send + Sync + 'static,
 {
     fn from(value: F) -> Self {
         Self(TestFnHandle::Owned(Box::new(value)))
