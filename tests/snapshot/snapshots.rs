@@ -38,3 +38,4 @@ snapshot!(single_error: [fail]);
 snapshot!(single_ok: [one_test]);
 snapshot!(single_ignored: [one_test: {ignore: true}]);
 snapshot!(single_panic: [panic]);
+snapshot!(struct_error: [fail]);
