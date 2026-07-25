@@ -8,7 +8,7 @@
 //! Outcomes are produced by running a harness and are used by reports and
 //! formatters to present results. They are also a useful extension point:
 //!
-//! - [`TestStatus::Other`] allows custom statuses when the built in variants are not enough
+//! - [`TestStatus::Other`] allows custom statuses when the built-in variants are not enough
 //! - [`TestOutcomeAttachments`] allows attaching additional typed data to an outcome
 
 use std::{
@@ -75,7 +75,7 @@ pub enum TestStatus {
 
     /// The test exceeded its allowed execution time.
     ///
-    /// This variant is currently not produced by the built in runners, but is reserved
+    /// This variant is currently not produced by the built-in runners, but is reserved
     /// for runners that implement timeouts.
     TimedOut,
 
@@ -96,7 +96,7 @@ pub enum TestStatus {
 
     /// A custom test status.
     ///
-    /// This is intended for cases where the built in status variants are not expressive enough.
+    /// This is intended for cases where the built-in status variants are not expressive enough.
     /// It is not necessarily a failure.
     ///
     /// When deciding whether a test is considered "good" or "bad", this variant is

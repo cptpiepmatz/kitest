@@ -65,7 +65,7 @@ impl<'t, FmtError: 't> TestReport<'t, FmtError> {
     ///   [`ExitCode::FAILURE`]
     /// - Otherwise, the exit code is [`ExitCode::SUCCESS`]
     ///
-    /// This mirrors the behavior of the built in Rust test harness, where
+    /// This mirrors the behavior of the built-in Rust test harness, where
     /// formatting errors are treated as fatal.
     pub fn exit_code(&self) -> ExitCode {
         let any_failed = self.outcomes.iter().any(|(_, outcome)| outcome.failed());
@@ -137,7 +137,7 @@ impl<'t, GroupKey, GroupCtx, FmtError: 't> GroupedTestReport<'t, GroupKey, Group
     ///   [`ExitCode::FAILURE`]
     /// - Otherwise, the exit code is [`ExitCode::SUCCESS`]
     ///
-    /// This mirrors the behavior of the built in Rust test harness and matches
+    /// This mirrors the behavior of the built-in Rust test harness and matches
     /// the non grouped [`TestReport`] behavior.
     pub fn exit_code(&self) -> ExitCode {
         let any_failed = self

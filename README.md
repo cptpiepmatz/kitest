@@ -24,7 +24,7 @@
 
 Kitest provides building blocks for custom test harnesses on top of `cargo test`.
 
-It ships with a defaults that behave similar to Rust's built in harness, but 
+It ships with a defaults that behave similar to Rust's built-in harness, but 
 every part is replaceable. 
 Filtering, ignoring, panic handling, execution strategy, and formatting can all 
 be swapped independently.
@@ -34,7 +34,7 @@ It is a foundation for creating one.
 
 ## What kitest provides
 
-- A default harness comparable to the built in one
+- A default harness comparable to the built-in one
 - Data driven tests
 - Test grouping with shared setup and teardown
 - Suite level setup and teardown

@@ -11,7 +11,7 @@ use crate::{
 
 /// The default [`TestPanicHandler`] implementation used by the default test harness.
 ///
-/// The behavior is meant to feel similar to the built in Rust test harness:
+/// The behavior is meant to feel similar to the built-in Rust test harness:
 /// a test passes when it returns `Ok(())` and does not panic, and it fails when
 /// it returns an error or panics.
 ///

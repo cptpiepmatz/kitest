@@ -1,6 +1,6 @@
 //! Panic handling for kitest.
 //!
-//! Tests can panic. In the built in Rust test harness, a panic usually means the
+//! Tests can panic. In the built-in Rust test harness, a panic usually means the
 //! test failed, so we need a way to catch panics and turn them into a structured
 //! status.
 //!

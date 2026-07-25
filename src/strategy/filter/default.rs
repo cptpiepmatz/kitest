@@ -7,7 +7,7 @@ use crate::{
 
 /// The default [`TestFilter`] implementation used by the default test harness.
 ///
-/// The behavior is meant to feel similar to the built in Rust test harness:
+/// The behavior is meant to feel similar to the built-in Rust test harness:
 /// we can include tests by name (or name parts) and skip tests by name (or name parts).
 ///
 /// The filter also allows filtering out all non-ignored tests, just like the built-in Rust test

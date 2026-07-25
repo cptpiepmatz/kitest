@@ -24,7 +24,7 @@ use crate::{
 
 /// The default [`TestRunner`] implementation used by the default test harness.
 ///
-/// The behavior is meant to feel similar to the built in Rust test harness:
+/// The behavior is meant to feel similar to the built-in Rust test harness:
 /// tests are executed on a worker pool, outcomes are collected as they finish,
 /// and the order of results is not tied to the input order.
 ///

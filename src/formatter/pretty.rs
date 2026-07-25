@@ -16,7 +16,7 @@ use crate::{
     panic::PanicExpectation,
 };
 
-/// A human friendly formatter that behaves similar to the built in Rust test harness.
+/// A human friendly formatter that behaves similar to the built-in Rust test harness.
 ///
 /// It prints per test status lines and a final summary. On failures it prints
 /// additional details and captured output.
