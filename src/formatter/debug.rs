@@ -51,6 +51,10 @@ fn debug_fmt<T: Debug>(f: &mut Formatter, d: &T) -> fmt::Result {
 }
 
 impl<'t, Extra: Debug> Default for DebugFormatter<'t, Stdout, Extra> {
+    #[allow(
+        clippy::redundant_closure,
+        reason = "clippy falsely assumes `debug_fmt` can be used directly"
+    )]
     fn default() -> Self {
         Self {
             target: io::stdout(),
@@ -276,7 +280,7 @@ impl<'t, 'o> From<FmtRunOutcomes<'t, 'o>> for DebugRunOutcomes {
         } = value;
         Self {
             outcomes: outcomes
-                .into_iter()
+                .iter()
                 .map(|(name, outcome)| (name.to_string(), outcome.into()))
                 .collect(),
             filtered_out,
@@ -358,6 +362,7 @@ impl<'t, 'g, 'o, GroupKey: Debug, GroupCtx: Debug>
     }
 }
 
+#[allow(clippy::type_complexity, reason = "simple enough imo")]
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct DebugGroupedRunOutcomes {
@@ -708,7 +713,7 @@ impl From<&crate::outcome::TestOutcome> for DebugOutcome {
         } = value;
         Self {
             status: status.clone(),
-            duration: duration.clone(),
+            duration: *duration,
             output: output.clone(),
         }
     }
