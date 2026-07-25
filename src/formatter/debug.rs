@@ -584,8 +584,8 @@ where
 
 impl<'t, W, Extra> TestListFormatter<'t, Extra> for DebugFormatter<'t, W, Extra>
 where
-    W: io::Write + Send,
-    Extra: 't + Sync + Debug,
+    W: io::Write,
+    Extra: 't + Debug,
 {
     type Error = io::Error;
 
@@ -629,8 +629,8 @@ where
 impl<'t, W, Extra, GroupKey, GroupCtx> GroupedTestListFormatter<'t, Extra, GroupKey, GroupCtx>
     for DebugFormatter<'t, W, Extra>
 where
-    W: io::Write + Send,
-    Extra: 't + Sync + Debug,
+    W: io::Write,
+    Extra: 't + Debug,
     GroupKey: 't + Debug,
     GroupCtx: 't + Debug,
 {
