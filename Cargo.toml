@@ -2,7 +2,7 @@
 name = "kitest"
 version = "0.6.0"
 edition = "2024"
-rust-version = "1.88.0"
+rust-version = "1.93.1"
 description = "A composable test harness toolkit with room to fly."
 repository = "https://github.com/cptpiepmatz/kitest"
 license = "MIT"
