@@ -7,10 +7,22 @@ use crate::{capture::OutputCapture, formatter::*, ignore::IgnoreStatus, outcome:
 
 type BoxedDebugFormatter<T> = Box<dyn (Fn(&mut Formatter, &T) -> fmt::Result) + Send>;
 
-// TODO: explain in this, that this formatter should only be used for debugging as its operations
-//       are pretty wasteful, for production (or at least runnings tests as they should), write a
-//       proper test formatter that is using only what is needed
-
+/// A formatter for inspecting the raw formatter events emitted by the harness.
+///
+/// `DebugFormatter` is meant as a development tool for understanding formatter
+/// data and prototyping custom output. By default, every event is printed using
+/// its [`Debug`] representation.
+///
+/// This formatter deliberately keeps broad, debug-friendly event payloads. Some
+/// events clone outcomes, stringify group keys and contexts, or keep references
+/// to complete test metadata. That makes it convenient to inspect what the
+/// harness sends, but wasteful compared to a formatter tailored to the exact
+/// data it needs. For normal test output, prefer
+/// [`PrettyFormatter`](super::pretty::PrettyFormatter),
+/// [`TerseFormatter`](super::terse::TerseFormatter), or a custom formatter with
+/// smaller event payloads.
+///
+/// Each event formatter can be replaced independently.
 pub struct DebugFormatter<'t, W: io::Write, Extra> {
     target: W,
 
@@ -66,6 +78,10 @@ impl<'t, Extra: Debug> Default for DebugFormatter<'t, Stdout, Extra> {
 
 macro_rules! with_formatter {
     {$(($ty:ty, $field:ident, $with:ident, $default:ident),)*} => {$(
+        /// Replace the debug formatting function for this event.
+        ///
+        /// The function writes into a [`Formatter`], so it can use the regular
+        /// `write!` and `writeln!` macros and return [`fmt::Result`].
         pub fn $with(
             self,
             f: impl (Fn(&mut Formatter, &$ty) -> fmt::Result) + Send + 'static,
@@ -76,6 +92,7 @@ macro_rules! with_formatter {
             }
         }
 
+        /// Restore the default [`Debug`] formatting function for this event.
         pub fn $default(self) -> Self {
             Self {
                 $field: Box::new(|f, d| debug_fmt(f, d)),
@@ -86,6 +103,10 @@ macro_rules! with_formatter {
 }
 
 impl<'t, W: io::Write, Extra: Debug> DebugFormatter<'t, W, Extra> {
+    /// Replace the output target.
+    ///
+    /// This can be used to write debug output into a file, a buffer, or any
+    /// other writer.
     pub fn with_target<WithTarget: io::Write>(
         self,
         target: WithTarget,
@@ -112,6 +133,12 @@ impl<'t, W: io::Write, Extra: Debug> DebugFormatter<'t, W, Extra> {
         }
     }
 
+    /// Disable all event output.
+    ///
+    /// This is useful as a starting point when only a few events should be
+    /// inspected. Re-enable individual events with their `with_*_formatter`
+    /// methods or restore the default debug output with the matching
+    /// `with_default_*_formatter` method.
     pub fn with_no_formatter(self) -> Self {
         Self {
             target: self.target,
@@ -219,7 +246,7 @@ impl<'t, Extra> From<FmtTestStart<'t, Extra>> for DebugTestStart<'t, Extra> {
 #[derive(Debug)]
 pub struct DebugTestOutcome<'t, Extra> {
     pub meta: &'t TestMeta<Extra>,
-    pub outcome: TestOutcome,
+    pub outcome: DebugOutcome,
 }
 
 impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for DebugTestOutcome<'t, Extra> {
@@ -235,7 +262,7 @@ impl<'t, 'o, Extra> From<FmtTestOutcome<'t, 'o, Extra>> for DebugTestOutcome<'t,
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct DebugRunOutcomes {
-    pub outcomes: Vec<(String, TestOutcome)>,
+    pub outcomes: Vec<(String, DebugOutcome)>,
     pub filtered_out: usize,
     pub duration: Duration,
 }
@@ -303,7 +330,7 @@ impl<'g, GroupKey: Debug, GroupCtx: Debug> From<FmtGroupStart<'g, GroupKey, Grou
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct DebugGroupOutcomes {
-    pub outcomes: Vec<(String, TestOutcome)>,
+    pub outcomes: Vec<(String, DebugOutcome)>,
     pub duration: Duration,
     pub key: String,
     pub ctx: Option<String>,
@@ -334,7 +361,7 @@ impl<'t, 'g, 'o, GroupKey: Debug, GroupCtx: Debug>
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct DebugGroupedRunOutcomes {
-    pub outcomes: Vec<(String, Vec<(String, TestOutcome)>, Option<String>)>,
+    pub outcomes: Vec<(String, Vec<(String, DebugOutcome)>, Option<String>)>,
     pub duration: Duration,
 }
 
@@ -664,13 +691,13 @@ where
 
 #[non_exhaustive]
 #[derive(Debug)]
-pub struct TestOutcome {
+pub struct DebugOutcome {
     pub status: TestStatus,
     pub duration: Duration,
     pub output: OutputCapture,
 }
 
-impl From<&crate::outcome::TestOutcome> for TestOutcome {
+impl From<&crate::outcome::TestOutcome> for DebugOutcome {
     fn from(value: &crate::outcome::TestOutcome) -> Self {
         // outcome attachments are too arbitrary to keep them in the debug output
         let crate::outcome::TestOutcome {
