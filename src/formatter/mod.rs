@@ -28,6 +28,7 @@ use crate::{
 
 pub mod common;
 
+pub mod debug;
 pub mod no;
 pub mod pretty;
 pub mod terse;
